@@ -1,0 +1,48 @@
+id: cauchy
+names:
+  en-US: Cauchy
+  pt-BR: Cauchy
+type: continuous
+group: real_line
+subgroup: t_family
+tier: 1
+support:
+  lower: -.inf
+  upper: .inf
+parameters:
+  - name: location
+    latex: "x_0"
+    lower: -.inf
+    upper: .inf
+    default: 0
+    slider: {min: -10, max: 10, step: 0.1}
+  - name: scale
+    latex: "\\gamma"
+    lower: 0
+    lower_open: true
+    upper: .inf
+    default: 1
+    slider: {min: 0.1, max: 10, step: 0.1}
+functions:
+  d: stats::dcauchy
+  p: stats::pcauchy
+  q: stats::qcauchy
+  r: stats::rcauchy
+latex:
+  pdf: "f(x) = \\frac{1}{\\pi \\gamma \\left[1 + \\left(\\frac{x - x_0}{\\gamma}\\right)^2\\right]}"
+  cdf: "F(x) = \\frac{1}{2} + \\frac{1}{\\pi} \\arctan\\left(\\frac{x - x_0}{\\gamma}\\right)"
+story:
+  en-US: >-
+    A lamp spins to a random angle and shines on a long wall; the spot where
+    the beam hits the wall is Cauchy distributed. Its tails are so heavy that
+    the mean and variance do not exist, and the average of many draws is no
+    more concentrated than a single draw.
+  pt-BR: >-
+    Uma lanterna gira até um ângulo aleatório e ilumina uma parede longa; o
+    ponto em que o feixe atinge a parede tem distribuição de Cauchy. Suas
+    caudas são tão pesadas que a média e a variância não existem, e a média
+    de muitos sorteios não é mais concentrada do que um único sorteio.
+references:
+  - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
+  - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
+  - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."

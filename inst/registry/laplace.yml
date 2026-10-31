@@ -1,0 +1,49 @@
+id: laplace
+names:
+  en-US: Laplace
+  pt-BR: Laplace
+type: continuous
+group: real_line
+subgroup: symmetric_family
+tier: 1
+support:
+  lower: -.inf
+  upper: .inf
+parameters:
+  - name: mu
+    latex: "\\mu"
+    lower: -.inf
+    upper: .inf
+    default: 0
+    slider: {min: -10, max: 10, step: 0.1}
+  - name: sigma
+    latex: "b"
+    lower: 0
+    lower_open: true
+    upper: .inf
+    default: 1
+    slider: {min: 0.1, max: 10, step: 0.1}
+functions:
+  d: extraDistr::dlaplace
+  p: extraDistr::plaplace
+  q: extraDistr::qlaplace
+  r: extraDistr::rlaplace
+latex:
+  pdf: "f(x) = \\frac{1}{2b} \\exp\\left(-\\frac{|x - \\mu|}{b}\\right)"
+  cdf: "F(x) = \\begin{cases} \\frac{1}{2} e^{(x - \\mu)/b}, & x < \\mu \\\\ 1 - \\frac{1}{2} e^{-(x - \\mu)/b}, & x \\ge \\mu \\end{cases}"
+story:
+  en-US: >-
+    Take the difference between two independent Exponential waiting times
+    with the same rate: the result is a Laplace variable, also called double
+    exponential. Its density has a sharp peak at mu and tails that decay
+    exponentially, heavier than the Normal's. The scale b is the mean
+    absolute deviation from mu.
+  pt-BR: >-
+    Tome a diferença entre dois tempos de espera Exponenciais independentes
+    com a mesma taxa: o resultado é uma variável de Laplace, também chamada
+    exponencial dupla. Sua densidade tem um pico agudo em mu e caudas que
+    decaem exponencialmente, mais pesadas que as da Normal. A escala b é o
+    desvio absoluto médio em torno de mu.
+references:
+  - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
+  - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."

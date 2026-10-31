@@ -1,0 +1,64 @@
+id: uniform
+names:
+  en-US: Uniform
+  pt-BR: Uniforme
+type: continuous
+group: bounded
+subgroup: uniform_family
+tier: 1
+support:
+  lower: min
+  upper: max
+constraints:
+  - "min < max"
+parameters:
+  - name: min
+    latex: "a"
+    lower: -.inf
+    upper: .inf
+    default: 0
+    slider: {min: -10, max: 10, step: 0.1}
+  - name: max
+    latex: "b"
+    lower: -.inf
+    upper: .inf
+    default: 1
+    slider: {min: -10, max: 10, step: 0.1}
+functions:
+  d: stats::dunif
+  p: stats::punif
+  q: stats::qunif
+  r: stats::runif
+latex:
+  pdf: "f(x) = \\frac{1}{b - a}, \\quad a \\le x \\le b"
+  cdf: "F(x) = \\frac{x - a}{b - a}, \\quad a \\le x \\le b"
+story:
+  en-US: >-
+    Choose a point at random in the interval [a, b], with no region favored
+    over another of the same length. The density is flat, and the probability
+    of a subinterval is its length divided by b - a. Uniform(0, 1) draws are
+    the raw material from which computers simulate every other distribution.
+  pt-BR: >-
+    Escolha um ponto ao acaso no intervalo [a, b], sem favorecer nenhuma
+    região em relação a outra de mesmo comprimento. A densidade é constante, e
+    a probabilidade de um subintervalo é seu comprimento dividido por b - a.
+    Sorteios da Uniforme(0, 1) são a matéria-prima com que os computadores
+    simulam todas as outras distribuições.
+relationships:
+  - to: exponential
+    type: transformation
+    condition:
+      en-US: "If U ~ Uniform(0, 1), then -log(U) / lambda is Exponential with rate lambda (inverse transform)."
+      pt-BR: "Se U ~ Uniforme(0, 1), então -log(U) / lambda é Exponencial com taxa lambda (transformação inversa)."
+    latex: "U \\sim U(0, 1) \\Rightarrow -\\frac{\\log U}{\\lambda} \\sim \\mathrm{Exp}(\\lambda)"
+  - to: logistic
+    type: transformation
+    condition:
+      en-US: "If U ~ Uniform(0, 1), the log-odds log(U / (1 - U)) is standard Logistic."
+      pt-BR: "Se U ~ Uniforme(0, 1), o log da chance log(U / (1 - U)) é Logística padrão."
+    latex: "U \\sim U(0, 1) \\Rightarrow \\log\\frac{U}{1 - U} \\sim \\mathrm{Logistic}(0, 1)"
+references:
+  - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
+  - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
+  - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
+  - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."

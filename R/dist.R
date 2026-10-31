@@ -38,7 +38,22 @@ dl_dist <- function(id, ...) {
                    par$name, format(params[[par$name]]), id), call. = FALSE)
     }
   }
+  # Constraints that tie parameters together, such as min < max.
+  for (cond in entry$constraints) {
+    if (!isTRUE(eval_bound(cond, params))) {
+      stop(sprintf("Parameters of %s must satisfy %s.", id, cond), call. = FALSE)
+    }
+  }
   structure(list(id = id, entry = entry, params = params), class = "dl_dist")
+}
+
+# Numeric support of a distribution object. Registry bounds may be numbers or
+# expressions of the parameters (e.g. "min(k, m)"), resolved here.
+dl_support <- function(dist) {
+  s <- dist$entry$support
+  list(lower = eval_bound(s$lower, dist$params),
+       upper = eval_bound(s$upper, dist$params),
+       lower_open = isTRUE(s$lower_open), upper_open = isTRUE(s$upper_open))
 }
 
 #' @export
@@ -149,5 +164,9 @@ dl_curve <- function(dist, n = 401L, tail = 1e-4) {
   } else {
     seq(lo, hi, length.out = n)
   }
-  data.frame(x = x, density = dl_density(dist, x), cdf = dl_cdf(dist, x))
+  dens <- dl_density(dist, x)
+  # An extreme quantile may round onto a support end where the density is
+  # infinite (Beta with a shape below 1); such points cannot be drawn.
+  keep <- is.finite(dens)
+  data.frame(x = x[keep], density = dens[keep], cdf = dl_cdf(dist, x[keep]))
 }

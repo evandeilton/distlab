@@ -1,0 +1,66 @@
+id: hypergeometric
+names:
+  en-US: Hypergeometric
+  pt-BR: Hipergeométrica
+type: discrete
+group: counts
+subgroup: binomial_family
+tier: 1
+support:
+  lower: "max(0, k - n)"
+  upper: "min(k, m)"
+constraints:
+  - "k <= m + n"
+parameters:
+  - name: m
+    latex: "m"
+    lower: 1
+    upper: .inf
+    integer: true
+    default: 10
+    slider: {min: 1, max: 50, step: 1}
+  - name: "n"
+    latex: "n"
+    lower: 1
+    upper: .inf
+    integer: true
+    default: 15
+    slider: {min: 1, max: 50, step: 1}
+  - name: k
+    latex: "k"
+    lower: 1
+    upper: .inf
+    integer: true
+    default: 8
+    slider: {min: 1, max: 50, step: 1}
+functions:
+  d: stats::dhyper
+  p: stats::phyper
+  q: stats::qhyper
+  r: stats::rhyper
+latex:
+  pdf: "P(X = x) = \\frac{\\binom{m}{x} \\binom{n}{k - x}}{\\binom{m + n}{k}}, \\quad \\max(0, k - n) \\le x \\le \\min(k, m)"
+  cdf: "F(x) = \\sum_{j = \\max(0, k - n)}^{\\lfloor x \\rfloor} \\frac{\\binom{m}{j} \\binom{n}{k - j}}{\\binom{m + n}{k}}"
+story:
+  en-US: >-
+    An urn holds m marked and n unmarked balls. Draw k balls without
+    replacement and count the marked ones. Because each draw changes the urn,
+    the draws are dependent; this is the model behind quality inspection of a
+    finite lot and capture-recapture counts.
+  pt-BR: >-
+    Uma urna contém m bolas marcadas e n não marcadas. Retire k bolas sem
+    reposição e conte as marcadas. Como cada retirada altera a urna, as
+    retiradas são dependentes; esse é o modelo por trás da inspeção de
+    qualidade de um lote finito e das contagens de captura e recaptura.
+relationships:
+  - to: binomial
+    type: limit
+    condition:
+      en-US: "When the urn is large (m + n grows with m / (m + n) = p fixed) and k stays fixed, drawing without replacement is almost drawing with replacement: the limit is Binomial(k, p)."
+      pt-BR: "Quando a urna é grande (m + n cresce com m / (m + n) = p fixo) e k fica fixo, retirar sem reposição é quase retirar com reposição: o limite é Binomial(k, p)."
+    latex: "m + n \\to \\infty,\\ \\frac{m}{m + n} = p \\Rightarrow \\mathrm{Hyper}(m, n, k) \\to \\mathrm{Binomial}(k, p)"
+references:
+  - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
+  - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
+  - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
+  - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."

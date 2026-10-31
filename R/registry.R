@@ -31,6 +31,11 @@ dl_registry <- function(refresh = FALSE) {
     files <- sort(list.files(dir, pattern = "\\.ya?ml$", full.names = TRUE))
     entries <- lapply(files, read_registry_entry)
     names(entries) <- vapply(entries, `[[`, character(1), "id")
+    problems <- validate_relationship_targets(entries)
+    if (length(problems)) {
+      stop("Invalid registry relationships:\n- ",
+           paste(problems, collapse = "\n- "), call. = FALSE)
+    }
     .dl_env$registry <- entries
   }
   .dl_env$registry
@@ -92,7 +97,7 @@ read_registry_entry <- function(path) {
 validate_entry <- function(entry) {
   p <- character()
   req <- c("id", "names", "type", "group", "subgroup", "tier", "support",
-           "parameters", "functions", "latex", "story")
+           "parameters", "functions", "latex", "story", "references")
   miss <- setdiff(req, names(entry))
   if (length(miss)) {
     return(paste("missing field:", miss))
@@ -107,15 +112,15 @@ validate_entry <- function(entry) {
                         paste(.dl_langs, collapse = " and ")))
     }
   }
+  if (!is_string(entry$subgroup)) p <- c(p, "subgroup must be a string")
+  if (!length(entry$references) ||
+      !all(vapply(entry$references, is_string, logical(1)))) {
+    p <- c(p, "references must be a non-empty list of strings")
+  }
   if (!is_string(entry$type) || !entry$type %in% .dl_types) p <- c(p, "unknown type")
   if (!is_string(entry$group) || !entry$group %in% .dl_groups) p <- c(p, "unknown group")
   if (!is.numeric(entry$tier) || length(entry$tier) != 1L || !entry$tier %in% 1:3) {
     p <- c(p, "tier must be 1, 2 or 3")
-  }
-
-  s <- entry$support
-  if (!is.numeric(s$lower) || !is.numeric(s$upper) || !(s$lower < s$upper)) {
-    p <- c(p, "support needs numeric lower < upper")
   }
 
   pars <- entry$parameters
@@ -125,6 +130,32 @@ validate_entry <- function(entry) {
   }
   par_names <- vapply(pars, function(x) format(x$name), character(1))
   if (anyDuplicated(par_names)) p <- c(p, "duplicated parameter names")
+  # Bounds and constraints are evaluated at the defaults, so only when those are valid.
+  pars_ok <- !length(p)
+
+  s <- entry$support
+  defaults <- stats::setNames(lapply(pars, `[[`, "default"), par_names)
+  bounds_ok <- TRUE
+  for (side in c("lower", "upper")) {
+    if (!is_bound(s[[side]], par_names)) {
+      bounds_ok <- FALSE
+      p <- c(p, sprintf("support %s must be a number or an expression of the parameters",
+                        side))
+    }
+  }
+  if (pars_ok && bounds_ok) {
+    lo <- eval_bound(s$lower, defaults)
+    hi <- eval_bound(s$upper, defaults)
+    if (!(lo < hi)) p <- c(p, "support needs lower < upper at the default parameters")
+  }
+  for (cond in entry$constraints) {
+    if (!is_bound(cond, par_names, logical = TRUE)) {
+      p <- c(p, sprintf("constraint '%s' is not a valid expression of the parameters",
+                        format(cond)))
+    } else if (pars_ok && !isTRUE(eval_bound(cond, defaults))) {
+      p <- c(p, sprintf("constraint '%s' fails at the default parameters", cond))
+    }
+  }
 
   for (fn in c("d", "p", "q", "r")) {
     f <- resolve_fun(entry$functions[[fn]], error = FALSE)
@@ -139,7 +170,69 @@ validate_entry <- function(entry) {
   if (!is_string(entry$latex$pdf) || !is_string(entry$latex$cdf)) {
     p <- c(p, "latex needs pdf and cdf strings")
   }
+  for (rel in entry$relationships) {
+    p <- c(p, validate_relationship(rel))
+  }
   p
+}
+
+# Allowed relationship types between registry entries.
+.dl_relation_types <- c("special_case", "transformation", "limit", "sum")
+
+# Check one relationship spec: target id, type, bilingual condition and LaTeX.
+validate_relationship <- function(rel) {
+  label <- format(rel$to %||% "<no target>")
+  p <- character()
+  if (!is_string(rel$to)) p <- c(p, "relationship needs a target id `to`")
+  if (!is_string(rel$type) || !rel$type %in% .dl_relation_types) {
+    p <- c(p, sprintf("relationship to %s has an unknown type", label))
+  }
+  if (!all(.dl_langs %in% names(rel$condition)) ||
+      !all(vapply(rel$condition[.dl_langs], is_string, logical(1)))) {
+    p <- c(p, sprintf("relationship to %s needs condition text for %s", label,
+                      paste(.dl_langs, collapse = " and ")))
+  }
+  if (!is_string(rel$latex)) {
+    p <- c(p, sprintf("relationship to %s needs a latex string", label))
+  }
+  p
+}
+
+# Every relationship must point to an id present in the registry.
+validate_relationship_targets <- function(entries) {
+  ids <- names(entries)
+  p <- character()
+  for (e in entries) {
+    for (rel in e$relationships) {
+      if (is_string(rel$to) && !rel$to %in% ids) {
+        p <- c(p, sprintf("%s: relationship target '%s' is not in the registry",
+                          e$id, rel$to))
+      }
+    }
+  }
+  p
+}
+
+# Functions and operators allowed in support bounds and parameter constraints.
+.dl_bound_ops <- c("+", "-", "*", "/", "(", "min", "max")
+.dl_logical_ops <- c("<", "<=", ">", ">=", "==", "!=", "&", "|", "!")
+
+# TRUE when `x` is a number or a string holding a simple expression whose
+# symbols are parameter names, numbers or the allowed operators.
+is_bound <- function(x, par_names, logical = FALSE) {
+  if (!logical && is.numeric(x) && length(x) == 1L && !is.na(x)) return(TRUE)
+  if (!is_string(x)) return(FALSE)
+  expr <- tryCatch(str2lang(x), error = function(e) NULL)
+  if (is.null(expr)) return(FALSE)
+  ok <- c(par_names, .dl_bound_ops, if (logical) .dl_logical_ops)
+  all(all.names(expr) %in% ok)
+}
+
+# Value of a support bound or constraint at the given parameter values.
+eval_bound <- function(x, params) {
+  if (is.numeric(x)) return(x)
+  env <- list2env(params, parent = baseenv())
+  eval(str2lang(x), env)
 }
 
 # Check one parameter spec: domain, default and slider must be consistent.
@@ -163,6 +256,10 @@ validate_parameter <- function(par) {
     p <- c(p, sprintf("slider of %s needs numeric min < max and step > 0", label))
   } else if (!in_domain(sl$min, par) || !in_domain(sl$max, par)) {
     p <- c(p, sprintf("slider range of %s leaves the domain", label))
+  } else if (isTRUE(par$integer) &&
+             any(c(sl$min, sl$max, sl$step) != round(c(sl$min, sl$max, sl$step)))) {
+    p <- c(p, sprintf("slider of integer parameter %s needs whole min, max and step",
+                      label))
   }
   p
 }
@@ -178,9 +275,13 @@ in_domain <- function(value, par) {
 }
 
 # Turn "pkg::fun" into the function object; NULL (or an error) when unavailable.
+# "distlab::fun" may also name an internal helper of this package.
 resolve_fun <- function(spec, error = TRUE) {
   parts <- if (is_string(spec)) strsplit(spec, "::", fixed = TRUE)[[1]]
-  fun <- if (length(parts) == 2L && requireNamespace(parts[1], quietly = TRUE)) {
+  fun <- if (length(parts) == 2L && identical(parts[1], "distlab")) {
+    f <- get0(parts[2], envir = asNamespace("distlab"), inherits = FALSE)
+    if (is.function(f)) f
+  } else if (length(parts) == 2L && requireNamespace(parts[1], quietly = TRUE)) {
     tryCatch(getExportedValue(parts[1], parts[2]), error = function(e) NULL)
   }
   if (is.null(fun) && error) {

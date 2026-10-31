@@ -1,0 +1,71 @@
+id: betabinomial
+names:
+  en-US: Beta-binomial
+  pt-BR: Beta-binomial
+type: discrete
+group: counts
+subgroup: binomial_family
+tier: 1
+support:
+  lower: 0
+  upper: size
+parameters:
+  - name: size
+    latex: "n"
+    lower: 1
+    upper: .inf
+    integer: true
+    default: 10
+    slider: {min: 1, max: 100, step: 1}
+  - name: alpha
+    latex: "\\alpha"
+    lower: 0
+    lower_open: true
+    upper: .inf
+    default: 2
+    slider: {min: 0.1, max: 20, step: 0.1}
+  - name: beta
+    latex: "\\beta"
+    lower: 0
+    lower_open: true
+    upper: .inf
+    default: 3
+    slider: {min: 0.1, max: 20, step: 0.1}
+functions:
+  d: extraDistr::dbbinom
+  p: extraDistr::pbbinom
+  q: distlab::qbbinom
+  r: extraDistr::rbbinom
+latex:
+  pdf: "P(X = x) = \\binom{n}{x} \\frac{B(x + \\alpha, n - x + \\beta)}{B(\\alpha, \\beta)}, \\quad x = 0, 1, \\ldots, n"
+  cdf: "F(x) = \\sum_{j=0}^{\\lfloor x \\rfloor} \\binom{n}{j} \\frac{B(j + \\alpha, n - j + \\beta)}{B(\\alpha, \\beta)}"
+story:
+  en-US: >-
+    First draw a success probability p from a Beta(alpha, beta) distribution,
+    then run n independent trials with that p and count the successes. The
+    uncertainty about p spreads the counts more than a Binomial would, so the
+    Beta-binomial models overdispersed proportions, such as litters or
+    classrooms that differ in their success rates.
+  pt-BR: >-
+    Primeiro sorteie uma probabilidade de sucesso p de uma distribuição
+    Beta(alfa, beta); depois realize n ensaios independentes com esse p e
+    conte os sucessos. A incerteza sobre p espalha as contagens mais do que
+    uma Binomial, e por isso a Beta-binomial modela proporções com
+    sobredispersão, como ninhadas ou turmas com taxas de sucesso diferentes.
+relationships:
+  - to: binomial
+    type: limit
+    condition:
+      en-US: "When alpha and beta grow with alpha / (alpha + beta) = p fixed, the Beta law concentrates at p and the limit is Binomial(n, p)."
+      pt-BR: "Quando alfa e beta crescem com alfa / (alfa + beta) = p fixo, a lei Beta se concentra em p e o limite é Binomial(n, p)."
+    latex: "\\alpha, \\beta \\to \\infty,\\ \\frac{\\alpha}{\\alpha + \\beta} = p \\Rightarrow \\mathrm{BetaBin}(n, \\alpha, \\beta) \\to \\mathrm{Binomial}(n, p)"
+  - to: discrete_uniform
+    type: special_case
+    condition:
+      en-US: "With alpha = beta = 1 (a uniform p), every count 0, ..., n is equally likely."
+      pt-BR: "Com alfa = beta = 1 (p uniforme), todas as contagens 0, ..., n são igualmente prováveis."
+    latex: "\\mathrm{BetaBin}(n, 1, 1) = \\mathrm{DUnif}(0, n)"
+references:
+  - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
+  - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
+  - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."

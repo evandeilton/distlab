@@ -1,0 +1,49 @@
+id: bernoulli
+names:
+  en-US: Bernoulli
+  pt-BR: Bernoulli
+type: discrete
+group: binary
+subgroup: binomial_family
+tier: 1
+support:
+  lower: 0
+  upper: 1
+parameters:
+  - name: prob
+    latex: "p"
+    lower: 0
+    upper: 1
+    default: 0.3
+    slider: {min: 0.01, max: 0.99, step: 0.01}
+functions:
+  d: distlab::dbern
+  p: distlab::pbern
+  q: distlab::qbern
+  r: distlab::rbern
+latex:
+  pdf: "P(X = x) = p^{x} (1 - p)^{1 - x}, \\quad x \\in \\{0, 1\\}"
+  cdf: "F(x) = \\begin{cases} 0, & x < 0 \\\\ 1 - p, & 0 \\le x < 1 \\\\ 1, & x \\ge 1 \\end{cases}"
+story:
+  en-US: >-
+    A single trial ends in success or failure, such as one coin toss or one
+    patient who does or does not respond. The indicator of success takes the
+    value 1 with probability p and 0 otherwise. Every count of successes is
+    built by adding up such indicators.
+  pt-BR: >-
+    Um único ensaio termina em sucesso ou fracasso, como um lançamento de
+    moeda ou um paciente que responde ou não ao tratamento. O indicador de
+    sucesso vale 1 com probabilidade p e 0 caso contrário. Toda contagem de
+    sucessos é construída somando indicadores como esse.
+relationships:
+  - to: binomial
+    type: sum
+    condition:
+      en-US: "The sum of n independent Bernoulli(p) variables is Binomial(n, p)."
+      pt-BR: "A soma de n variáveis Bernoulli(p) independentes é Binomial(n, p)."
+    latex: "X_1, \\ldots, X_n \\overset{iid}{\\sim} \\mathrm{Bernoulli}(p) \\Rightarrow \\sum_{i=1}^{n} X_i \\sim \\mathrm{Binomial}(n, p)"
+references:
+  - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
+  - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
+  - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
+  - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."

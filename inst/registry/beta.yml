@@ -1,0 +1,59 @@
+id: beta
+names:
+  en-US: Beta
+  pt-BR: Beta
+type: continuous
+group: bounded
+subgroup: beta_family
+tier: 1
+support:
+  lower: 0
+  upper: 1
+parameters:
+  - name: shape1
+    latex: "\\alpha"
+    lower: 0
+    lower_open: true
+    upper: .inf
+    default: 2
+    slider: {min: 0.1, max: 20, step: 0.1}
+  - name: shape2
+    latex: "\\beta"
+    lower: 0
+    lower_open: true
+    upper: .inf
+    default: 5
+    slider: {min: 0.1, max: 20, step: 0.1}
+functions:
+  d: stats::dbeta
+  p: stats::pbeta
+  q: stats::qbeta
+  r: stats::rbeta
+latex:
+  pdf: "f(x) = \\frac{x^{\\alpha - 1} (1 - x)^{\\beta - 1}}{B(\\alpha, \\beta)}, \\quad 0 < x < 1"
+  cdf: "F(x) = I_{x}(\\alpha, \\beta)"
+story:
+  en-US: >-
+    A Beta variable describes an unknown proportion or probability, so it
+    lives between 0 and 1. Its two shapes act like prior counts of successes
+    and failures: large values concentrate it, values below 1 push mass
+    toward the edges. With whole-number shapes it is also the law of an order
+    statistic of Uniform(0, 1) draws.
+  pt-BR: >-
+    Uma variável Beta descreve uma proporção ou probabilidade desconhecida,
+    por isso vive entre 0 e 1. Os dois parâmetros de forma funcionam como
+    contagens prévias de sucessos e fracassos: valores grandes a concentram, e
+    valores abaixo de 1 empurram a massa para as bordas. Com formas inteiras,
+    ela também é a lei de uma estatística de ordem de sorteios da Uniforme(0,
+    1).
+relationships:
+  - to: uniform
+    type: special_case
+    condition:
+      en-US: "With alpha = beta = 1 the density is flat: Beta(1, 1) is Uniform(0, 1)."
+      pt-BR: "Com alfa = beta = 1 a densidade é constante: Beta(1, 1) é Uniforme(0, 1)."
+    latex: "\\mathrm{Beta}(1, 1) = U(0, 1)"
+references:
+  - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
+  - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
+  - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."

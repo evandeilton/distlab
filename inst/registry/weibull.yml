@@ -1,0 +1,57 @@
+id: weibull
+names:
+  en-US: Weibull
+  pt-BR: Weibull
+type: continuous
+group: positive
+subgroup: weibull_family
+tier: 1
+support:
+  lower: 0
+  upper: .inf
+parameters:
+  - name: shape
+    latex: "k"
+    lower: 0
+    lower_open: true
+    upper: .inf
+    default: 1.5
+    slider: {min: 0.2, max: 10, step: 0.1}
+  - name: scale
+    latex: "\\lambda"
+    lower: 0
+    lower_open: true
+    upper: .inf
+    default: 1
+    slider: {min: 0.1, max: 10, step: 0.1}
+functions:
+  d: stats::dweibull
+  p: stats::pweibull
+  q: stats::qweibull
+  r: stats::rweibull
+latex:
+  pdf: "f(x) = \\frac{k}{\\lambda} \\left(\\frac{x}{\\lambda}\\right)^{k - 1} e^{-(x/\\lambda)^{k}}, \\quad x \\ge 0"
+  cdf: "F(x) = 1 - e^{-(x/\\lambda)^{k}}, \\quad x \\ge 0"
+story:
+  en-US: >-
+    A system fails when its weakest component fails. The Weibull describes
+    such lifetimes: with shape k below 1 the failure risk falls over time
+    (early defects), with k = 1 it is constant, and with k above 1 it grows
+    (wear-out). The scale lambda stretches the time axis.
+  pt-BR: >-
+    Um sistema falha quando seu componente mais fraco falha. A Weibull
+    descreve esses tempos de vida: com forma k abaixo de 1 o risco de falha
+    diminui com o tempo (defeitos precoces), com k = 1 ele é constante, e com
+    k acima de 1 ele cresce (desgaste). A escala lambda estica o eixo do
+    tempo.
+relationships:
+  - to: exponential
+    type: special_case
+    condition:
+      en-US: "With shape k = 1 the failure risk is constant: Weibull(1, lambda) is Exponential with rate 1 / lambda."
+      pt-BR: "Com forma k = 1 o risco de falha é constante: Weibull(1, lambda) é Exponencial com taxa 1 / lambda."
+    latex: "\\mathrm{Weibull}(1, \\lambda) = \\mathrm{Exp}(1 / \\lambda)"
+references:
+  - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
+  - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
+  - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."

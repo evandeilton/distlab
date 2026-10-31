@@ -1,0 +1,51 @@
+id: discrete_uniform
+names:
+  en-US: Discrete uniform
+  pt-BR: Uniforme discreta
+type: discrete
+group: counts
+subgroup: uniform_family
+tier: 1
+support:
+  lower: min
+  upper: max
+constraints:
+  - "min < max"
+parameters:
+  - name: min
+    latex: "a"
+    lower: -.inf
+    upper: .inf
+    integer: true
+    default: 1
+    slider: {min: -20, max: 20, step: 1}
+  - name: max
+    latex: "b"
+    lower: -.inf
+    upper: .inf
+    integer: true
+    default: 6
+    slider: {min: -20, max: 20, step: 1}
+functions:
+  d: extraDistr::ddunif
+  p: extraDistr::pdunif
+  q: extraDistr::qdunif
+  r: extraDistr::rdunif
+latex:
+  pdf: "P(X = x) = \\frac{1}{b - a + 1}, \\quad x = a, a + 1, \\ldots, b"
+  cdf: "F(x) = \\frac{\\lfloor x \\rfloor - a + 1}{b - a + 1}, \\quad a \\le x < b"
+story:
+  en-US: >-
+    Pick one of the whole numbers a, a + 1, ..., b with no preference for any
+    of them, like rolling a fair die (a = 1, b = 6). Each value has the same
+    probability 1 / (b - a + 1). It is the natural model for a fair lottery
+    draw.
+  pt-BR: >-
+    Escolha um dos números inteiros a, a + 1, ..., b sem preferência por
+    nenhum deles, como ao lançar um dado honesto (a = 1, b = 6). Cada valor
+    tem a mesma probabilidade 1 / (b - a + 1). É o modelo natural para um
+    sorteio justo.
+references:
+  - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
+  - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
+  - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."

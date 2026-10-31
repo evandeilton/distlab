@@ -36,6 +36,15 @@ story:
     de tempo ou espaço. Quando ocorrem a uma taxa média lambda, a contagem
     segue uma distribuição de Poisson. Ela também é o limite de uma Binomial
     com muitos ensaios e pequena probabilidade de sucesso.
+relationships:
+  - to: normal
+    type: limit
+    condition:
+      en-US: "For a large rate lambda, the standardized Poisson tends to the standard Normal."
+      pt-BR: "Para uma taxa lambda grande, a Poisson padronizada tende à Normal padrão."
+    latex: "\\frac{X - \\lambda}{\\sqrt{\\lambda}} \\xrightarrow{d} N(0, 1), \\quad \\lambda \\to \\infty"
 references:
   - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
   - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
+  - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
+  - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."

@@ -1,0 +1,49 @@
+id: f
+names:
+  en-US: F (Snedecor)
+  pt-BR: F (Snedecor)
+type: continuous
+group: positive
+subgroup: sampling_family
+tier: 1
+support:
+  lower: 0
+  upper: .inf
+parameters:
+  - name: df1
+    latex: "d_1"
+    lower: 0
+    lower_open: true
+    upper: .inf
+    default: 5
+    slider: {min: 0.5, max: 50, step: 0.5}
+  - name: df2
+    latex: "d_2"
+    lower: 0
+    lower_open: true
+    upper: .inf
+    default: 10
+    slider: {min: 0.5, max: 50, step: 0.5}
+functions:
+  d: stats::df
+  p: stats::pf
+  q: stats::qf
+  r: stats::rf
+latex:
+  pdf: "f(x) = \\frac{1}{B(d_1/2, d_2/2)} \\left(\\frac{d_1}{d_2}\\right)^{d_1/2} x^{d_1/2 - 1} \\left(1 + \\frac{d_1}{d_2} x\\right)^{-(d_1 + d_2)/2}, \\quad x > 0"
+  cdf: "F(x) = I_{d_1 x / (d_1 x + d_2)}\\left(\\frac{d_1}{2}, \\frac{d_2}{2}\\right)"
+story:
+  en-US: >-
+    Compare two independent sources of variation by the ratio of their
+    average squared deviations, each divided by its degrees of freedom. That
+    ratio follows an F distribution. It is the reference law of analysis of
+    variance and of tests that compare two variances.
+  pt-BR: >-
+    Compare duas fontes independentes de variação pela razão entre seus
+    desvios quadráticos médios, cada um dividido pelos seus graus de
+    liberdade. Essa razão segue uma distribuição F. Ela é a lei de referência
+    da análise de variância e dos testes que comparam duas variâncias.
+references:
+  - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
+  - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
+  - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."

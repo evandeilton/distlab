@@ -1,0 +1,59 @@
+id: negbinomial
+names:
+  en-US: Negative binomial
+  pt-BR: Binomial negativa
+type: discrete
+group: counts
+subgroup: negbinomial_family
+tier: 1
+support:
+  lower: 0
+  upper: .inf
+parameters:
+  - name: size
+    latex: "r"
+    lower: 0
+    lower_open: true
+    upper: .inf
+    default: 3
+    slider: {min: 1, max: 50, step: 1}
+  - name: prob
+    latex: "p"
+    lower: 0
+    lower_open: true
+    upper: 1
+    default: 0.5
+    slider: {min: 0.05, max: 0.99, step: 0.01}
+functions:
+  d: stats::dnbinom
+  p: stats::pnbinom
+  q: stats::qnbinom
+  r: stats::rnbinom
+latex:
+  pdf: "P(X = x) = \\frac{\\Gamma(x + r)}{\\Gamma(r)\\, x!} p^{r} (1 - p)^{x}, \\quad x = 0, 1, 2, \\ldots \\ \\text{(failures before the } r\\text{-th success)}"
+  cdf: "F(x) = I_{p}(r, \\lfloor x \\rfloor + 1)"
+story:
+  en-US: >-
+    Repeat independent trials with success probability p until the r-th
+    success. As in R, X counts the failures before that success, so the
+    number of trials is X + r. A non-integer r is also allowed, which makes it
+    a flexible model for overdispersed counts, whose variance exceeds the
+    mean.
+  pt-BR: >-
+    Repita ensaios independentes com probabilidade de sucesso p até o r-ésimo
+    sucesso. Como no R, X conta os fracassos antes desse sucesso, e o número
+    de ensaios é X + r. Valores não inteiros de r também são permitidos, o
+    que a torna um modelo flexível para contagens com sobredispersão, cuja
+    variância supera a média.
+relationships:
+  - to: geometric
+    type: special_case
+    condition:
+      en-US: "Waiting for a single success (r = 1) gives Geometric(p)."
+      pt-BR: "Esperar por um único sucesso (r = 1) resulta na Geométrica(p)."
+    latex: "\\mathrm{NegBin}(1, p) = \\mathrm{Geom}(p)"
+references:
+  - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
+  - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
+  - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
+  - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."

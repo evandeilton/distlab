@@ -19,30 +19,147 @@ test_that("d/p/q/r agree with base R", {
   expect_equal(a, b)
 })
 
-test_that("quantile inverts the CDF", {
+test_that("quantile inverts the CDF for every entry", {
+  u <- c(1e-6, 0.1, 0.5, 0.9, 1 - 1e-6)
   for (id in dl_ids(type = "continuous")) {
     d <- dl_dist(id)
-    u <- c(1e-6, 0.1, 0.5, 0.9, 1 - 1e-6)
     expect_equal(dl_cdf(d, dl_quantile(d, u)), u, tolerance = 1e-8, info = id)
+    # Upper-tail quantiles keep precision for tiny tail probabilities.
+    expect_equal(dl_cdf(d, dl_quantile(d, 1e-12, lower.tail = FALSE),
+                        lower.tail = FALSE), 1e-12, tolerance = 1e-6, info = id)
   }
   # Discrete convention: smallest x with F(x) >= u.
-  pz <- dl_dist("poisson", lambda = 2.3)
-  u <- c(0.05, 0.5, 0.95)
-  q <- dl_quantile(pz, u)
-  expect_true(all(dl_cdf(pz, q) >= u))
-  expect_true(all(dl_cdf(pz, q - 1) < u))
+  for (id in dl_ids(type = "discrete")) {
+    d <- dl_dist(id)
+    q <- dl_quantile(d, u)
+    expect_true(all(dl_cdf(d, q) >= u * (1 - 1e-12)), info = id)
+    expect_true(all(dl_cdf(d, q - 1) < u), info = id)
+  }
 })
 
-test_that("densities integrate and masses sum to one", {
+test_that("densities integrate and masses sum to one over the support", {
   for (id in dl_ids(type = "continuous")) {
     d <- dl_dist(id)
-    s <- d$entry$support
-    total <- integrate(function(x) dl_density(d, x), s$lower, s$upper,
-                       rel.tol = 1e-10)$value
+    s <- distlab:::dl_support(d)
+    # Split at the median so peaked densities on long supports are sampled.
+    med <- dl_quantile(d, 0.5)
+    total <- sum(vapply(list(c(s$lower, med), c(med, s$upper)), function(ab) {
+      integrate(function(x) dl_density(d, x), ab[1], ab[2], rel.tol = 1e-10)$value
+    }, numeric(1)))
     expect_equal(total, 1, tolerance = 1e-8, info = id)
   }
-  pz <- dl_dist("poisson", lambda = 7)
-  expect_equal(sum(dl_density(pz, 0:200)), 1, tolerance = 1e-12)
+  for (id in dl_ids(type = "discrete")) {
+    d <- dl_dist(id)
+    s <- distlab:::dl_support(d)
+    hi <- min(s$upper, dl_quantile(d, 1e-16, lower.tail = FALSE))
+    x <- seq(s$lower, hi)
+    expect_equal(sum(dl_density(d, x)), 1, tolerance = 1e-12, info = id)
+    # No mass just outside a finite support.
+    expect_equal(dl_density(d, s$lower - 1), 0, info = id)
+    if (is.finite(s$upper)) expect_equal(dl_density(d, s$upper + 1), 0, info = id)
+  }
+})
+
+test_that("parameter-dependent supports follow the parameters", {
+  b <- dl_dist("binomial", size = 7, prob = 0.4)
+  expect_equal(dl_cdf(b, 7), 1)
+  expect_equal(dl_quantile(b, 1), 7)
+  h <- dl_dist("hypergeometric", m = 4, n = 3, k = 5)
+  expect_equal(dl_density(h, 1), 0)
+  expect_gt(dl_density(h, 2), 0)
+  expect_equal(dl_quantile(h, c(0, 1)), c(2, 4))
+  du <- dl_dist("discrete_uniform", min = -3, max = 2)
+  expect_equal(dl_density(du, -3:2), rep(1 / 6, 6))
+  expect_equal(dl_quantile(du, c(0, 1)), c(-3, 2))
+  bb <- dl_dist("betabinomial", size = 12, alpha = 0.5, beta = 0.7)
+  expect_equal(dl_quantile(bb, c(0, 1)), c(0, 12))
+  un <- dl_dist("uniform", min = 2, max = 5)
+  expect_equal(dl_quantile(un, c(0, 1)), c(2, 5))
+})
+
+test_that("qbbinom matches a direct search on the CDF", {
+  for (pars in list(c(10, 2, 3), c(1, 0.5, 0.5), c(40, 0.2, 5), c(25, 20, 20))) {
+    size <- pars[1]; a <- pars[2]; b <- pars[3]
+    cdf <- extraDistr::pbbinom(0:size, size, a, b)
+    u <- c(0, 1e-9, 0.01, 0.3, 0.5, 0.77, 0.999, 1)
+    direct <- vapply(u, function(v) (0:size)[which(cdf >= v * (1 - 1e-13))[1]], 0)
+    expect_equal(distlab:::qbbinom(u, size, a, b), direct, info = format(pars))
+    # Upper tail and log scale agree with the lower-tail definition.
+    expect_equal(distlab:::qbbinom(1 - u[3:7], size, a, b, lower.tail = FALSE),
+                 direct[3:7], info = format(pars))
+    expect_equal(distlab:::qbbinom(log(u[2:7]), size, a, b, log.p = TRUE),
+                 direct[2:7], info = format(pars))
+  }
+  expect_true(is.nan(distlab:::qbbinom(1.5, 5, 1, 1)))
+  expect_true(is.na(distlab:::qbbinom(NA, 5, 1, 1)))
+  # A tiny upper tail is found from the summed upper tail, not 1 - p.
+  q <- distlab:::qbbinom(1e-15, 30, 2, 2, lower.tail = FALSE)
+  expect_lte(extraDistr::pbbinom(q, 30, 2, 2, lower.tail = FALSE), 1e-15)
+  expect_gt(extraDistr::pbbinom(q - 1, 30, 2, 2, lower.tail = FALSE), 1e-15)
+})
+
+test_that("every entry works at the extremes of its sliders", {
+  for (id in dl_ids()) {
+    e <- dl_entry(id)
+    pars <- e$parameters
+    nm <- vapply(pars, `[[`, "", "name")
+    combos <- list(stats::setNames(lapply(pars, function(p) p$slider$min), nm),
+                   stats::setNames(lapply(pars, function(p) p$slider$max), nm))
+    for (par in pars) {
+      for (v in c(par$slider$min, par$slider$max)) {
+        combos <- c(combos, list(stats::setNames(list(v), par$name)))
+      }
+    }
+    for (cb in combos) {
+      lab <- paste(id, paste(names(cb), unlist(cb), collapse = ", "))
+      d <- tryCatch(do.call(dl_dist, c(list(id), cb)), error = function(err) NULL)
+      # Combinations that break a constraint (e.g. min = max) are refused.
+      if (is.null(d)) {
+        expect_true(length(e$constraints) > 0, info = lab)
+        next
+      }
+      cv <- dl_curve(d)
+      expect_true(all(is.finite(cv$x) & is.finite(cv$cdf)), info = lab)
+      expect_true(all(cv$density >= 0), info = lab)
+      expect_true(all(diff(cv$cdf) >= -1e-12), info = lab)
+      m <- dl_moments(d)
+      expect_false(any(is.nan(m)), info = lab)
+      expect_true(all(is.na(m) | m != -Inf), info = lab)
+    }
+  }
+})
+
+test_that("dl_curve handles bounded supports with unbounded densities", {
+  for (sh in list(c(0.5, 0.5), c(0.1, 0.1), c(0.1, 20), c(20, 0.1))) {
+    cv <- dl_curve(dl_dist("beta", shape1 = sh[1], shape2 = sh[2]))
+    expect_true(all(cv$x > 0 & cv$x < 1), info = format(sh))
+    expect_true(all(is.finite(cv$density)), info = format(sh))
+  }
+  cu <- dl_curve(dl_dist("uniform", min = -1, max = 3))
+  expect_true(all(cu$x >= -1 & cu$x <= 3))
+  expect_equal(cu$density, rep(0.25, nrow(cu)))
+  # A U-shaped Beta gets the y-axis cap; the flat Uniform does not.
+  expect_length(distlab:::density_ylim(dl_curve(dl_dist("beta", shape1 = 0.3,
+                                                         shape2 = 0.3))), 2)
+  expect_null(distlab:::density_ylim(cu))
+})
+
+test_that("integer parameters reject fractional values", {
+  expect_error(dl_dist("binomial", size = 2.5), "outside its domain")
+  expect_error(dl_dist("hypergeometric", k = 1.5), "outside its domain")
+  expect_error(dl_dist("discrete_uniform", min = 0.5), "outside its domain")
+  expect_s3_class(dl_dist("negbinomial", size = 2.5), "dl_dist")
+})
+
+test_that("tiny and huge parameter values stay finite", {
+  expect_equal(dl_cdf(dl_dist("exponential", rate = 1e-8), 1e8), 1 - exp(-1))
+  expect_equal(dl_quantile(dl_dist("normal", mean = 1e12, sd = 1e-3), 0.5), 1e12)
+  expect_equal(dl_density(dl_dist("binomial", size = 1e6, prob = 0.5), 5e5),
+               dbinom(5e5, 1e6, 0.5))
+  cv <- dl_curve(dl_dist("poisson", lambda = 1e4))
+  expect_true(all(is.finite(cv$density)))
+  expect_equal(dl_cdf(dl_dist("bernoulli", prob = 0), 0), 1)
+  expect_equal(dl_cdf(dl_dist("geometric", prob = 1), 0), 1)
 })
 
 test_that("log scale is used directly, not log of underflowed values", {
