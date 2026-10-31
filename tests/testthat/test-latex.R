@@ -50,6 +50,8 @@ test_that("every condition translates to a predicate", {
 })
 
 test_that("each grid point picks exactly one piece, and every piece is reached", {
+  # Exhaustive grids take most of the suite time; run them off CRAN only.
+  skip_on_cran()
   for (e in dl_registry()) {
     for (key in .formula_keys(e)) {
       conds <- piece_conditions(e, key)
@@ -183,6 +185,8 @@ check_continuous_mode <- function(d, r, info) {
 }
 
 test_that("transcriptions pick the YAML piece and match sums, integrals and stats", {
+  # Exhaustive grids take most of the suite time; run them off CRAN only.
+  skip_on_cran()
   for (e in dl_registry()) {
     for (key in .formula_keys(e)) {
       conds <- piece_conditions(e, key)
