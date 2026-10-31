@@ -1,0 +1,87 @@
+id: exponential
+names:
+  en-US: Exponential
+  pt-BR: Exponencial
+type: continuous
+group: positive
+subgroup: gamma_family
+tier: 1
+support:
+  lower: 0
+  upper: .inf
+parameters:
+  - name: rate
+    latex: "\\lambda"
+    lower: 0
+    lower_open: true
+    upper: .inf
+    default: 1
+    slider: {min: 0.1, max: 10, step: 0.1}
+functions:
+  d: stats::dexp
+  p: stats::pexp
+  q: stats::qexp
+  r: stats::rexp
+latex:
+  pdf: "f(x) = \\lambda e^{-\\lambda x}, \\quad x \\ge 0"
+  cdf: "F(x) = 1 - e^{-\\lambda x}, \\quad x \\ge 0"
+  quantile:
+    expr: "-\\frac{\\log(1 - u)}{\\lambda}"
+  mean:
+    expr: "\\frac{1}{\\lambda}"
+  variance:
+    expr: "\\frac{1}{\\lambda^{2}}"
+  skewness:
+    expr: "2"
+  excess_kurtosis:
+    expr: "6"
+  raw_moment:
+    - expr: "\\frac{\\Gamma(1 + j)}{\\lambda^{j}}"
+      condition: "j > -1"
+    - status: infinite
+      condition: "j \\le -1"
+  mgf:
+    - expr: "\\frac{\\lambda}{\\lambda - t}"
+      condition: "t < \\lambda"
+    - status: infinite
+      condition: "t \\ge \\lambda"
+  cf:
+    expr: "\\frac{\\lambda}{\\lambda - i t}"
+  median:
+    expr: "\\frac{\\log 2}{\\lambda}"
+  mode:
+    expr: "0"
+  entropy:
+    expr: "1 - \\log \\lambda"
+story:
+  en-US: >-
+    Events happen at random at a constant rate lambda, and you wait for the
+    next one. The waiting time is Exponential, with mean 1 / lambda. It has no
+    memory: having waited t units already does not change the distribution of
+    the time still to come.
+  pt-BR: >-
+    Eventos acontecem ao acaso a uma taxa constante lambda, e você espera pelo
+    próximo. O tempo de espera é Exponencial, com média 1 / lambda. Ela não
+    tem memória: já ter esperado t unidades não muda a distribuição do tempo
+    que ainda falta.
+relationships:
+  - to: gamma
+    type: sum
+    condition:
+      en-US: "The sum of n independent Exponential(lambda) variables is Gamma(n, lambda)."
+      pt-BR: "A soma de n variáveis Exponencial(lambda) independentes é Gama(n, lambda)."
+    latex: "X_1, \\ldots, X_n \\overset{iid}{\\sim} \\mathrm{Exp}(\\lambda) \\Rightarrow \\sum_{i=1}^{n} X_i \\sim \\mathrm{Gamma}(n, \\lambda)"
+  - to: laplace
+    type: transformation
+    condition:
+      en-US: "The difference of two independent Exponential(lambda) variables is Laplace with location 0 and scale 1 / lambda."
+      pt-BR: "A diferença entre duas variáveis Exponencial(lambda) independentes é Laplace com locação 0 e escala 1 / lambda."
+    latex: "X_1, X_2 \\overset{iid}{\\sim} \\mathrm{Exp}(\\lambda) \\Rightarrow X_1 - X_2 \\sim \\mathrm{Laplace}(0, 1 / \\lambda)"
+references:
+  - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
+  - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
+  - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
+  - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."
+  - "Johnson, N. L., Kotz, S. and Balakrishnan, N. (1994). Continuous Univariate Distributions, Vol. 1, 2nd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."
+  - "Lazo, A. V. and Rathie, P. N. (1978). On the entropy of continuous probability distributions. IEEE Transactions on Information Theory, 24(1), 120-122."

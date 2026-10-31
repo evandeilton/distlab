@@ -1,0 +1,83 @@
+id: chisq
+names:
+  en-US: Chi-square
+  pt-BR: Qui-quadrado
+type: continuous
+group: positive
+subgroup: gamma_family
+tier: 1
+support:
+  lower: 0
+  upper: .inf
+parameters:
+  - name: df
+    latex: "k"
+    lower: 0
+    lower_open: true
+    upper: .inf
+    default: 4
+    slider: {min: 0.5, max: 50, step: 0.5}
+functions:
+  d: stats::dchisq
+  p: stats::pchisq
+  q: stats::qchisq
+  r: stats::rchisq
+latex:
+  pdf: "f(x) = \\frac{x^{k/2 - 1} e^{-x/2}}{2^{k/2} \\Gamma(k/2)}, \\quad x > 0"
+  cdf: "F(x) = \\frac{\\gamma(k/2, x/2)}{\\Gamma(k/2)}"
+  quantile:
+    expr: null
+  mean:
+    expr: "k"
+  variance:
+    expr: "2k"
+  skewness:
+    expr: "\\sqrt{\\frac{8}{k}}"
+  excess_kurtosis:
+    expr: "\\frac{12}{k}"
+  raw_moment:
+    - expr: "\\frac{2^{j} \\Gamma(k/2 + j)}{\\Gamma(k/2)}"
+      condition: "j > -\\frac{k}{2}"
+    - status: infinite
+      condition: "j \\le -\\frac{k}{2}"
+  mgf:
+    - expr: "(1 - 2t)^{-k/2}"
+      condition: "t < \\frac{1}{2}"
+    - status: infinite
+      condition: "t \\ge \\frac{1}{2}"
+  cf:
+    expr: "(1 - 2 i t)^{-k/2}"
+  median:
+    expr: null
+  mode:
+    - expr: "k - 2"
+      condition: "k \\ge 2"
+    - expr: "0"
+      condition: "k < 2"
+  entropy:
+    expr: "\\frac{k}{2} + \\log\\left(2 \\Gamma\\left(\\frac{k}{2}\\right)\\right) + \\left(1 - \\frac{k}{2}\\right) \\psi\\left(\\frac{k}{2}\\right)"
+story:
+  en-US: >-
+    Square k independent standard Normal variables and add them up: the total
+    is Chi-square with k degrees of freedom. It measures squared distances,
+    which is why it appears in sample variances and goodness-of-fit tests.
+  pt-BR: >-
+    Eleve ao quadrado k variáveis Normais padrão independentes e some os
+    resultados: o total é Qui-quadrado com k graus de liberdade. Ela mede
+    distâncias ao quadrado, e por isso aparece em variâncias amostrais e em
+    testes de aderência.
+relationships:
+  - to: f
+    type: transformation
+    condition:
+      en-US: "If U ~ Chi-square(d1) and V ~ Chi-square(d2) are independent, (U / d1) / (V / d2) is F(d1, d2)."
+      pt-BR: "Se U ~ Qui-quadrado(d1) e V ~ Qui-quadrado(d2) são independentes, (U / d1) / (V / d2) é F(d1, d2)."
+    latex: "U \\sim \\chi^2_{d_1},\\ V \\sim \\chi^2_{d_2} \\Rightarrow \\frac{U / d_1}{V / d_2} \\sim F(d_1, d_2)"
+references:
+  - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
+  - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
+  - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
+  - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."
+  - "Johnson, N. L., Kotz, S. and Balakrishnan, N. (1994). Continuous Univariate Distributions, Vol. 1, 2nd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."
+  - "Lazo, A. V. and Rathie, P. N. (1978). On the entropy of continuous probability distributions. IEEE Transactions on Information Theory, 24(1), 120-122."

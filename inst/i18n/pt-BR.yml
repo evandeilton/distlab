@@ -13,6 +13,7 @@ moments.variance: Variância
 moments.sd: Desvio-padrão
 moments.skewness: Assimetria
 moments.excess_kurtosis: Excesso de curtose
+moments.undefined: não existe
 plot.x: x
 plot.density: f(x)
 plot.probability: P(X = x)

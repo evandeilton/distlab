@@ -1,0 +1,105 @@
+id: binomial
+names:
+  en-US: Binomial
+  pt-BR: Binomial
+type: discrete
+group: counts
+subgroup: binomial_family
+tier: 1
+support:
+  lower: 0
+  upper: size
+parameters:
+  - name: size
+    latex: "n"
+    lower: 1
+    upper: .inf
+    integer: true
+    default: 10
+    slider: {min: 1, max: 100, step: 1}
+  - name: prob
+    latex: "p"
+    lower: 0
+    upper: 1
+    default: 0.5
+    slider: {min: 0.01, max: 0.99, step: 0.01}
+functions:
+  d: stats::dbinom
+  p: stats::pbinom
+  q: stats::qbinom
+  r: stats::rbinom
+latex:
+  pdf: "P(X = x) = \\binom{n}{x} p^{x} (1 - p)^{n - x}, \\quad x = 0, 1, \\ldots, n"
+  cdf: "F(x) = \\sum_{k=0}^{\\lfloor x \\rfloor} \\binom{n}{k} p^{k} (1 - p)^{n - k}"
+  quantile:
+    expr: null
+  mean:
+    expr: "n p"
+  variance:
+    expr: "n p (1 - p)"
+  skewness:
+    - expr: "\\frac{1 - 2p}{\\sqrt{n p (1 - p)}}"
+      condition: "0 < p < 1"
+    - status: undefined
+      condition: "p \\in \\{0, 1\\}"
+  excess_kurtosis:
+    - expr: "\\frac{1 - 6p (1 - p)}{n p (1 - p)}"
+      condition: "0 < p < 1"
+    - status: undefined
+      condition: "p \\in \\{0, 1\\}"
+  mgf:
+    expr: "\\left(1 - p + p e^{t}\\right)^{n}"
+  cf:
+    expr: "\\left(1 - p + p e^{i t}\\right)^{n}"
+  pgf:
+    expr: "(1 - p + p z)^{n}"
+  median:
+    - expr: "n p"
+      condition: "n p \\in \\mathbb{Z}"
+    - expr: null
+      condition: "n p \\notin \\mathbb{Z}"
+  mode:
+    - expr: "\\lfloor (n + 1) p \\rfloor"
+      condition: "(n + 1) p \\notin \\{1, 2, \\ldots, n + 1\\}"
+    - expr: "\\{(n + 1) p - 1, (n + 1) p\\}"
+      condition: "(n + 1) p \\in \\{1, 2, \\ldots, n\\}"
+    - expr: "n"
+      condition: "p = 1"
+  entropy:
+    expr: null
+story:
+  en-US: >-
+    Repeat the same yes/no trial n times, independently, each with success
+    probability p. The number of successes follows a Binomial distribution.
+    It counts, for instance, defective items in a batch of fixed size.
+  pt-BR: >-
+    Repita o mesmo ensaio de sim ou não n vezes, de forma independente, cada
+    um com probabilidade de sucesso p. O número de sucessos segue uma
+    distribuição Binomial. Ela conta, por exemplo, os itens defeituosos num
+    lote de tamanho fixo.
+relationships:
+  - to: bernoulli
+    type: special_case
+    condition:
+      en-US: "With a single trial (n = 1) the Binomial is Bernoulli(p)."
+      pt-BR: "Com um único ensaio (n = 1), a Binomial é Bernoulli(p)."
+    latex: "\\mathrm{Binomial}(1, p) = \\mathrm{Bernoulli}(p)"
+  - to: poisson
+    type: limit
+    condition:
+      en-US: "As n grows and p shrinks with np = lambda fixed, the Binomial tends to Poisson(lambda)."
+      pt-BR: "Quando n cresce e p diminui com np = lambda fixo, a Binomial tende à Poisson(lambda)."
+    latex: "n \\to \\infty,\\ p \\to 0,\\ np = \\lambda \\Rightarrow \\mathrm{Binomial}(n, p) \\to \\mathrm{Poisson}(\\lambda)"
+  - to: normal
+    type: limit
+    condition:
+      en-US: "For large n, the standardized Binomial tends to the standard Normal (de Moivre-Laplace)."
+      pt-BR: "Para n grande, a Binomial padronizada tende à Normal padrão (de Moivre-Laplace)."
+    latex: "\\frac{X - np}{\\sqrt{np(1 - p)}} \\xrightarrow{d} N(0, 1), \\quad n \\to \\infty"
+references:
+  - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
+  - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
+  - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
+  - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."
+  - "Johnson, N. L., Kemp, A. W. and Kotz, S. (2005). Univariate Discrete Distributions, 3rd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."

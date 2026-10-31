@@ -1,0 +1,104 @@
+id: geometric
+names:
+  en-US: Geometric
+  pt-BR: Geométrica
+type: discrete
+group: counts
+subgroup: negbinomial_family
+tier: 1
+support:
+  lower: 0
+  upper: .inf
+parameters:
+  - name: prob
+    latex: "p"
+    lower: 0
+    lower_open: true
+    upper: 1
+    default: 0.3
+    slider: {min: 0.01, max: 0.99, step: 0.01}
+functions:
+  d: stats::dgeom
+  p: stats::pgeom
+  q: stats::qgeom
+  r: stats::rgeom
+latex:
+  pdf: "P(X = x) = p (1 - p)^{x}, \\quad x = 0, 1, 2, \\ldots \\ \\text{(failures before the first success)}"
+  cdf: "F(x) = 1 - (1 - p)^{\\lfloor x \\rfloor + 1}, \\quad x \\ge 0"
+  quantile:
+    - expr: "\\left\\lceil \\frac{\\log(1 - u)}{\\log(1 - p)} \\right\\rceil - 1"
+      condition: "0 < u < 1, p < 1"
+    - expr: "0"
+      condition: "u = 0, p < 1"
+    - expr: "\\infty"
+      condition: "u = 1, p < 1"
+    - expr: "0"
+      condition: "p = 1"
+  mean:
+    expr: "\\frac{1 - p}{p}"
+  variance:
+    expr: "\\frac{1 - p}{p^{2}}"
+  skewness:
+    - expr: "\\frac{2 - p}{\\sqrt{1 - p}}"
+      condition: "p < 1"
+    - status: undefined
+      condition: "p = 1"
+  excess_kurtosis:
+    - expr: "6 + \\frac{p^{2}}{1 - p}"
+      condition: "p < 1"
+    - status: undefined
+      condition: "p = 1"
+  mgf:
+    - expr: "\\frac{p}{1 - (1 - p) e^{t}}"
+      condition: "t < -\\log(1 - p)"
+    - status: infinite
+      condition: "t \\ge -\\log(1 - p)"
+  cf:
+    expr: "\\frac{p}{1 - (1 - p) e^{i t}}"
+  pgf:
+    - expr: "\\frac{p}{1 - (1 - p) z}"
+      condition: "|z| < \\frac{1}{1 - p}"
+    - status: infinite
+      condition: "z \\ge \\frac{1}{1 - p}"
+    - status: undefined
+      condition: "z \\le -\\frac{1}{1 - p}"
+  median:
+    - expr: "\\left\\lceil -\\frac{\\log 2}{\\log(1 - p)} \\right\\rceil - 1"
+      condition: "0 < p < 1, \\frac{\\log 2}{\\log(1 - p)} \\notin \\mathbb{Z}"
+    - expr: "\\left[-\\frac{\\log 2}{\\log(1 - p)} - 1, -\\frac{\\log 2}{\\log(1 - p)}\\right]"
+      condition: "0 < p < 1, \\frac{\\log 2}{\\log(1 - p)} \\in \\mathbb{Z}"
+    - expr: "0"
+      condition: "p = 1"
+  mode:
+    expr: "0"
+  entropy:
+    - expr: "\\frac{-(1 - p) \\log(1 - p) - p \\log p}{p}"
+      condition: "0 < p < 1"
+    - expr: "0"
+      condition: "p = 1"
+story:
+  en-US: >-
+    Repeat independent trials with success probability p until the first
+    success. Here X counts the failures before that success, as in R, so it
+    starts at 0; the number of trials is X + 1. It is the only discrete
+    distribution without memory: past failures do not change the wait ahead.
+  pt-BR: >-
+    Repita ensaios independentes com probabilidade de sucesso p até o
+    primeiro sucesso. Aqui X conta os fracassos antes desse sucesso, como no
+    R, e por isso começa em 0; o número de ensaios é X + 1. É a única
+    distribuição discreta sem memória: fracassos passados não mudam a espera
+    que falta.
+relationships:
+  - to: negbinomial
+    type: sum
+    condition:
+      en-US: "The sum of r independent Geometric(p) variables is Negative binomial(r, p)."
+      pt-BR: "A soma de r variáveis Geométrica(p) independentes é Binomial negativa(r, p)."
+    latex: "X_1, \\ldots, X_r \\overset{iid}{\\sim} \\mathrm{Geom}(p) \\Rightarrow \\sum_{i=1}^{r} X_i \\sim \\mathrm{NegBin}(r, p)"
+references:
+  - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
+  - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
+  - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
+  - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."
+  - "Johnson, N. L., Kemp, A. W. and Kotz, S. (2005). Univariate Discrete Distributions, 3rd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."

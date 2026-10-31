@@ -52,3 +52,11 @@ format_num <- function(x, lang, digits = 4) {
                         big.mark = ""))
   ifelse(is.finite(x), out, "\u2014")
 }
+
+# Format a moment for display: an infinite moment shows as the infinity sign,
+# one that does not exist (NA) as translated text.
+format_moment <- function(x, lang) {
+  if (is.na(x)) return(tr("moments.undefined", lang))
+  if (is.infinite(x)) return(if (x > 0) "\u221e" else "-\u221e")
+  format_num(x, lang)
+}

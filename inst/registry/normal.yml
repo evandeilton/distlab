@@ -31,6 +31,26 @@ functions:
 latex:
   pdf: "f(x) = \\frac{1}{\\sigma\\sqrt{2\\pi}} \\exp\\left\\{-\\frac{(x-\\mu)^2}{2\\sigma^2}\\right\\}"
   cdf: "F(x) = \\Phi\\left(\\frac{x-\\mu}{\\sigma}\\right)"
+  quantile:
+    expr: "\\mu + \\sigma \\Phi^{-1}(u)"
+  mean:
+    expr: "\\mu"
+  variance:
+    expr: "\\sigma^{2}"
+  skewness:
+    expr: "0"
+  excess_kurtosis:
+    expr: "0"
+  mgf:
+    expr: "\\exp\\left(\\mu t + \\frac{\\sigma^{2} t^{2}}{2}\\right)"
+  cf:
+    expr: "\\exp\\left(i \\mu t - \\frac{\\sigma^{2} t^{2}}{2}\\right)"
+  median:
+    expr: "\\mu"
+  mode:
+    expr: "\\mu"
+  entropy:
+    expr: "\\frac{1}{2} \\log\\left(2 \\pi e \\sigma^{2}\\right)"
 story:
   en-US: >-
     Add up many small, independent effects and the total tends to a bell
@@ -40,6 +60,36 @@ story:
     Some muitos efeitos pequenos e independentes e o total tende a uma forma
     de sino centrada na média. A distribuição Normal descreve esse limite:
     mu define o centro e sigma define a dispersão.
+relationships:
+  - to: normal
+    type: transformation
+    condition:
+      en-US: "Standardization: subtracting the mean and dividing by the standard deviation gives the standard Normal."
+      pt-BR: "Padronização: subtrair a média e dividir pelo desvio-padrão resulta na Normal padrão."
+    latex: "X \\sim N(\\mu, \\sigma^2) \\Rightarrow Z = \\frac{X - \\mu}{\\sigma} \\sim N(0, 1)"
+  - to: lognormal
+    type: transformation
+    condition:
+      en-US: "The exponential of a Normal(mu, sigma) variable is Lognormal(mu, sigma)."
+      pt-BR: "A exponencial de uma variável Normal(mu, sigma) é Lognormal(mu, sigma)."
+    latex: "X \\sim N(\\mu, \\sigma^2) \\Rightarrow e^{X} \\sim \\mathrm{Lognormal}(\\mu, \\sigma)"
+  - to: chisq
+    type: transformation
+    condition:
+      en-US: "The square of a standard Normal variable is Chi-square with 1 degree of freedom."
+      pt-BR: "O quadrado de uma variável Normal padrão é Qui-quadrado com 1 grau de liberdade."
+    latex: "Z \\sim N(0, 1) \\Rightarrow Z^2 \\sim \\chi^2_1"
+  - to: cauchy
+    type: transformation
+    condition:
+      en-US: "The ratio of two independent standard Normal variables is standard Cauchy."
+      pt-BR: "A razão entre duas variáveis Normais padrão independentes é Cauchy padrão."
+    latex: "Z_1, Z_2 \\overset{iid}{\\sim} N(0, 1) \\Rightarrow \\frac{Z_1}{Z_2} \\sim \\mathrm{Cauchy}(0, 1)"
 references:
   - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
   - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
+  - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
+  - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."
+  - "Johnson, N. L., Kotz, S. and Balakrishnan, N. (1994). Continuous Univariate Distributions, Vol. 1, 2nd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."
+  - "Lazo, A. V. and Rathie, P. N. (1978). On the entropy of continuous probability distributions. IEEE Transactions on Information Theory, 24(1), 120-122."

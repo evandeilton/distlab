@@ -14,3 +14,11 @@ test_that("numbers use the decimal mark of the language", {
   expect_identical(distlab:::format_num(1.5, "en-US"), "1.5")
   expect_identical(distlab:::format_num(NA_real_, "en-US"), "—")
 })
+
+test_that("moments show infinity and translated nonexistence", {
+  expect_identical(distlab:::format_moment(Inf, "en-US"), "∞")
+  expect_identical(distlab:::format_moment(-Inf, "pt-BR"), "-∞")
+  expect_identical(distlab:::format_moment(NA_real_, "en-US"), "does not exist")
+  expect_identical(distlab:::format_moment(NA_real_, "pt-BR"), "não existe")
+  expect_identical(distlab:::format_moment(2.5, "pt-BR"), "2,5")
+})

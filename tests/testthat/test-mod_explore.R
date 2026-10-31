@@ -42,3 +42,56 @@ test_that("app UI builds in both languages", {
     expect_s3_class(distlab:::app_ui(lang), "shiny.tag.list")
   }
 })
+
+test_that("moments wait for parameters instead of showing NA", {
+  shiny::testServer(distlab:::mod_explore_server, args = list(lang = "en-US"), {
+    session$setInputs(dist = "normal")
+    expect_error(output$moments)
+  })
+})
+
+test_that("moment boxes mark infinite and nonexistent moments", {
+  shiny::testServer(distlab:::mod_explore_server, args = list(lang = "en-US"), {
+    session$setInputs(dist = "student_t", p_student_t_df = 1.5)
+    session$elapse(200)
+    html <- output$moments$html
+    expect_match(html, "∞")
+    expect_match(html, "does not exist")
+  })
+})
+
+test_that("every entry renders sliders, plots and moments in the explorer", {
+  # `did`, not `id`: the module's own `id` argument is visible in the test body.
+  for (did in dl_ids()) {
+    shiny::testServer(distlab:::mod_explore_server, args = list(lang = "pt-BR"), {
+      e <- dl_entry(did)
+      vals <- lapply(e$parameters, `[[`, "default")
+      names(vals) <- distlab:::param_input_id(did, vapply(e$parameters, `[[`, "", "name"))
+      do.call(session$setInputs, c(list(dist = did), vals))
+      session$elapse(200)
+      expect_match(output$params$html, "js-range-slider", info = did)
+      expect_s3_class(curve(), "data.frame")
+      expect_type(output$density, "character")
+      expect_type(output$cdf, "character")
+      expect_type(output$moments$html, "character")
+    })
+  }
+})
+
+test_that("integer parameters get whole-number sliders", {
+  shiny::testServer(distlab:::mod_explore_server, args = list(lang = "en-US"), {
+    session$setInputs(dist = "hypergeometric")
+    html <- output$params$html
+    steps <- regmatches(html, gregexpr('data-step="[^"]*"', html))[[1]]
+    expect_identical(steps, rep('data-step="1"', 3))
+  })
+})
+
+test_that("parameter combinations that break a constraint give a message", {
+  shiny::testServer(distlab:::mod_explore_server, args = list(lang = "en-US"), {
+    session$setInputs(dist = "uniform", p_uniform_min = 3, p_uniform_max = 1)
+    err <- tryCatch(dist(), error = function(e) e)
+    expect_s3_class(err, "shiny.silent.error")
+    expect_match(conditionMessage(err), "min < max")
+  })
+})

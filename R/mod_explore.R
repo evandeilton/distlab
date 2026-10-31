@@ -37,6 +37,8 @@ mod_explore_server <- function(id, lang) {
     output$params <- shiny::renderUI({
       e <- entry()
       lapply(e$parameters, function(par) {
+        # Integer parameters have whole min, max and step, so their sliders
+        # only produce whole numbers.
         shiny::sliderInput(
           ns(param_input_id(e$id, par$name)),
           label = shiny::code(par$name),
@@ -45,6 +47,10 @@ mod_explore_server <- function(id, lang) {
         )
       })
     })
+
+    # Sliders must render even while the sidebar is collapsed (the default on
+    # narrow screens); otherwise no parameter ever reaches the server.
+    shiny::outputOptions(output, "params", suspendWhenHidden = FALSE)
 
     # Current distribution; waits until every slider of this entry exists.
     dist <- shiny::reactive({
@@ -101,11 +107,13 @@ mod_explore_server <- function(id, lang) {
 
     output$moments <- shiny::renderUI({
       keys <- c("mean", "variance", "sd", "skewness", "excess_kurtosis")
-      m <- tryCatch(dl_moments(dist_d()),
-                    error = function(err) stats::setNames(rep(NA_real_, 5), keys))
+      # Read the reactive outside tryCatch so req()/validate() still propagate.
+      d <- dist_d()
+      # An engine error shows a dash; NA from the engine means "does not exist".
+      m <- tryCatch(dl_moments(d), error = function(err) NULL)
       boxes <- lapply(keys, function(k) {
-        bslib::value_box(title = tr(paste0("moments.", k), lang),
-                         value = format_num(m[[k]], lang))
+        value <- if (is.null(m)) "\u2014" else format_moment(m[[k]], lang)
+        bslib::value_box(title = tr(paste0("moments.", k), lang), value = value)
       })
       do.call(bslib::layout_column_wrap,
               c(list(width = "170px", fill = FALSE), boxes))

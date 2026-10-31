@@ -1,0 +1,122 @@
+id: hypergeometric
+names:
+  en-US: Hypergeometric
+  pt-BR: Hipergeométrica
+type: discrete
+group: counts
+subgroup: binomial_family
+tier: 1
+support:
+  lower: "max(0, k - n)"
+  upper: "min(k, m)"
+constraints:
+  - "k <= m + n"
+parameters:
+  - name: m
+    latex: "m"
+    lower: 1
+    upper: .inf
+    integer: true
+    default: 10
+    slider: {min: 1, max: 50, step: 1}
+  - name: "n"
+    latex: "n"
+    lower: 1
+    upper: .inf
+    integer: true
+    default: 15
+    slider: {min: 1, max: 50, step: 1}
+  - name: k
+    latex: "k"
+    lower: 1
+    upper: .inf
+    integer: true
+    default: 8
+    slider: {min: 1, max: 50, step: 1}
+functions:
+  d: stats::dhyper
+  p: stats::phyper
+  q: stats::qhyper
+  r: stats::rhyper
+latex:
+  pdf: "P(X = x) = \\frac{\\binom{m}{x} \\binom{n}{k - x}}{\\binom{m + n}{k}}, \\quad \\max(0, k - n) \\le x \\le \\min(k, m)"
+  cdf: "F(x) = \\sum_{j = \\max(0, k - n)}^{\\lfloor x \\rfloor} \\frac{\\binom{m}{j} \\binom{n}{k - j}}{\\binom{m + n}{k}}"
+  quantile:
+    expr: null
+  mean:
+    expr: "\\frac{k m}{m + n}"
+  variance:
+    expr: "\\frac{k m n (m + n - k)}{(m + n)^{2} (m + n - 1)}"
+  skewness:
+    - expr: "\\frac{(n - m)(m + n - 2k) \\sqrt{m + n - 1}}{(m + n - 2) \\sqrt{k m n (m + n - k)}}"
+      condition: "m + n > 2, k < m + n"
+    - expr: "0"
+      condition: "m + n = 2, k = 1"
+    - status: undefined
+      condition: "k = m + n"
+  excess_kurtosis:
+    - expr: "\\frac{(m + n - 1)(m + n)^{2} \\left[(m + n)(m + n + 1) - 6 m n - 6 k (m + n - k)\\right] + 6 k m n (m + n - k)(5 (m + n) - 6)}{k m n (m + n - k)(m + n - 2)(m + n - 3)}"
+      condition: "m + n > 3, k < m + n"
+    - expr: "-2"
+      condition: "m + n = 2, k = 1"
+    - expr: "-\\frac{3}{2}"
+      condition: "m + n = 3, k < 3"
+    - status: undefined
+      condition: "k = m + n"
+  mgf:
+    - expr: "\\frac{\\binom{n}{k}}{\\binom{m + n}{k}} \\, {}_{2}F_{1}\\left(-k, -m; n - k + 1; e^{t}\\right)"
+      condition: "k \\le n"
+    - expr: "e^{k t} \\frac{\\binom{m}{k}}{\\binom{m + n}{k}} \\, {}_{2}F_{1}\\left(-k, -n; m - k + 1; e^{-t}\\right)"
+      condition: "n < k \\le m"
+    - expr: "e^{m t} \\frac{\\binom{n}{m + n - k}}{\\binom{m + n}{k}} \\, {}_{2}F_{1}\\left(k - m - n, -m; k - m + 1; e^{-t}\\right)"
+      condition: "k > n, k > m"
+  cf:
+    - expr: "\\frac{\\binom{n}{k}}{\\binom{m + n}{k}} \\, {}_{2}F_{1}\\left(-k, -m; n - k + 1; e^{i t}\\right)"
+      condition: "k \\le n"
+    - expr: "e^{i k t} \\frac{\\binom{m}{k}}{\\binom{m + n}{k}} \\, {}_{2}F_{1}\\left(-k, -n; m - k + 1; e^{-i t}\\right)"
+      condition: "n < k \\le m"
+    - expr: "e^{i m t} \\frac{\\binom{n}{m + n - k}}{\\binom{m + n}{k}} \\, {}_{2}F_{1}\\left(k - m - n, -m; k - m + 1; e^{-i t}\\right)"
+      condition: "k > n, k > m"
+  pgf:
+    - expr: "\\frac{\\binom{n}{k}}{\\binom{m + n}{k}} \\, {}_{2}F_{1}\\left(-k, -m; n - k + 1; z\\right)"
+      condition: "k \\le n"
+    - expr: "z^{k} \\frac{\\binom{m}{k}}{\\binom{m + n}{k}} \\, {}_{2}F_{1}\\left(-k, -n; m - k + 1; z^{-1}\\right)"
+      condition: "n < k \\le m, z \\ne 0"
+    - expr: "z^{m} \\frac{\\binom{n}{m + n - k}}{\\binom{m + n}{k}} \\, {}_{2}F_{1}\\left(k - m - n, -m; k - m + 1; z^{-1}\\right)"
+      condition: "k > n, k > m, z \\ne 0"
+    - expr: "0"
+      condition: "k > n, z = 0"
+  median:
+    expr: null
+  mode:
+    - expr: "\\left\\lfloor \\frac{(k + 1)(m + 1)}{m + n + 2} \\right\\rfloor"
+      condition: "\\frac{(k + 1)(m + 1)}{m + n + 2} \\notin \\mathbb{Z}"
+    - expr: "\\left\\{\\frac{(k + 1)(m + 1)}{m + n + 2} - 1, \\frac{(k + 1)(m + 1)}{m + n + 2}\\right\\}"
+      condition: "\\frac{(k + 1)(m + 1)}{m + n + 2} \\in \\mathbb{Z}"
+  entropy:
+    expr: null
+story:
+  en-US: >-
+    An urn holds m marked and n unmarked balls. Draw k balls without
+    replacement and count the marked ones. Because each draw changes the urn,
+    the draws are dependent; this is the model behind quality inspection of a
+    finite lot and capture-recapture counts.
+  pt-BR: >-
+    Uma urna contém m bolas marcadas e n não marcadas. Retire k bolas sem
+    reposição e conte as marcadas. Como cada retirada altera a urna, as
+    retiradas são dependentes; esse é o modelo por trás da inspeção de
+    qualidade de um lote finito e das contagens de captura e recaptura.
+relationships:
+  - to: binomial
+    type: limit
+    condition:
+      en-US: "When the urn is large (m + n grows with m / (m + n) = p fixed) and k stays fixed, drawing without replacement is almost drawing with replacement: the limit is Binomial(k, p)."
+      pt-BR: "Quando a urna é grande (m + n cresce com m / (m + n) = p fixo) e k fica fixo, retirar sem reposição é quase retirar com reposição: o limite é Binomial(k, p)."
+    latex: "m + n \\to \\infty,\\ \\frac{m}{m + n} = p \\Rightarrow \\mathrm{Hyper}(m, n, k) \\to \\mathrm{Binomial}(k, p)"
+references:
+  - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
+  - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
+  - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
+  - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."
+  - "Johnson, N. L., Kemp, A. W. and Kotz, S. (2005). Univariate Discrete Distributions, 3rd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."

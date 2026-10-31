@@ -33,15 +33,72 @@ functions:
 latex:
   pdf: "f(x) = \\frac{\\beta^{\\alpha}}{\\Gamma(\\alpha)} x^{\\alpha-1} e^{-\\beta x}, \\quad x > 0"
   cdf: "F(x) = \\frac{\\gamma(\\alpha, \\beta x)}{\\Gamma(\\alpha)}"
+  quantile:
+    expr: null
+  mean:
+    expr: "\\frac{\\alpha}{\\beta}"
+  variance:
+    expr: "\\frac{\\alpha}{\\beta^{2}}"
+  skewness:
+    expr: "\\frac{2}{\\sqrt{\\alpha}}"
+  excess_kurtosis:
+    expr: "\\frac{6}{\\alpha}"
+  raw_moment:
+    - expr: "\\frac{\\Gamma(\\alpha + j)}{\\beta^{j} \\Gamma(\\alpha)}"
+      condition: "j > -\\alpha"
+    - status: infinite
+      condition: "j \\le -\\alpha"
+  mgf:
+    - expr: "\\left(1 - \\frac{t}{\\beta}\\right)^{-\\alpha}"
+      condition: "t < \\beta"
+    - status: infinite
+      condition: "t \\ge \\beta"
+  cf:
+    expr: "\\left(1 - \\frac{i t}{\\beta}\\right)^{-\\alpha}"
+  median:
+    expr: null
+  mode:
+    - expr: "\\frac{\\alpha - 1}{\\beta}"
+      condition: "\\alpha \\ge 1"
+    - expr: "0"
+      condition: "\\alpha < 1"
+  entropy:
+    expr: "\\alpha - \\log \\beta + \\log \\Gamma(\\alpha) + (1 - \\alpha) \\psi(\\alpha)"
 story:
   en-US: >-
     Events arrive at random at an average rate beta. The waiting time until
     the alpha-th event follows a Gamma distribution; for integer alpha it is
-    the sum of alpha independent Exponential waiting times.
+    the sum of alpha independent Exponential waiting times. The parameters
+    are shape alpha and rate beta, as in R.
   pt-BR: >-
     Eventos chegam ao acaso a uma taxa média beta. O tempo de espera até o
     alfa-ésimo evento segue uma distribuição Gama; para alfa inteiro, é a
-    soma de alfa tempos de espera Exponenciais independentes.
+    soma de alfa tempos de espera Exponenciais independentes. Os parâmetros
+    são a forma alfa e a taxa beta, como no R.
+relationships:
+  - to: exponential
+    type: special_case
+    condition:
+      en-US: "Waiting for a single event (shape alpha = 1) gives Exponential(beta)."
+      pt-BR: "Esperar por um único evento (forma alfa = 1) resulta na Exponencial(beta)."
+    latex: "\\mathrm{Gamma}(1, \\beta) = \\mathrm{Exp}(\\beta)"
+  - to: chisq
+    type: special_case
+    condition:
+      en-US: "With shape k / 2 and rate 1 / 2, the Gamma is the Chi-square with k degrees of freedom."
+      pt-BR: "Com forma k / 2 e taxa 1 / 2, a Gama é a Qui-quadrado com k graus de liberdade."
+    latex: "\\mathrm{Gamma}\\left(\\tfrac{k}{2}, \\tfrac{1}{2}\\right) = \\chi^2_k"
+  - to: beta
+    type: transformation
+    condition:
+      en-US: "If X ~ Gamma(a, beta) and Y ~ Gamma(b, beta) are independent with the same rate, X / (X + Y) is Beta(a, b)."
+      pt-BR: "Se X ~ Gama(a, beta) e Y ~ Gama(b, beta) são independentes com a mesma taxa, X / (X + Y) é Beta(a, b)."
+    latex: "X \\sim \\mathrm{Gamma}(a, \\beta),\\ Y \\sim \\mathrm{Gamma}(b, \\beta) \\Rightarrow \\frac{X}{X + Y} \\sim \\mathrm{Beta}(a, b)"
 references:
   - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
   - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
+  - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
+  - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."
+  - "Johnson, N. L., Kotz, S. and Balakrishnan, N. (1994). Continuous Univariate Distributions, Vol. 1, 2nd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."
+  - "Lazo, A. V. and Rathie, P. N. (1978). On the entropy of continuous probability distributions. IEEE Transactions on Information Theory, 24(1), 120-122."

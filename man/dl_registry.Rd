@@ -18,6 +18,15 @@ Reads the registry entries shipped in \verb{inst/registry/}, one YAML file per
 distribution. Each entry holds the support, parameters, R functions,
 formulas, story and references used by the engine and the app.
 }
+\details{
+The \code{latex} field holds the density and distribution function as strings,
+plus formula specs for the quantile, mean, variance, skewness, excess
+kurtosis, raw moments, generating functions (\code{mgf}, \code{cf}, and \code{pgf} for
+discrete entries), median, mode and entropy. Each spec is one piece or a
+list of pieces; a piece has an \code{expr} (\code{NULL} when there is no closed form)
+or a \code{status} (\code{"infinite"} or \code{"undefined"}), and an optional math-only
+\code{condition}.
+}
 \examples{
 reg <- dl_registry()
 names(reg)

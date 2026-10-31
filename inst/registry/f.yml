@@ -1,0 +1,103 @@
+id: f
+names:
+  en-US: F (Snedecor)
+  pt-BR: F (Snedecor)
+type: continuous
+group: positive
+subgroup: sampling_family
+tier: 1
+support:
+  lower: 0
+  upper: .inf
+parameters:
+  - name: df1
+    latex: "d_1"
+    lower: 0
+    lower_open: true
+    upper: .inf
+    default: 5
+    slider: {min: 0.5, max: 50, step: 0.5}
+  - name: df2
+    latex: "d_2"
+    lower: 0
+    lower_open: true
+    upper: .inf
+    default: 10
+    slider: {min: 0.5, max: 50, step: 0.5}
+functions:
+  d: stats::df
+  p: stats::pf
+  q: stats::qf
+  r: stats::rf
+latex:
+  pdf: "f(x) = \\frac{1}{B(d_1/2, d_2/2)} \\left(\\frac{d_1}{d_2}\\right)^{d_1/2} x^{d_1/2 - 1} \\left(1 + \\frac{d_1}{d_2} x\\right)^{-(d_1 + d_2)/2}, \\quad x > 0"
+  cdf: "F(x) = I_{d_1 x / (d_1 x + d_2)}\\left(\\frac{d_1}{2}, \\frac{d_2}{2}\\right)"
+  quantile:
+    expr: null
+  mean:
+    - expr: "\\frac{d_2}{d_2 - 2}"
+      condition: "d_2 > 2"
+    - status: infinite
+      condition: "d_2 \\le 2"
+  variance:
+    - expr: "\\frac{2 d_2^{2} (d_1 + d_2 - 2)}{d_1 (d_2 - 2)^{2} (d_2 - 4)}"
+      condition: "d_2 > 4"
+    - status: infinite
+      condition: "2 < d_2 \\le 4"
+    - status: undefined
+      condition: "d_2 \\le 2"
+  skewness:
+    - expr: "\\frac{(2 d_1 + d_2 - 2) \\sqrt{8 (d_2 - 4)}}{(d_2 - 6) \\sqrt{d_1 (d_1 + d_2 - 2)}}"
+      condition: "d_2 > 6"
+    - status: infinite
+      condition: "4 < d_2 \\le 6"
+    - status: undefined
+      condition: "d_2 \\le 4"
+  excess_kurtosis:
+    - expr: "\\frac{12 \\left[d_1 (5 d_2 - 22)(d_1 + d_2 - 2) + (d_2 - 4)(d_2 - 2)^{2}\\right]}{d_1 (d_2 - 6)(d_2 - 8)(d_1 + d_2 - 2)}"
+      condition: "d_2 > 8"
+    - status: infinite
+      condition: "4 < d_2 \\le 8"
+    - status: undefined
+      condition: "d_2 \\le 4"
+  raw_moment:
+    - expr: "\\left(\\frac{d_2}{d_1}\\right)^{j} \\frac{\\Gamma\\left(\\frac{d_1}{2} + j\\right) \\Gamma\\left(\\frac{d_2}{2} - j\\right)}{\\Gamma\\left(\\frac{d_1}{2}\\right) \\Gamma\\left(\\frac{d_2}{2}\\right)}"
+      condition: "-\\frac{d_1}{2} < j < \\frac{d_2}{2}"
+    - status: infinite
+      condition: "j \\ge \\frac{d_2}{2}"
+    - status: infinite
+      condition: "j \\le -\\frac{d_1}{2}"
+  mgf:
+    - expr: null
+      condition: "t \\le 0"
+    - status: infinite
+      condition: "t > 0"
+  cf:
+    expr: "\\frac{\\Gamma\\left(\\frac{d_1 + d_2}{2}\\right)}{\\Gamma\\left(\\frac{d_2}{2}\\right)} U\\left(\\frac{d_1}{2}, 1 - \\frac{d_2}{2}, -\\frac{d_2}{d_1} i t\\right)"
+  median:
+    expr: null
+  mode:
+    - expr: "\\frac{d_1 - 2}{d_1} \\cdot \\frac{d_2}{d_2 + 2}"
+      condition: "d_1 > 2"
+    - expr: "0"
+      condition: "d_1 \\le 2"
+  entropy:
+    expr: "\\log\\frac{d_2}{d_1} + \\log B\\left(\\frac{d_1}{2}, \\frac{d_2}{2}\\right) + \\left(1 - \\frac{d_1}{2}\\right) \\psi\\left(\\frac{d_1}{2}\\right) - \\left(1 + \\frac{d_2}{2}\\right) \\psi\\left(\\frac{d_2}{2}\\right) + \\frac{d_1 + d_2}{2} \\psi\\left(\\frac{d_1 + d_2}{2}\\right)"
+story:
+  en-US: >-
+    Compare two independent sources of variation by the ratio of their
+    average squared deviations, each divided by its degrees of freedom. That
+    ratio follows an F distribution. It is the reference law of analysis of
+    variance and of tests that compare two variances.
+  pt-BR: >-
+    Compare duas fontes independentes de variação pela razão entre seus
+    desvios quadráticos médios, cada um dividido pelos seus graus de
+    liberdade. Essa razão segue uma distribuição F. Ela é a lei de referência
+    da análise de variância e dos testes que comparam duas variâncias.
+references:
+  - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
+  - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
+  - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
+  - "Johnson, N. L., Kotz, S. and Balakrishnan, N. (1995). Continuous Univariate Distributions, Vol. 2, 2nd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."
+  - "Lazo, A. V. and Rathie, P. N. (1978). On the entropy of continuous probability distributions. IEEE Transactions on Information Theory, 24(1), 120-122."

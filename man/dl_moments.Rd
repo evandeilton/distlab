@@ -14,20 +14,36 @@ dl_moments(dist, method = c("auto", "exact", "numeric"))
 }
 \value{
 A named numeric vector with elements \code{mean}, \code{variance}, \code{sd},
-\code{skewness} and \code{excess_kurtosis}. A moment that cannot be computed is
-\code{NA}.
+\code{skewness} and \code{excess_kurtosis}, where \code{Inf} marks an infinite moment
+and \code{NA} one that does not exist or cannot be computed.
 }
 \description{
 Returns the mean, variance, standard deviation, skewness and excess
 kurtosis. Closed forms are used when the registry has them; otherwise the
-moments are computed numerically, by adaptive integration for continuous
-distributions or by summing the mass function over the support for
-discrete ones.
+moments are computed numerically: for continuous distributions by adaptive
+integration of \eqn{g(Q(u))} over \eqn{u \in (0, 1)}, where \eqn{Q} is the
+quantile function, and for discrete ones by summing the mass function over
+the support.
 }
 \details{
+Closed forms tell apart two ways a moment can fail to be finite:
+\itemize{
+\item \code{Inf}: the moment is infinite, its integral diverges to \eqn{+\infty}.
+Examples: the variance of Student's t with \eqn{1 < \nu \le 2} and the
+mean of F with \eqn{d_2 \le 2}.
+\item \code{NA}: the moment does not exist (the integral has no value, as for the
+mean of the Cauchy or of Student's t with \eqn{\nu \le 1}), or it is a
+ratio built on a lower moment that is already infinite or undefined.
+}
+
+A moment the closed form marks as \code{Inf} or \code{NA} is never integrated
+numerically, also with \code{method = "numeric"}. Skewness and kurtosis of a
+distribution with zero variance (a point mass) are \code{NA}.
+
 Numeric moments of discrete distributions sum the mass function up to the
 quantile with upper-tail probability \eqn{10^{-15}}; very heavy tails or
-supports wider than \eqn{10^7} values give \code{NA}.
+supports wider than \eqn{10^7} values give \code{NA}. Numeric moments that
+cannot be computed are also \code{NA}.
 }
 \examples{
 g <- dl_dist("gamma", shape = 3, rate = 2)
