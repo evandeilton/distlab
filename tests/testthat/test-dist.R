@@ -190,3 +190,35 @@ test_that("dl_curve validates its arguments and limits discrete ranges", {
   one <- dl_curve(dl_dist("poisson", lambda = 1e-10))
   expect_identical(nrow(one), 1L)
 })
+
+test_that("Beta-binomial p and q round-trip exactly and stay in [0, 1]", {
+  pars <- list(c(100, 20, 20), c(30, 5, 0.1), c(100, 0.1, 2), c(10, 20, 20),
+               c(100, 0.1, 20), c(100, 2, 20))
+  for (pr in pars) {
+    d <- dl_dist("betabinomial", size = pr[1], alpha = pr[2], beta = pr[3])
+    x <- 0:pr[1]
+    p <- dl_cdf(d, x)
+    expect_true(all(p >= 0 & p <= 1), info = toString(pr))
+    # Where the CDF has saturated at 1 in double precision, only the upper
+    # tail can tell values apart; check each tail where it is resolvable.
+    lo <- p < 1 - 1e-10
+    expect_identical(dl_quantile(d, p[lo]), as.numeric(x[lo]), info = toString(pr))
+    s <- dl_cdf(d, x, lower.tail = FALSE)
+    hi <- s > 1e-300 & s < 1
+    expect_identical(dl_quantile(d, s[hi], lower.tail = FALSE),
+                     as.numeric(x[hi]), info = toString(pr))
+    expect_equal(s, c(rev(cumsum(rev(dl_density(d, x))))[-1], 0),
+                 tolerance = 1e-12, info = toString(pr))
+  }
+})
+
+test_that("heavy-tailed plotting ranges keep the body visible", {
+  cv <- dl_curve(dl_dist("cauchy"))
+  expect_lte(max(abs(cv$x)), 31)
+  expect_gt(sum(abs(cv$x) < 2), 20)
+  tv <- dl_curve(dl_dist("student_t", df = 0.5))
+  expect_lt(diff(range(tv$x)), 100)
+  # Light tails are not clipped.
+  nv <- dl_curve(dl_dist("normal"))
+  expect_equal(range(nv$cdf), c(1e-4, 1 - 1e-4), tolerance = 1e-8)
+})

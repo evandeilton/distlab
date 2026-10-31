@@ -154,7 +154,10 @@
 finite_sum_moments <- function(x, w) {
   mu <- sum(x * w)
   cm <- vapply(2:4, function(k) sum((x - mu)^k * w), numeric(1))
-  c(mean = mu, variance = cm[1], skewness = cm[2] / cm[1]^1.5,
+  skew <- cm[2] / cm[1]^1.5
+  # Symmetric cases leave rounding residue (~1e-16); report them as exactly 0.
+  if (is.finite(skew) && abs(skew) < 1e-12) skew <- 0
+  c(mean = mu, variance = cm[1], skewness = skew,
     excess_kurtosis = cm[3] / cm[1]^2 - 3)
 }
 

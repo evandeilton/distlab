@@ -19,7 +19,9 @@ A data frame with columns \code{x}, \code{density} and \code{cdf}.
 }
 \description{
 Computes the density (or mass) and CDF over a range that covers the
-central \code{1 - 2 * tail} probability of the distribution. Continuous
+central \code{1 - 2 * tail} probability of the distribution. For heavy-tailed
+continuous distributions the range is clipped to the median plus or minus
+15 interquartile ranges, so the body of the density stays visible. Continuous
 distributions use an even grid; discrete ones use every integer in range.
 }
 \examples{

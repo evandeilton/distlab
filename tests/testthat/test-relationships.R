@@ -101,7 +101,8 @@ relation_checks <- list(
     lambda <- 1e4
     x <- 9000:11000
     gap <- max(abs(ppois(x, lambda) - pnorm((x - lambda) / sqrt(lambda))))
-    expect_lt(gap, 0.4748 / sqrt(lambda))
+    # Berry-Esseen for a sum of lambda Poisson(1) terms: rho = E|X - 1|^3 = 1.7358.
+    expect_lt(gap, 0.4748 * 1.7358 / sqrt(lambda))
   },
   "hypergeometric>binomial" = function() {
     # The mass functions differ by O(k^2 / N) for an urn of size N.

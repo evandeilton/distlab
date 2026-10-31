@@ -124,7 +124,9 @@ call_dist_fun <- function(dist, kind, args) {
 #' Grid of density and CDF values for plotting
 #'
 #' Computes the density (or mass) and CDF over a range that covers the
-#' central `1 - 2 * tail` probability of the distribution. Continuous
+#' central `1 - 2 * tail` probability of the distribution. For heavy-tailed
+#' continuous distributions the range is clipped to the median plus or minus
+#' 15 interquartile ranges, so the body of the density stays visible. Continuous
 #' distributions use an even grid; discrete ones use every integer in range.
 #'
 #' @param dist A `dl_dist` object.
@@ -158,6 +160,16 @@ dl_curve <- function(dist, n = 401L, tail = 1e-4) {
   if (discrete && hi - lo > 5000) {
     stop("The discrete range spans more than 5000 values; increase `tail`.",
          call. = FALSE)
+  }
+  # Heavy tails (Cauchy, t or F with small df) push the extreme quantiles so
+  # far out that the body collapses to a point; clip to median +/- 15 IQR.
+  if (!discrete) {
+    qq <- dl_quantile(dist, c(0.25, 0.5, 0.75))
+    iqr <- qq[3] - qq[1]
+    if (is.finite(iqr) && iqr > 0 && hi - lo > 30 * iqr) {
+      lo <- max(lo, qq[2] - 15 * iqr)
+      hi <- min(hi, qq[2] + 15 * iqr)
+    }
   }
   x <- if (discrete) {
     seq(floor(lo), ceiling(hi))
