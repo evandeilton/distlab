@@ -43,8 +43,28 @@ latex:
   excess_kurtosis:
     expr: "-\\frac{6}{5}"
   raw_moment:
-    expr: "\\frac{b^{j + 1} - a^{j + 1}}{(j + 1)(b - a)}"
-    condition: "j \\in \\{1, 2, 3, \\ldots\\}"
+    - expr: "\\frac{b^{j + 1} - a^{j + 1}}{(j + 1)(b - a)}"
+      condition: "j \\in \\{0, 1, 2, \\ldots\\}"
+    - expr: "\\frac{b^{j + 1} - a^{j + 1}}{(j + 1)(b - a)}"
+      condition: "a \\ge 0, j > -1, j \\notin \\mathbb{Z}"
+    - expr: "\\frac{b^{j + 1} - a^{j + 1}}{(j + 1)(b - a)}"
+      condition: "a > 0, j < -1"
+    - expr: "\\frac{\\log b - \\log a}{b - a}"
+      condition: "a > 0, j = -1"
+    - status: infinite
+      condition: "a = 0, j \\le -1"
+    - status: undefined
+      condition: "a < 0, j \\notin \\mathbb{Z}"
+    - expr: "\\frac{b^{j + 1} - a^{j + 1}}{(j + 1)(b - a)}"
+      condition: "b < 0, j \\in \\{-2, -3, -4, \\ldots\\}"
+    - expr: "\\frac{\\log(-b) - \\log(-a)}{b - a}"
+      condition: "b < 0, j = -1"
+    - status: infinite
+      condition: "a < 0, b \\ge 0, j \\in \\{-2, -4, -6, \\ldots\\}"
+    - status: undefined
+      condition: "a < 0 < b, j \\in \\{-1, -3, -5, \\ldots\\}"
+    - expr: "-\\infty"
+      condition: "b = 0, j \\in \\{-1, -3, -5, \\ldots\\}"
   mgf:
     - expr: "\\frac{e^{b t} - e^{a t}}{t (b - a)}"
       condition: "t \\ne 0"

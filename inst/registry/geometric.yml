@@ -27,7 +27,11 @@ latex:
   cdf: "F(x) = 1 - (1 - p)^{\\lfloor x \\rfloor + 1}, \\quad x \\ge 0"
   quantile:
     - expr: "\\left\\lceil \\frac{\\log(1 - u)}{\\log(1 - p)} \\right\\rceil - 1"
-      condition: "0 < u < 1, 0 < p < 1"
+      condition: "0 < u < 1, p < 1"
+    - expr: "0"
+      condition: "u = 0, p < 1"
+    - expr: "\\infty"
+      condition: "u = 1, p < 1"
     - expr: "0"
       condition: "p = 1"
   mean:
@@ -45,13 +49,19 @@ latex:
     - status: undefined
       condition: "p = 1"
   mgf:
-    expr: "\\frac{p}{1 - (1 - p) e^{t}}"
-    condition: "t < -\\log(1 - p)"
+    - expr: "\\frac{p}{1 - (1 - p) e^{t}}"
+      condition: "t < -\\log(1 - p)"
+    - status: infinite
+      condition: "t \\ge -\\log(1 - p)"
   cf:
     expr: "\\frac{p}{1 - (1 - p) e^{i t}}"
   pgf:
-    expr: "\\frac{p}{1 - (1 - p) z}"
-    condition: "|z| < \\frac{1}{1 - p}"
+    - expr: "\\frac{p}{1 - (1 - p) z}"
+      condition: "|z| < \\frac{1}{1 - p}"
+    - status: infinite
+      condition: "z \\ge \\frac{1}{1 - p}"
+    - status: undefined
+      condition: "z \\le -\\frac{1}{1 - p}"
   median:
     - expr: "\\left\\lceil -\\frac{\\log 2}{\\log(1 - p)} \\right\\rceil - 1"
       condition: "0 < p < 1, \\frac{\\log 2}{\\log(1 - p)} \\notin \\mathbb{Z}"

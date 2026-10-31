@@ -49,13 +49,19 @@ latex:
     - status: undefined
       condition: "p = 1"
   mgf:
-    expr: "\\left(\\frac{p}{1 - (1 - p) e^{t}}\\right)^{r}"
-    condition: "t < -\\log(1 - p)"
+    - expr: "\\left(\\frac{p}{1 - (1 - p) e^{t}}\\right)^{r}"
+      condition: "t < -\\log(1 - p)"
+    - status: infinite
+      condition: "t \\ge -\\log(1 - p)"
   cf:
     expr: "\\left(\\frac{p}{1 - (1 - p) e^{i t}}\\right)^{r}"
   pgf:
-    expr: "\\left(\\frac{p}{1 - (1 - p) z}\\right)^{r}"
-    condition: "|z| < \\frac{1}{1 - p}"
+    - expr: "\\left(\\frac{p}{1 - (1 - p) z}\\right)^{r}"
+      condition: "|z| < \\frac{1}{1 - p}"
+    - status: infinite
+      condition: "z \\ge \\frac{1}{1 - p}"
+    - status: undefined
+      condition: "z \\le -\\frac{1}{1 - p}"
   median:
     expr: null
   mode:

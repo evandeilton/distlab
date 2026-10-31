@@ -47,7 +47,7 @@ latex:
   mgf:
     - expr: null
       condition: "t \\le 0"
-    - status: undefined
+    - status: infinite
       condition: "t > 0"
   cf:
     expr: null

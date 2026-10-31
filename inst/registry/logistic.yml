@@ -42,8 +42,10 @@ latex:
   excess_kurtosis:
     expr: "\\frac{6}{5}"
   mgf:
-    expr: "e^{\\mu t} B(1 - s t, 1 + s t)"
-    condition: "|t| < \\frac{1}{s}"
+    - expr: "e^{\\mu t} B(1 - s t, 1 + s t)"
+      condition: "|t| < \\frac{1}{s}"
+    - status: infinite
+      condition: "|t| \\ge \\frac{1}{s}"
   cf:
     - expr: "e^{i \\mu t} \\frac{\\pi s t}{\\sinh(\\pi s t)}"
       condition: "t \\ne 0"

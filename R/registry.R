@@ -209,19 +209,77 @@ validate_relationship <- function(rel) {
 .dl_latex_formulas <- c("quantile", "mean", "variance", "skewness",
                         "excess_kurtosis", "raw_moment", "mgf", "cf", "pgf",
                         "median", "mode", "entropy")
-.dl_latex_required <- c("mean", "variance", "skewness", "excess_kurtosis",
-                        "mgf", "cf")
+.dl_latex_required <- c("quantile", "mean", "variance", "skewness",
+                        "excess_kurtosis", "mgf", "cf", "median", "mode",
+                        "entropy")
 # Status of a quantity with no finite value: an integral that diverges to
 # +Inf ("infinite") or one that has no value at all ("undefined").
 .dl_formula_status <- c("infinite", "undefined")
 
-# Check the `latex` field: pdf and cdf strings plus optional formula specs.
-# The moments, mgf and cf are required, and pgf too for discrete entries.
+# LaTeX macros allowed in registry formulas, all supported by KaTeX.
+.dl_latex_macros <- c(
+  # Greek letters.
+  "alpha", "beta", "gamma", "delta", "epsilon", "varepsilon", "zeta", "eta",
+  "theta", "vartheta", "iota", "kappa", "lambda", "mu", "nu", "xi", "pi",
+  "rho", "sigma", "tau", "upsilon", "phi", "varphi", "chi", "psi", "omega",
+  "Gamma", "Delta", "Theta", "Lambda", "Xi", "Pi", "Sigma", "Upsilon", "Phi",
+  "Psi", "Omega",
+  # Named functions.
+  "log", "ln", "exp", "sin", "cos", "tan", "sinh", "cosh", "tanh", "arcsin",
+  "arccos", "arctan", "max", "min", "sup", "inf", "lim", "det",
+  # Operators, relations and symbols.
+  "frac", "dfrac", "tfrac", "sqrt", "binom", "cdot", "times", "pm", "mp",
+  "le", "ge", "leq", "geq", "ne", "neq", "lt", "gt", "approx", "sim", "in",
+  "notin", "infty", "partial", "sum", "prod", "int", "ldots", "cdots", "dots",
+  "to", "rightarrow", "Rightarrow", "mid", "prime",
+  # Delimiters.
+  "left", "right", "lfloor", "rfloor", "lceil", "rceil", "langle", "rangle",
+  "lvert", "rvert", "vert",
+  # Spacing, text and fonts.
+  "quad", "qquad", "text", "mathrm", "mathbb", "mathbf", "mathcal",
+  "operatorname", "begin", "end"
+)
+
+# Problems with one LaTeX string: math delimiters, unbalanced braces or
+# \left/\right, macros outside the whitelist and, for conditions, words.
+latex_string_problems <- function(s, label, condition = FALSE) {
+  p <- character()
+  # A line break "\\" is not an escape; drop it before looking at escapes.
+  t <- gsub("\\\\\\\\", " ", s)
+  if (grepl("$", t, fixed = TRUE) || grepl("\\\\[][()]", t)) {
+    p <- c(p, sprintf("%s must not use $, \\(, \\), \\[ or \\] delimiters", label))
+  }
+  ch <- strsplit(gsub("\\\\[{}]", " ", t), "")[[1]]
+  depth <- cumsum(ch == "{") - cumsum(ch == "}")
+  if (length(depth) && (any(depth < 0) || depth[length(depth)] != 0)) {
+    p <- c(p, sprintf("%s has unbalanced braces", label))
+  }
+  count <- function(pat) lengths(regmatches(t, gregexpr(pat, t, perl = TRUE)))
+  if (count("\\\\left(?![A-Za-z])") != count("\\\\right(?![A-Za-z])")) {
+    p <- c(p, sprintf("%s has unbalanced \\left and \\right", label))
+  }
+  macros <- sub("^\\\\", "", regmatches(t, gregexpr("\\\\[A-Za-z]+", t))[[1]])
+  if (length(bad <- setdiff(macros, .dl_latex_macros))) {
+    p <- c(p, sprintf("%s uses unsupported macro(s): %s", label,
+                      paste0("\\", unique(bad), collapse = ", ")))
+  }
+  # Conditions are language neutral: no letter runs outside macros.
+  if (condition && grepl("[A-Za-z]{2,}", gsub("\\\\[A-Za-z]+", " ", t))) {
+    p <- c(p, sprintf("%s condition must be math only, without words", label))
+  }
+  p
+}
+
+# Check the `latex` field: pdf and cdf strings plus formula specs. The keys
+# in .dl_latex_required must be present (expr may be null), and pgf too for
+# discrete entries.
 validate_latex <- function(latex, type) {
   p <- character()
   if (!is.list(latex) || !is_string(latex[["pdf"]]) || !is_string(latex[["cdf"]])) {
     return("latex needs pdf and cdf strings")
   }
+  p <- c(p, latex_string_problems(latex[["pdf"]], "latex pdf"),
+         latex_string_problems(latex[["cdf"]], "latex cdf"))
   extra <- setdiff(names(latex), c("pdf", "cdf", .dl_latex_formulas))
   if (length(extra)) {
     p <- c(p, paste("unknown latex key:", extra))
@@ -244,7 +302,7 @@ validate_latex <- function(latex, type) {
 # Check one formula spec: a single piece or a non-empty list of pieces. A
 # piece has either `expr` (a LaTeX string, or null when there is no closed
 # form) or `status` ("infinite" or "undefined"), and an optional math-only
-# `condition` string. Every piece of a list needs a condition.
+# `condition` string. Every piece of a list needs its own, distinct condition.
 validate_formula <- function(x, key) {
   is_piece <- function(y) is.list(y) && !is.null(names(y))
   pieces <- if (is_piece(x)) list(x) else x
@@ -253,6 +311,7 @@ validate_formula <- function(x, key) {
     return(sprintf("latex %s must be a formula or a list of formulas", key))
   }
   p <- character()
+  conds <- character()
   for (i in seq_along(pieces)) {
     pc <- pieces[[i]]
     label <- if (length(pieces) > 1L) sprintf("latex %s[%d]", key, i) else
@@ -267,20 +326,32 @@ validate_formula <- function(x, key) {
     if (has_expr == has_status) {
       p <- c(p, sprintf("%s needs exactly one of expr and status", label))
     }
-    if (has_expr && !is.null(pc[["expr"]]) && !is_string(pc[["expr"]])) {
-      p <- c(p, sprintf("%s expr must be a string or null", label))
+    if (has_expr && !is.null(pc[["expr"]])) {
+      if (is_string(pc[["expr"]])) {
+        p <- c(p, latex_string_problems(pc[["expr"]], label))
+      } else {
+        p <- c(p, sprintf("%s expr must be a string or null", label))
+      }
     }
     if (has_status && !(is_string(pc[["status"]]) &&
                         pc[["status"]] %in% .dl_formula_status)) {
       p <- c(p, sprintf("%s status must be one of: %s", label,
                         paste(.dl_formula_status, collapse = ", ")))
     }
-    if ("condition" %in% nm && !is_string(pc[["condition"]])) {
-      p <- c(p, sprintf("%s condition must be a string", label))
+    if ("condition" %in% nm) {
+      if (is_string(pc[["condition"]])) {
+        p <- c(p, latex_string_problems(pc[["condition"]], label, condition = TRUE))
+        conds <- c(conds, gsub("\\s+", "", pc[["condition"]]))
+      } else {
+        p <- c(p, sprintf("%s condition must be a string", label))
+      }
     }
     if (length(pieces) > 1L && !"condition" %in% nm) {
       p <- c(p, sprintf("%s needs a condition", label))
     }
+  }
+  if (anyDuplicated(conds)) {
+    p <- c(p, sprintf("latex %s has duplicated conditions", key))
   }
   p
 }

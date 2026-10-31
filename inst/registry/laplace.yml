@@ -42,8 +42,10 @@ latex:
   excess_kurtosis:
     expr: "3"
   mgf:
-    expr: "\\frac{e^{\\mu t}}{1 - b^{2} t^{2}}"
-    condition: "|t| < \\frac{1}{b}"
+    - expr: "\\frac{e^{\\mu t}}{1 - b^{2} t^{2}}"
+      condition: "|t| < \\frac{1}{b}"
+    - status: infinite
+      condition: "|t| \\ge \\frac{1}{b}"
   cf:
     expr: "\\frac{e^{i \\mu t}}{1 + b^{2} t^{2}}"
   median:

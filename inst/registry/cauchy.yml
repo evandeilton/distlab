@@ -42,7 +42,10 @@ latex:
   excess_kurtosis:
     status: undefined
   mgf:
-    status: undefined
+    - expr: "1"
+      condition: "t = 0"
+    - status: infinite
+      condition: "t \\ne 0"
   cf:
     expr: "e^{i x_0 t - \\gamma |t|}"
   median:

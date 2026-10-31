@@ -36,11 +36,15 @@ latex:
   excess_kurtosis:
     expr: "\\frac{12}{k}"
   raw_moment:
-    expr: "\\frac{2^{j} \\Gamma(k/2 + j)}{\\Gamma(k/2)}"
-    condition: "j > -\\frac{k}{2}"
+    - expr: "\\frac{2^{j} \\Gamma(k/2 + j)}{\\Gamma(k/2)}"
+      condition: "j > -\\frac{k}{2}"
+    - status: infinite
+      condition: "j \\le -\\frac{k}{2}"
   mgf:
-    expr: "(1 - 2t)^{-k/2}"
-    condition: "t < \\frac{1}{2}"
+    - expr: "(1 - 2t)^{-k/2}"
+      condition: "t < \\frac{1}{2}"
+    - status: infinite
+      condition: "t \\ge \\frac{1}{2}"
   cf:
     expr: "(1 - 2 i t)^{-k/2}"
   median:

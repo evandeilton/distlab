@@ -41,8 +41,14 @@ latex:
     - status: undefined
       condition: "p \\in \\{0, 1\\}"
   raw_moment:
-    expr: "p"
-    condition: "j \\in \\{1, 2, 3, \\ldots\\}"
+    - expr: "p"
+      condition: "j > 0"
+    - expr: "1"
+      condition: "j = 0"
+    - status: infinite
+      condition: "j < 0, p < 1"
+    - expr: "1"
+      condition: "j < 0, p = 1"
   mgf:
     expr: "1 - p + p e^{t}"
   cf:

@@ -66,18 +66,26 @@ latex:
   mgf:
     - expr: "\\frac{\\binom{n}{k}}{\\binom{m + n}{k}} \\, {}_{2}F_{1}\\left(-k, -m; n - k + 1; e^{t}\\right)"
       condition: "k \\le n"
-    - expr: null
-      condition: "k > n"
+    - expr: "e^{k t} \\frac{\\binom{m}{k}}{\\binom{m + n}{k}} \\, {}_{2}F_{1}\\left(-k, -n; m - k + 1; e^{-t}\\right)"
+      condition: "n < k \\le m"
+    - expr: "e^{m t} \\frac{\\binom{n}{m + n - k}}{\\binom{m + n}{k}} \\, {}_{2}F_{1}\\left(k - m - n, -m; k - m + 1; e^{-t}\\right)"
+      condition: "k > n, k > m"
   cf:
     - expr: "\\frac{\\binom{n}{k}}{\\binom{m + n}{k}} \\, {}_{2}F_{1}\\left(-k, -m; n - k + 1; e^{i t}\\right)"
       condition: "k \\le n"
-    - expr: null
-      condition: "k > n"
+    - expr: "e^{i k t} \\frac{\\binom{m}{k}}{\\binom{m + n}{k}} \\, {}_{2}F_{1}\\left(-k, -n; m - k + 1; e^{-i t}\\right)"
+      condition: "n < k \\le m"
+    - expr: "e^{i m t} \\frac{\\binom{n}{m + n - k}}{\\binom{m + n}{k}} \\, {}_{2}F_{1}\\left(k - m - n, -m; k - m + 1; e^{-i t}\\right)"
+      condition: "k > n, k > m"
   pgf:
     - expr: "\\frac{\\binom{n}{k}}{\\binom{m + n}{k}} \\, {}_{2}F_{1}\\left(-k, -m; n - k + 1; z\\right)"
       condition: "k \\le n"
-    - expr: null
-      condition: "k > n"
+    - expr: "z^{k} \\frac{\\binom{m}{k}}{\\binom{m + n}{k}} \\, {}_{2}F_{1}\\left(-k, -n; m - k + 1; z^{-1}\\right)"
+      condition: "n < k \\le m, z \\ne 0"
+    - expr: "z^{m} \\frac{\\binom{n}{m + n - k}}{\\binom{m + n}{k}} \\, {}_{2}F_{1}\\left(k - m - n, -m; k - m + 1; z^{-1}\\right)"
+      condition: "k > n, k > m, z \\ne 0"
+    - expr: "0"
+      condition: "k > n, z = 0"
   median:
     expr: null
   mode:

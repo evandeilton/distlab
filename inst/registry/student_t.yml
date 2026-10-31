@@ -55,13 +55,22 @@ latex:
     - expr: "0"
       condition: "j \\in \\{1, 3, 5, \\ldots\\}, j < \\nu"
     - expr: "\\frac{\\nu^{j/2} \\, \\Gamma\\left(\\frac{j + 1}{2}\\right) \\Gamma\\left(\\frac{\\nu - j}{2}\\right)}{\\sqrt{\\pi} \\, \\Gamma\\left(\\frac{\\nu}{2}\\right)}"
-      condition: "j \\in \\{2, 4, 6, \\ldots\\}, j < \\nu"
+      condition: "j \\in \\{0, 2, 4, \\ldots\\}, j < \\nu"
     - status: undefined
       condition: "j \\in \\{1, 3, 5, \\ldots\\}, j \\ge \\nu"
     - status: infinite
       condition: "j \\in \\{2, 4, 6, \\ldots\\}, j \\ge \\nu"
+    - status: undefined
+      condition: "j \\notin \\mathbb{Z}"
+    - status: infinite
+      condition: "j \\in \\{-2, -4, -6, \\ldots\\}"
+    - status: undefined
+      condition: "j \\in \\{-1, -3, -5, \\ldots\\}"
   mgf:
-    status: undefined
+    - expr: "1"
+      condition: "t = 0"
+    - status: infinite
+      condition: "t \\ne 0"
   cf:
     - expr: "\\frac{K_{\\nu/2}\\left(\\sqrt{\\nu} |t|\\right) \\left(\\sqrt{\\nu} |t|\\right)^{\\nu/2}}{\\Gamma(\\nu/2) \\, 2^{\\nu/2 - 1}}"
       condition: "t \\ne 0"

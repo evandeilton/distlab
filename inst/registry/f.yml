@@ -65,8 +65,13 @@ latex:
       condition: "-\\frac{d_1}{2} < j < \\frac{d_2}{2}"
     - status: infinite
       condition: "j \\ge \\frac{d_2}{2}"
+    - status: infinite
+      condition: "j \\le -\\frac{d_1}{2}"
   mgf:
-    status: undefined
+    - expr: null
+      condition: "t \\le 0"
+    - status: infinite
+      condition: "t > 0"
   cf:
     expr: "\\frac{\\Gamma\\left(\\frac{d_1 + d_2}{2}\\right)}{\\Gamma\\left(\\frac{d_2}{2}\\right)} U\\left(\\frac{d_1}{2}, 1 - \\frac{d_2}{2}, -\\frac{d_2}{d_1} i t\\right)"
   median:

@@ -36,11 +36,15 @@ latex:
   excess_kurtosis:
     expr: "6"
   raw_moment:
-    expr: "\\frac{\\Gamma(1 + j)}{\\lambda^{j}}"
-    condition: "j > -1"
+    - expr: "\\frac{\\Gamma(1 + j)}{\\lambda^{j}}"
+      condition: "j > -1"
+    - status: infinite
+      condition: "j \\le -1"
   mgf:
-    expr: "\\frac{\\lambda}{\\lambda - t}"
-    condition: "t < \\lambda"
+    - expr: "\\frac{\\lambda}{\\lambda - t}"
+      condition: "t < \\lambda"
+    - status: infinite
+      condition: "t \\ge \\lambda"
   cf:
     expr: "\\frac{\\lambda}{\\lambda - i t}"
   median:

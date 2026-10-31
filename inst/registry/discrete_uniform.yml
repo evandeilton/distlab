@@ -54,14 +54,18 @@ latex:
       condition: "t = 0"
   cf:
     - expr: "\\frac{e^{i a t} - e^{i (b + 1) t}}{(b - a + 1)\\left(1 - e^{i t}\\right)}"
-      condition: "e^{i t} \\ne 1"
+      condition: "\\frac{t}{2 \\pi} \\notin \\mathbb{Z}"
     - expr: "1"
-      condition: "e^{i t} = 1"
+      condition: "\\frac{t}{2 \\pi} \\in \\mathbb{Z}"
   pgf:
     - expr: "\\frac{z^{a} - z^{b + 1}}{(b - a + 1)(1 - z)}"
-      condition: "z \\ne 1"
+      condition: "z \\ne 1, a \\ge 0"
+    - expr: "\\frac{z^{a} - z^{b + 1}}{(b - a + 1)(1 - z)}"
+      condition: "z \\ne 0, z \\ne 1, a < 0"
     - expr: "1"
       condition: "z = 1"
+    - status: undefined
+      condition: "z = 0, a < 0"
   median:
     - expr: "\\frac{a + b}{2}"
       condition: "b - a \\in \\{2, 4, 6, \\ldots\\}"

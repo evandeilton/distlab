@@ -44,11 +44,15 @@ latex:
   excess_kurtosis:
     expr: "\\frac{6}{\\alpha}"
   raw_moment:
-    expr: "\\frac{\\Gamma(\\alpha + j)}{\\beta^{j} \\Gamma(\\alpha)}"
-    condition: "j > -\\alpha"
+    - expr: "\\frac{\\Gamma(\\alpha + j)}{\\beta^{j} \\Gamma(\\alpha)}"
+      condition: "j > -\\alpha"
+    - status: infinite
+      condition: "j \\le -\\alpha"
   mgf:
-    expr: "\\left(1 - \\frac{t}{\\beta}\\right)^{-\\alpha}"
-    condition: "t < \\beta"
+    - expr: "\\left(1 - \\frac{t}{\\beta}\\right)^{-\\alpha}"
+      condition: "t < \\beta"
+    - status: infinite
+      condition: "t \\ge \\beta"
   cf:
     expr: "\\left(1 - \\frac{i t}{\\beta}\\right)^{-\\alpha}"
   median:

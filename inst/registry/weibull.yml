@@ -43,14 +43,20 @@ latex:
   excess_kurtosis:
     expr: "\\frac{\\Gamma\\left(1 + \\frac{4}{k}\\right) - 4 \\Gamma\\left(1 + \\frac{1}{k}\\right) \\Gamma\\left(1 + \\frac{3}{k}\\right) + 6 \\Gamma^{2}\\left(1 + \\frac{1}{k}\\right) \\Gamma\\left(1 + \\frac{2}{k}\\right) - 3 \\Gamma^{4}\\left(1 + \\frac{1}{k}\\right)}{\\left[\\Gamma\\left(1 + \\frac{2}{k}\\right) - \\Gamma^{2}\\left(1 + \\frac{1}{k}\\right)\\right]^{2}} - 3"
   raw_moment:
-    expr: "\\lambda^{j} \\Gamma\\left(1 + \\frac{j}{k}\\right)"
-    condition: "j > -k"
+    - expr: "\\lambda^{j} \\Gamma\\left(1 + \\frac{j}{k}\\right)"
+      condition: "j > -k"
+    - status: infinite
+      condition: "j \\le -k"
   mgf:
     - expr: null
-      condition: "k \\ge 1"
+      condition: "k > 1"
+    - expr: "\\frac{1}{1 - \\lambda t}"
+      condition: "k = 1, t < \\frac{1}{\\lambda}"
+    - status: infinite
+      condition: "k = 1, t \\ge \\frac{1}{\\lambda}"
     - expr: null
       condition: "k < 1, t \\le 0"
-    - status: undefined
+    - status: infinite
       condition: "k < 1, t > 0"
   cf:
     expr: null

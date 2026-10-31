@@ -193,3 +193,39 @@ test_that("validator checks the formula specs under latex", {
                         list(status = "infinite", condition = "x \\le 1"))
   expect_identical(v(ok), character())
 })
+
+test_that("validator rejects malformed LaTeX in formulas", {
+  e <- dl_registry()$gamma
+  v <- function(x) distlab:::validate_entry(x)
+  for (key in c("quantile", "median", "mode", "entropy")) {
+    bad <- e; bad$latex[[key]] <- NULL
+    expect_match(v(bad), paste("missing latex key:", key), all = FALSE)
+  }
+  bad <- e; bad$latex$mean <- list(expr = "$\\alpha$")
+  expect_match(v(bad), "delimiters", all = FALSE)
+  bad <- e; bad$latex$mean <- list(expr = "\\(\\alpha\\)")
+  expect_match(v(bad), "delimiters", all = FALSE)
+  bad <- e; bad$latex$mean <- list(expr = "a", condition = "\\[\\alpha > 1\\]")
+  expect_match(v(bad), "delimiters", all = FALSE)
+  bad <- e; bad$latex$pdf <- "$f(x)$"
+  expect_match(v(bad), "latex pdf must not use", all = FALSE)
+  bad <- e; bad$latex$mean <- list(expr = "\\frac{\\alpha}{\\beta")
+  expect_match(v(bad), "unbalanced braces", all = FALSE)
+  bad <- e; bad$latex$mean <- list(expr = "}\\alpha{")
+  expect_match(v(bad), "unbalanced braces", all = FALSE)
+  bad <- e; bad$latex$mean <- list(expr = "\\left(\\alpha")
+  expect_match(v(bad), "unbalanced \\\\left", all = FALSE)
+  bad <- e; bad$latex$mean <- list(expr = "\\foo{\\alpha}")
+  expect_match(v(bad), "unsupported macro\\(s\\): \\\\foo", all = FALSE)
+  bad <- e; bad$latex$mean <- list(expr = "a", condition = "\\alpha > 1 \\text{ (shape)}")
+  expect_match(v(bad), "math only", all = FALSE)
+  bad <- e; bad$latex$mean <- list(expr = "a", condition = "alpha > 1")
+  expect_match(v(bad), "math only", all = FALSE)
+  bad <- e; bad$latex$mode <- list(list(expr = "0", condition = "\\alpha < 1"),
+                                   list(expr = "1", condition = "\\alpha  <  1"))
+  expect_match(v(bad), "latex mode has duplicated conditions", all = FALSE)
+  # A row break followed by a bracket is not a display delimiter.
+  ok <- e
+  ok$latex$quantile <- list(expr = "\\begin{cases} 0 \\\\[2pt] 1 \\end{cases}")
+  expect_identical(v(ok), character())
+})
