@@ -33,6 +33,33 @@ functions:
 latex:
   pdf: "f(x) = \\frac{\\beta^{\\alpha}}{\\Gamma(\\alpha)} x^{\\alpha-1} e^{-\\beta x}, \\quad x > 0"
   cdf: "F(x) = \\frac{\\gamma(\\alpha, \\beta x)}{\\Gamma(\\alpha)}"
+  quantile:
+    expr: null
+  mean:
+    expr: "\\frac{\\alpha}{\\beta}"
+  variance:
+    expr: "\\frac{\\alpha}{\\beta^{2}}"
+  skewness:
+    expr: "\\frac{2}{\\sqrt{\\alpha}}"
+  excess_kurtosis:
+    expr: "\\frac{6}{\\alpha}"
+  raw_moment:
+    expr: "\\frac{\\Gamma(\\alpha + j)}{\\beta^{j} \\Gamma(\\alpha)}"
+    condition: "j > -\\alpha"
+  mgf:
+    expr: "\\left(1 - \\frac{t}{\\beta}\\right)^{-\\alpha}"
+    condition: "t < \\beta"
+  cf:
+    expr: "\\left(1 - \\frac{i t}{\\beta}\\right)^{-\\alpha}"
+  median:
+    expr: null
+  mode:
+    - expr: "\\frac{\\alpha - 1}{\\beta}"
+      condition: "\\alpha \\ge 1"
+    - expr: "0"
+      condition: "\\alpha < 1"
+  entropy:
+    expr: "\\alpha - \\log \\beta + \\log \\Gamma(\\alpha) + (1 - \\alpha) \\psi(\\alpha)"
 story:
   en-US: >-
     Events arrive at random at an average rate beta. The waiting time until
@@ -68,3 +95,6 @@ references:
   - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
   - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
   - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."
+  - "Johnson, N. L., Kotz, S. and Balakrishnan, N. (1994). Continuous Univariate Distributions, Vol. 1, 2nd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."
+  - "Lazo, A. V. and Rathie, P. N. (1978). On the entropy of continuous probability distributions. IEEE Transactions on Information Theory, 24(1), 120-122."

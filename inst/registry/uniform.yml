@@ -32,6 +32,35 @@ functions:
 latex:
   pdf: "f(x) = \\frac{1}{b - a}, \\quad a \\le x \\le b"
   cdf: "F(x) = \\frac{x - a}{b - a}, \\quad a \\le x \\le b"
+  quantile:
+    expr: "a + u (b - a)"
+  mean:
+    expr: "\\frac{a + b}{2}"
+  variance:
+    expr: "\\frac{(b - a)^{2}}{12}"
+  skewness:
+    expr: "0"
+  excess_kurtosis:
+    expr: "-\\frac{6}{5}"
+  raw_moment:
+    expr: "\\frac{b^{j + 1} - a^{j + 1}}{(j + 1)(b - a)}"
+    condition: "j \\in \\{1, 2, 3, \\ldots\\}"
+  mgf:
+    - expr: "\\frac{e^{b t} - e^{a t}}{t (b - a)}"
+      condition: "t \\ne 0"
+    - expr: "1"
+      condition: "t = 0"
+  cf:
+    - expr: "\\frac{e^{i b t} - e^{i a t}}{i t (b - a)}"
+      condition: "t \\ne 0"
+    - expr: "1"
+      condition: "t = 0"
+  median:
+    expr: "\\frac{a + b}{2}"
+  mode:
+    expr: "[a, b]"
+  entropy:
+    expr: "\\log(b - a)"
 story:
   en-US: >-
     Choose a point at random in the interval [a, b], with no region favored
@@ -62,3 +91,6 @@ references:
   - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
   - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
   - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."
+  - "Johnson, N. L., Kotz, S. and Balakrishnan, N. (1995). Continuous Univariate Distributions, Vol. 2, 2nd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."
+  - "Lazo, A. V. and Rathie, P. N. (1978). On the entropy of continuous probability distributions. IEEE Transactions on Information Theory, 24(1), 120-122."

@@ -32,6 +32,37 @@ functions:
 latex:
   pdf: "f(x) = \\frac{k}{\\lambda} \\left(\\frac{x}{\\lambda}\\right)^{k - 1} e^{-(x/\\lambda)^{k}}, \\quad x \\ge 0"
   cdf: "F(x) = 1 - e^{-(x/\\lambda)^{k}}, \\quad x \\ge 0"
+  quantile:
+    expr: "\\lambda \\left(-\\log(1 - u)\\right)^{1/k}"
+  mean:
+    expr: "\\lambda \\Gamma\\left(1 + \\frac{1}{k}\\right)"
+  variance:
+    expr: "\\lambda^{2} \\left[\\Gamma\\left(1 + \\frac{2}{k}\\right) - \\Gamma^{2}\\left(1 + \\frac{1}{k}\\right)\\right]"
+  skewness:
+    expr: "\\frac{\\Gamma\\left(1 + \\frac{3}{k}\\right) - 3 \\Gamma\\left(1 + \\frac{1}{k}\\right) \\Gamma\\left(1 + \\frac{2}{k}\\right) + 2 \\Gamma^{3}\\left(1 + \\frac{1}{k}\\right)}{\\left[\\Gamma\\left(1 + \\frac{2}{k}\\right) - \\Gamma^{2}\\left(1 + \\frac{1}{k}\\right)\\right]^{3/2}}"
+  excess_kurtosis:
+    expr: "\\frac{\\Gamma\\left(1 + \\frac{4}{k}\\right) - 4 \\Gamma\\left(1 + \\frac{1}{k}\\right) \\Gamma\\left(1 + \\frac{3}{k}\\right) + 6 \\Gamma^{2}\\left(1 + \\frac{1}{k}\\right) \\Gamma\\left(1 + \\frac{2}{k}\\right) - 3 \\Gamma^{4}\\left(1 + \\frac{1}{k}\\right)}{\\left[\\Gamma\\left(1 + \\frac{2}{k}\\right) - \\Gamma^{2}\\left(1 + \\frac{1}{k}\\right)\\right]^{2}} - 3"
+  raw_moment:
+    expr: "\\lambda^{j} \\Gamma\\left(1 + \\frac{j}{k}\\right)"
+    condition: "j > -k"
+  mgf:
+    - expr: null
+      condition: "k \\ge 1"
+    - expr: null
+      condition: "k < 1, t \\le 0"
+    - status: undefined
+      condition: "k < 1, t > 0"
+  cf:
+    expr: null
+  median:
+    expr: "\\lambda (\\log 2)^{1/k}"
+  mode:
+    - expr: "\\lambda \\left(\\frac{k - 1}{k}\\right)^{1/k}"
+      condition: "k > 1"
+    - expr: "0"
+      condition: "k \\le 1"
+  entropy:
+    expr: "\\gamma_{\\mathrm{E}} \\left(1 - \\frac{1}{k}\\right) + \\log\\frac{\\lambda}{k} + 1"
 story:
   en-US: >-
     A system fails when its weakest component fails. The Weibull describes
@@ -55,3 +86,6 @@ references:
   - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
   - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
   - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."
+  - "Johnson, N. L., Kotz, S. and Balakrishnan, N. (1994). Continuous Univariate Distributions, Vol. 1, 2nd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."
+  - "Lazo, A. V. and Rathie, P. N. (1978). On the entropy of continuous probability distributions. IEEE Transactions on Information Theory, 24(1), 120-122."

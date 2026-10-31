@@ -31,6 +31,26 @@ functions:
 latex:
   pdf: "f(x) = \\frac{1}{\\sigma\\sqrt{2\\pi}} \\exp\\left\\{-\\frac{(x-\\mu)^2}{2\\sigma^2}\\right\\}"
   cdf: "F(x) = \\Phi\\left(\\frac{x-\\mu}{\\sigma}\\right)"
+  quantile:
+    expr: "\\mu + \\sigma \\Phi^{-1}(u)"
+  mean:
+    expr: "\\mu"
+  variance:
+    expr: "\\sigma^{2}"
+  skewness:
+    expr: "0"
+  excess_kurtosis:
+    expr: "0"
+  mgf:
+    expr: "\\exp\\left(\\mu t + \\frac{\\sigma^{2} t^{2}}{2}\\right)"
+  cf:
+    expr: "\\exp\\left(i \\mu t - \\frac{\\sigma^{2} t^{2}}{2}\\right)"
+  median:
+    expr: "\\mu"
+  mode:
+    expr: "\\mu"
+  entropy:
+    expr: "\\frac{1}{2} \\log\\left(2 \\pi e \\sigma^{2}\\right)"
 story:
   en-US: >-
     Add up many small, independent effects and the total tends to a bell
@@ -70,3 +90,6 @@ references:
   - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
   - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
   - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."
+  - "Johnson, N. L., Kotz, S. and Balakrishnan, N. (1994). Continuous Univariate Distributions, Vol. 1, 2nd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."
+  - "Lazo, A. V. and Rathie, P. N. (1978). On the entropy of continuous probability distributions. IEEE Transactions on Information Theory, 24(1), 120-122."

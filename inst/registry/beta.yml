@@ -32,6 +32,49 @@ functions:
 latex:
   pdf: "f(x) = \\frac{x^{\\alpha - 1} (1 - x)^{\\beta - 1}}{B(\\alpha, \\beta)}, \\quad 0 < x < 1"
   cdf: "F(x) = I_{x}(\\alpha, \\beta)"
+  quantile:
+    expr: null
+  mean:
+    expr: "\\frac{\\alpha}{\\alpha + \\beta}"
+  variance:
+    expr: "\\frac{\\alpha \\beta}{(\\alpha + \\beta)^{2} (\\alpha + \\beta + 1)}"
+  skewness:
+    expr: "\\frac{2 (\\beta - \\alpha) \\sqrt{\\alpha + \\beta + 1}}{(\\alpha + \\beta + 2) \\sqrt{\\alpha \\beta}}"
+  excess_kurtosis:
+    expr: "\\frac{6 \\left[(\\alpha - \\beta)^{2} (\\alpha + \\beta + 1) - \\alpha \\beta (\\alpha + \\beta + 2)\\right]}{\\alpha \\beta (\\alpha + \\beta + 2)(\\alpha + \\beta + 3)}"
+  raw_moment:
+    expr: "\\frac{B(\\alpha + j, \\beta)}{B(\\alpha, \\beta)}"
+    condition: "j > -\\alpha"
+  mgf:
+    expr: "{}_{1}F_{1}(\\alpha; \\alpha + \\beta; t)"
+  cf:
+    expr: "{}_{1}F_{1}(\\alpha; \\alpha + \\beta; i t)"
+  median:
+    - expr: "\\frac{1}{2}"
+      condition: "\\alpha = \\beta"
+    - expr: "1 - 2^{-1/\\beta}"
+      condition: "\\alpha = 1, \\beta \\ne 1"
+    - expr: "2^{-1/\\alpha}"
+      condition: "\\beta = 1, \\alpha \\ne 1"
+    - expr: null
+      condition: "\\alpha \\ne \\beta, \\alpha \\ne 1, \\beta \\ne 1"
+  mode:
+    - expr: "\\frac{\\alpha - 1}{\\alpha + \\beta - 2}"
+      condition: "\\alpha > 1, \\beta > 1"
+    - expr: "0"
+      condition: "\\alpha \\le 1, \\beta > 1"
+    - expr: "0"
+      condition: "\\alpha < 1, \\beta = 1"
+    - expr: "1"
+      condition: "\\alpha > 1, \\beta \\le 1"
+    - expr: "1"
+      condition: "\\alpha = 1, \\beta < 1"
+    - expr: "\\{0, 1\\}"
+      condition: "\\alpha < 1, \\beta < 1"
+    - expr: "[0, 1]"
+      condition: "\\alpha = 1, \\beta = 1"
+  entropy:
+    expr: "\\log B(\\alpha, \\beta) - (\\alpha - 1) \\psi(\\alpha) - (\\beta - 1) \\psi(\\beta) + (\\alpha + \\beta - 2) \\psi(\\alpha + \\beta)"
 story:
   en-US: >-
     A Beta variable describes an unknown proportion or probability, so it
@@ -57,3 +100,6 @@ references:
   - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
   - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
   - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."
+  - "Johnson, N. L., Kotz, S. and Balakrishnan, N. (1995). Continuous Univariate Distributions, Vol. 2, 2nd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."
+  - "Lazo, A. V. and Rathie, P. N. (1978). On the entropy of continuous probability distributions. IEEE Transactions on Information Theory, 24(1), 120-122."

@@ -31,6 +31,26 @@ functions:
 latex:
   pdf: "f(x) = \\frac{1}{\\pi \\gamma \\left[1 + \\left(\\frac{x - x_0}{\\gamma}\\right)^2\\right]}"
   cdf: "F(x) = \\frac{1}{2} + \\frac{1}{\\pi} \\arctan\\left(\\frac{x - x_0}{\\gamma}\\right)"
+  quantile:
+    expr: "x_0 + \\gamma \\tan\\left(\\pi \\left(u - \\frac{1}{2}\\right)\\right)"
+  mean:
+    status: undefined
+  variance:
+    status: undefined
+  skewness:
+    status: undefined
+  excess_kurtosis:
+    status: undefined
+  mgf:
+    status: undefined
+  cf:
+    expr: "e^{i x_0 t - \\gamma |t|}"
+  median:
+    expr: "x_0"
+  mode:
+    expr: "x_0"
+  entropy:
+    expr: "\\log(4 \\pi \\gamma)"
 story:
   en-US: >-
     A lamp spins to a random angle and shines on a long wall; the spot where
@@ -46,3 +66,6 @@ references:
   - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
   - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
   - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."
+  - "Johnson, N. L., Kotz, S. and Balakrishnan, N. (1994). Continuous Univariate Distributions, Vol. 1, 2nd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."
+  - "Lazo, A. V. and Rathie, P. N. (1978). On the entropy of continuous probability distributions. IEEE Transactions on Information Theory, 24(1), 120-122."

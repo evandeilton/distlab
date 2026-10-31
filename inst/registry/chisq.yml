@@ -25,6 +25,33 @@ functions:
 latex:
   pdf: "f(x) = \\frac{x^{k/2 - 1} e^{-x/2}}{2^{k/2} \\Gamma(k/2)}, \\quad x > 0"
   cdf: "F(x) = \\frac{\\gamma(k/2, x/2)}{\\Gamma(k/2)}"
+  quantile:
+    expr: null
+  mean:
+    expr: "k"
+  variance:
+    expr: "2k"
+  skewness:
+    expr: "\\sqrt{\\frac{8}{k}}"
+  excess_kurtosis:
+    expr: "\\frac{12}{k}"
+  raw_moment:
+    expr: "\\frac{2^{j} \\Gamma(k/2 + j)}{\\Gamma(k/2)}"
+    condition: "j > -\\frac{k}{2}"
+  mgf:
+    expr: "(1 - 2t)^{-k/2}"
+    condition: "t < \\frac{1}{2}"
+  cf:
+    expr: "(1 - 2 i t)^{-k/2}"
+  median:
+    expr: null
+  mode:
+    - expr: "k - 2"
+      condition: "k \\ge 2"
+    - expr: "0"
+      condition: "k < 2"
+  entropy:
+    expr: "\\frac{k}{2} + \\log\\left(2 \\Gamma\\left(\\frac{k}{2}\\right)\\right) + \\left(1 - \\frac{k}{2}\\right) \\psi\\left(\\frac{k}{2}\\right)"
 story:
   en-US: >-
     Square k independent standard Normal variables and add them up: the total
@@ -47,3 +74,6 @@ references:
   - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
   - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
   - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."
+  - "Johnson, N. L., Kotz, S. and Balakrishnan, N. (1994). Continuous Univariate Distributions, Vol. 1, 2nd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."
+  - "Lazo, A. V. and Rathie, P. N. (1978). On the entropy of continuous probability distributions. IEEE Transactions on Information Theory, 24(1), 120-122."

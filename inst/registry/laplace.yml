@@ -31,6 +31,27 @@ functions:
 latex:
   pdf: "f(x) = \\frac{1}{2b} \\exp\\left(-\\frac{|x - \\mu|}{b}\\right)"
   cdf: "F(x) = \\begin{cases} \\frac{1}{2} e^{(x - \\mu)/b}, & x < \\mu \\\\ 1 - \\frac{1}{2} e^{-(x - \\mu)/b}, & x \\ge \\mu \\end{cases}"
+  quantile:
+    expr: "\\mu - b \\, \\operatorname{sgn}\\left(u - \\frac{1}{2}\\right) \\log\\left(1 - 2 \\left|u - \\frac{1}{2}\\right|\\right)"
+  mean:
+    expr: "\\mu"
+  variance:
+    expr: "2 b^{2}"
+  skewness:
+    expr: "0"
+  excess_kurtosis:
+    expr: "3"
+  mgf:
+    expr: "\\frac{e^{\\mu t}}{1 - b^{2} t^{2}}"
+    condition: "|t| < \\frac{1}{b}"
+  cf:
+    expr: "\\frac{e^{i \\mu t}}{1 + b^{2} t^{2}}"
+  median:
+    expr: "\\mu"
+  mode:
+    expr: "\\mu"
+  entropy:
+    expr: "1 + \\log(2 b)"
 story:
   en-US: >-
     Take the difference between two independent Exponential waiting times
@@ -47,3 +68,6 @@ story:
 references:
   - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
   - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."
+  - "Johnson, N. L., Kotz, S. and Balakrishnan, N. (1995). Continuous Univariate Distributions, Vol. 2, 2nd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."
+  - "Lazo, A. V. and Rathie, P. N. (1978). On the entropy of continuous probability distributions. IEEE Transactions on Information Theory, 24(1), 120-122."

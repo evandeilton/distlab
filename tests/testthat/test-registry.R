@@ -151,3 +151,45 @@ test_that("internal helpers resolve as registry functions", {
   expect_null(distlab:::resolve_fun("distlab::no_such_helper", error = FALSE))
   expect_error(distlab:::resolve_fun("distlab::no_such_helper"), "Cannot find")
 })
+
+test_that("validator checks the formula specs under latex", {
+  e <- dl_registry()$gamma
+  v <- function(x) distlab:::validate_entry(x)
+  bad <- e; bad$latex$mean <- NULL
+  expect_match(v(bad), "missing latex key: mean", all = FALSE)
+  bad <- e; bad$latex[["kurtosis"]] <- list(expr = "x")
+  expect_match(v(bad), "unknown latex key: kurtosis", all = FALSE)
+  bad <- e; bad$latex$pgf <- list(expr = "z")
+  expect_match(v(bad), "only for discrete", all = FALSE)
+  pois <- dl_registry()$poisson
+  pois$latex$pgf <- NULL
+  expect_match(v(pois), "missing latex key: pgf", all = FALSE)
+  bad <- e; bad$latex$mean <- list(expr = "a", status = "infinite")
+  expect_match(v(bad), "exactly one of expr and status", all = FALSE)
+  bad <- e; bad$latex$mean <- list(condition = "\\alpha > 1")
+  expect_match(v(bad), "exactly one of expr and status", all = FALSE)
+  bad <- e; bad$latex$mean <- list(status = "huge")
+  expect_match(v(bad), "status must be one of", all = FALSE)
+  bad <- e; bad$latex$mean <- list(expr = 3)
+  expect_match(v(bad), "expr must be a string or null", all = FALSE)
+  bad <- e; bad$latex$mean <- list(expr = "a", condition = 1)
+  expect_match(v(bad), "condition must be a string", all = FALSE)
+  bad <- e; bad$latex$mean <- list(expr = "a", note = "b")
+  expect_match(v(bad), "unknown field\\(s\\): note", all = FALSE)
+  bad <- e; bad$latex$mean <- "\\frac{\\alpha}{\\beta}"
+  expect_match(v(bad), "latex mean must be a formula", all = FALSE)
+  bad <- e; bad$latex$mean <- list()
+  expect_match(v(bad), "latex mean must be a formula", all = FALSE)
+  bad <- e; bad$latex$mode <- list(list(expr = "0"), list(expr = "1", condition = "x"))
+  expect_match(v(bad), "latex mode\\[1\\] needs a condition", all = FALSE)
+  bad <- e; bad$latex$mode <- list(list(expr = "0", condition = "x"), "1")
+  expect_match(v(bad), "latex mode must be a formula", all = FALSE)
+  bad <- e; bad$latex$cdf <- NULL
+  expect_match(v(bad), "latex needs pdf and cdf strings", all = FALSE)
+  # A null expr (no closed form) and status pieces with conditions are valid.
+  ok <- e
+  ok$latex$median <- list(expr = NULL)
+  ok$latex$mean <- list(list(expr = "a", condition = "x > 1"),
+                        list(status = "infinite", condition = "x \\le 1"))
+  expect_identical(v(ok), character())
+})

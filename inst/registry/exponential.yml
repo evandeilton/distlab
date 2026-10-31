@@ -25,6 +25,30 @@ functions:
 latex:
   pdf: "f(x) = \\lambda e^{-\\lambda x}, \\quad x \\ge 0"
   cdf: "F(x) = 1 - e^{-\\lambda x}, \\quad x \\ge 0"
+  quantile:
+    expr: "-\\frac{\\log(1 - u)}{\\lambda}"
+  mean:
+    expr: "\\frac{1}{\\lambda}"
+  variance:
+    expr: "\\frac{1}{\\lambda^{2}}"
+  skewness:
+    expr: "2"
+  excess_kurtosis:
+    expr: "6"
+  raw_moment:
+    expr: "\\frac{\\Gamma(1 + j)}{\\lambda^{j}}"
+    condition: "j > -1"
+  mgf:
+    expr: "\\frac{\\lambda}{\\lambda - t}"
+    condition: "t < \\lambda"
+  cf:
+    expr: "\\frac{\\lambda}{\\lambda - i t}"
+  median:
+    expr: "\\frac{\\log 2}{\\lambda}"
+  mode:
+    expr: "0"
+  entropy:
+    expr: "1 - \\log \\lambda"
 story:
   en-US: >-
     Events happen at random at a constant rate lambda, and you wait for the
@@ -54,3 +78,6 @@ references:
   - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
   - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
   - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."
+  - "Johnson, N. L., Kotz, S. and Balakrishnan, N. (1994). Continuous Univariate Distributions, Vol. 1, 2nd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."
+  - "Lazo, A. V. and Rathie, P. N. (1978). On the entropy of continuous probability distributions. IEEE Transactions on Information Theory, 24(1), 120-122."

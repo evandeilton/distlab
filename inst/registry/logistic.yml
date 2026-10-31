@@ -31,6 +31,30 @@ functions:
 latex:
   pdf: "f(x) = \\frac{e^{-(x - \\mu)/s}}{s \\left(1 + e^{-(x - \\mu)/s}\\right)^2}"
   cdf: "F(x) = \\frac{1}{1 + e^{-(x - \\mu)/s}}"
+  quantile:
+    expr: "\\mu + s \\log\\frac{u}{1 - u}"
+  mean:
+    expr: "\\mu"
+  variance:
+    expr: "\\frac{s^{2} \\pi^{2}}{3}"
+  skewness:
+    expr: "0"
+  excess_kurtosis:
+    expr: "\\frac{6}{5}"
+  mgf:
+    expr: "e^{\\mu t} B(1 - s t, 1 + s t)"
+    condition: "|t| < \\frac{1}{s}"
+  cf:
+    - expr: "e^{i \\mu t} \\frac{\\pi s t}{\\sinh(\\pi s t)}"
+      condition: "t \\ne 0"
+    - expr: "1"
+      condition: "t = 0"
+  median:
+    expr: "\\mu"
+  mode:
+    expr: "\\mu"
+  entropy:
+    expr: "\\log s + 2"
 story:
   en-US: >-
     Its CDF is the logistic curve that turns log-odds into probabilities, the
@@ -46,3 +70,6 @@ story:
 references:
   - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
   - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."
+  - "Johnson, N. L., Kotz, S. and Balakrishnan, N. (1995). Continuous Univariate Distributions, Vol. 2, 2nd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."
+  - "Lazo, A. V. and Rathie, P. N. (1978). On the entropy of continuous probability distributions. IEEE Transactions on Information Theory, 24(1), 120-122."

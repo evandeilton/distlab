@@ -32,6 +32,39 @@ functions:
 latex:
   pdf: "P(X = x) = \\frac{\\Gamma(x + r)}{\\Gamma(r)\\, x!} p^{r} (1 - p)^{x}, \\quad x = 0, 1, 2, \\ldots \\ \\text{(failures before the } r\\text{-th success)}"
   cdf: "F(x) = I_{p}(r, \\lfloor x \\rfloor + 1)"
+  quantile:
+    expr: null
+  mean:
+    expr: "\\frac{r (1 - p)}{p}"
+  variance:
+    expr: "\\frac{r (1 - p)}{p^{2}}"
+  skewness:
+    - expr: "\\frac{2 - p}{\\sqrt{r (1 - p)}}"
+      condition: "p < 1"
+    - status: undefined
+      condition: "p = 1"
+  excess_kurtosis:
+    - expr: "\\frac{6}{r} + \\frac{p^{2}}{r (1 - p)}"
+      condition: "p < 1"
+    - status: undefined
+      condition: "p = 1"
+  mgf:
+    expr: "\\left(\\frac{p}{1 - (1 - p) e^{t}}\\right)^{r}"
+    condition: "t < -\\log(1 - p)"
+  cf:
+    expr: "\\left(\\frac{p}{1 - (1 - p) e^{i t}}\\right)^{r}"
+  pgf:
+    expr: "\\left(\\frac{p}{1 - (1 - p) z}\\right)^{r}"
+    condition: "|z| < \\frac{1}{1 - p}"
+  median:
+    expr: null
+  mode:
+    - expr: "\\max\\left(0, \\left\\lfloor \\frac{(r - 1)(1 - p)}{p} \\right\\rfloor\\right)"
+      condition: "\\frac{(r - 1)(1 - p)}{p} \\notin \\{1, 2, 3, \\ldots\\}"
+    - expr: "\\left\\{\\frac{(r - 1)(1 - p)}{p} - 1, \\frac{(r - 1)(1 - p)}{p}\\right\\}"
+      condition: "\\frac{(r - 1)(1 - p)}{p} \\in \\{1, 2, 3, \\ldots\\}"
+  entropy:
+    expr: null
 story:
   en-US: >-
     Repeat independent trials with success probability p until the r-th
@@ -57,3 +90,5 @@ references:
   - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
   - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
   - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."
+  - "Johnson, N. L., Kemp, A. W. and Kotz, S. (2005). Univariate Discrete Distributions, 3rd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."

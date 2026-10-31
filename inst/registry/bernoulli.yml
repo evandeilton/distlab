@@ -24,6 +24,50 @@ functions:
 latex:
   pdf: "P(X = x) = p^{x} (1 - p)^{1 - x}, \\quad x \\in \\{0, 1\\}"
   cdf: "F(x) = \\begin{cases} 0, & x < 0 \\\\ 1 - p, & 0 \\le x < 1 \\\\ 1, & x \\ge 1 \\end{cases}"
+  quantile:
+    expr: "\\begin{cases} 0, & 0 \\le u \\le 1 - p \\\\ 1, & 1 - p < u \\le 1 \\end{cases}"
+  mean:
+    expr: "p"
+  variance:
+    expr: "p (1 - p)"
+  skewness:
+    - expr: "\\frac{1 - 2p}{\\sqrt{p (1 - p)}}"
+      condition: "0 < p < 1"
+    - status: undefined
+      condition: "p \\in \\{0, 1\\}"
+  excess_kurtosis:
+    - expr: "\\frac{1 - 6p (1 - p)}{p (1 - p)}"
+      condition: "0 < p < 1"
+    - status: undefined
+      condition: "p \\in \\{0, 1\\}"
+  raw_moment:
+    expr: "p"
+    condition: "j \\in \\{1, 2, 3, \\ldots\\}"
+  mgf:
+    expr: "1 - p + p e^{t}"
+  cf:
+    expr: "1 - p + p e^{i t}"
+  pgf:
+    expr: "1 - p + p z"
+  median:
+    - expr: "0"
+      condition: "p < \\frac{1}{2}"
+    - expr: "[0, 1]"
+      condition: "p = \\frac{1}{2}"
+    - expr: "1"
+      condition: "p > \\frac{1}{2}"
+  mode:
+    - expr: "0"
+      condition: "p < \\frac{1}{2}"
+    - expr: "\\{0, 1\\}"
+      condition: "p = \\frac{1}{2}"
+    - expr: "1"
+      condition: "p > \\frac{1}{2}"
+  entropy:
+    - expr: "-(1 - p) \\log(1 - p) - p \\log p"
+      condition: "0 < p < 1"
+    - expr: "0"
+      condition: "p \\in \\{0, 1\\}"
 story:
   en-US: >-
     A single trial ends in success or failure, such as one coin toss or one
@@ -47,3 +91,5 @@ references:
   - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
   - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
   - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."
+  - "Johnson, N. L., Kemp, A. W. and Kotz, S. (2005). Univariate Discrete Distributions, 3rd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."

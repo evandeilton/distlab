@@ -32,6 +32,31 @@ functions:
 latex:
   pdf: "f(x) = \\frac{1}{x \\sigma \\sqrt{2\\pi}} \\exp\\left\\{-\\frac{(\\log x - \\mu)^2}{2\\sigma^2}\\right\\}, \\quad x > 0"
   cdf: "F(x) = \\Phi\\left(\\frac{\\log x - \\mu}{\\sigma}\\right)"
+  quantile:
+    expr: "\\exp\\left(\\mu + \\sigma \\Phi^{-1}(u)\\right)"
+  mean:
+    expr: "e^{\\mu + \\sigma^{2}/2}"
+  variance:
+    expr: "\\left(e^{\\sigma^{2}} - 1\\right) e^{2\\mu + \\sigma^{2}}"
+  skewness:
+    expr: "\\left(e^{\\sigma^{2}} + 2\\right) \\sqrt{e^{\\sigma^{2}} - 1}"
+  excess_kurtosis:
+    expr: "e^{4\\sigma^{2}} + 2 e^{3\\sigma^{2}} + 3 e^{2\\sigma^{2}} - 6"
+  raw_moment:
+    expr: "e^{j \\mu + j^{2} \\sigma^{2}/2}"
+  mgf:
+    - expr: null
+      condition: "t \\le 0"
+    - status: undefined
+      condition: "t > 0"
+  cf:
+    expr: null
+  median:
+    expr: "e^{\\mu}"
+  mode:
+    expr: "e^{\\mu - \\sigma^{2}}"
+  entropy:
+    expr: "\\mu + \\frac{1}{2} \\log\\left(2 \\pi e \\sigma^{2}\\right)"
 story:
   en-US: >-
     Multiply many small, independent positive factors and the logarithm of
@@ -56,3 +81,6 @@ references:
   - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
   - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
   - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."
+  - "Johnson, N. L., Kotz, S. and Balakrishnan, N. (1994). Continuous Univariate Distributions, Vol. 1, 2nd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."
+  - "Lazo, A. V. and Rathie, P. N. (1978). On the entropy of continuous probability distributions. IEEE Transactions on Information Theory, 24(1), 120-122."

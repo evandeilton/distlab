@@ -39,6 +39,28 @@ functions:
 latex:
   pdf: "P(X = x) = \\binom{n}{x} \\frac{B(x + \\alpha, n - x + \\beta)}{B(\\alpha, \\beta)}, \\quad x = 0, 1, \\ldots, n"
   cdf: "F(x) = \\sum_{j=0}^{\\lfloor x \\rfloor} \\binom{n}{j} \\frac{B(j + \\alpha, n - j + \\beta)}{B(\\alpha, \\beta)}"
+  quantile:
+    expr: null
+  mean:
+    expr: "\\frac{n \\alpha}{\\alpha + \\beta}"
+  variance:
+    expr: "\\frac{n \\alpha \\beta (\\alpha + \\beta + n)}{(\\alpha + \\beta)^{2} (\\alpha + \\beta + 1)}"
+  skewness:
+    expr: "\\frac{(\\alpha + \\beta + 2n)(\\beta - \\alpha)}{\\alpha + \\beta + 2} \\sqrt{\\frac{1 + \\alpha + \\beta}{n \\alpha \\beta (n + \\alpha + \\beta)}}"
+  excess_kurtosis:
+    expr: "\\frac{(\\alpha + \\beta)^{2} (1 + \\alpha + \\beta)}{n \\alpha \\beta (\\alpha + \\beta + 2)(\\alpha + \\beta + 3)(\\alpha + \\beta + n)} \\left[(\\alpha + \\beta)(\\alpha + \\beta - 1 + 6n) + 3 \\alpha \\beta (n - 2) + 6n^{2} - \\frac{3 \\alpha \\beta n (6 - n)}{\\alpha + \\beta} - \\frac{18 \\alpha \\beta n^{2}}{(\\alpha + \\beta)^{2}}\\right] - 3"
+  mgf:
+    expr: "{}_{2}F_{1}\\left(-n, \\alpha; \\alpha + \\beta; 1 - e^{t}\\right)"
+  cf:
+    expr: "{}_{2}F_{1}\\left(-n, \\alpha; \\alpha + \\beta; 1 - e^{i t}\\right)"
+  pgf:
+    expr: "{}_{2}F_{1}\\left(-n, \\alpha; \\alpha + \\beta; 1 - z\\right)"
+  median:
+    expr: null
+  mode:
+    expr: null
+  entropy:
+    expr: null
 story:
   en-US: >-
     First draw a success probability p from a Beta(alpha, beta) distribution,
@@ -69,3 +91,5 @@ references:
   - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
   - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
   - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."
+  - "Johnson, N. L., Kemp, A. W. and Kotz, S. (2005). Univariate Discrete Distributions, 3rd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."

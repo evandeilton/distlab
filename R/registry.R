@@ -13,6 +13,14 @@
 #' distribution. Each entry holds the support, parameters, R functions,
 #' formulas, story and references used by the engine and the app.
 #'
+#' The `latex` field holds the density and distribution function as strings,
+#' plus formula specs for the quantile, mean, variance, skewness, excess
+#' kurtosis, raw moments, generating functions (`mgf`, `cf`, and `pgf` for
+#' discrete entries), median, mode and entropy. Each spec is one piece or a
+#' list of pieces; a piece has an `expr` (`NULL` when there is no closed form)
+#' or a `status` (`"infinite"` or `"undefined"`), and an optional math-only
+#' `condition`.
+#'
 #' @param refresh Logical. If `TRUE`, re-read the YAML files instead of using
 #'   the cached copy.
 #'
@@ -167,9 +175,7 @@ validate_entry <- function(entry) {
                         paste(bad, collapse = ", ")))
     }
   }
-  if (!is_string(entry$latex$pdf) || !is_string(entry$latex$cdf)) {
-    p <- c(p, "latex needs pdf and cdf strings")
-  }
+  p <- c(p, validate_latex(entry$latex, entry$type))
   for (rel in entry$relationships) {
     p <- c(p, validate_relationship(rel))
   }
@@ -194,6 +200,87 @@ validate_relationship <- function(rel) {
   }
   if (!is_string(rel$latex)) {
     p <- c(p, sprintf("relationship to %s needs a latex string", label))
+  }
+  p
+}
+
+# Keys of the `latex` field. pdf and cdf are plain strings; the others are
+# formula specs (see validate_formula()).
+.dl_latex_formulas <- c("quantile", "mean", "variance", "skewness",
+                        "excess_kurtosis", "raw_moment", "mgf", "cf", "pgf",
+                        "median", "mode", "entropy")
+.dl_latex_required <- c("mean", "variance", "skewness", "excess_kurtosis",
+                        "mgf", "cf")
+# Status of a quantity with no finite value: an integral that diverges to
+# +Inf ("infinite") or one that has no value at all ("undefined").
+.dl_formula_status <- c("infinite", "undefined")
+
+# Check the `latex` field: pdf and cdf strings plus optional formula specs.
+# The moments, mgf and cf are required, and pgf too for discrete entries.
+validate_latex <- function(latex, type) {
+  p <- character()
+  if (!is.list(latex) || !is_string(latex[["pdf"]]) || !is_string(latex[["cdf"]])) {
+    return("latex needs pdf and cdf strings")
+  }
+  extra <- setdiff(names(latex), c("pdf", "cdf", .dl_latex_formulas))
+  if (length(extra)) {
+    p <- c(p, paste("unknown latex key:", extra))
+  }
+  discrete <- identical(type, "discrete")
+  req <- c(.dl_latex_required, if (discrete) "pgf")
+  miss <- setdiff(req, names(latex))
+  if (length(miss)) {
+    p <- c(p, paste("missing latex key:", miss))
+  }
+  if (!discrete && "pgf" %in% names(latex)) {
+    p <- c(p, "latex pgf is only for discrete entries")
+  }
+  for (key in intersect(names(latex), .dl_latex_formulas)) {
+    p <- c(p, validate_formula(latex[[key]], key))
+  }
+  p
+}
+
+# Check one formula spec: a single piece or a non-empty list of pieces. A
+# piece has either `expr` (a LaTeX string, or null when there is no closed
+# form) or `status` ("infinite" or "undefined"), and an optional math-only
+# `condition` string. Every piece of a list needs a condition.
+validate_formula <- function(x, key) {
+  is_piece <- function(y) is.list(y) && !is.null(names(y))
+  pieces <- if (is_piece(x)) list(x) else x
+  if (!is.list(pieces) || !length(pieces) ||
+      !all(vapply(pieces, is_piece, logical(1)))) {
+    return(sprintf("latex %s must be a formula or a list of formulas", key))
+  }
+  p <- character()
+  for (i in seq_along(pieces)) {
+    pc <- pieces[[i]]
+    label <- if (length(pieces) > 1L) sprintf("latex %s[%d]", key, i) else
+      sprintf("latex %s", key)
+    nm <- names(pc)
+    if (length(bad <- setdiff(nm, c("expr", "status", "condition")))) {
+      p <- c(p, sprintf("%s has unknown field(s): %s", label,
+                        paste(bad, collapse = ", ")))
+    }
+    has_expr <- "expr" %in% nm
+    has_status <- "status" %in% nm
+    if (has_expr == has_status) {
+      p <- c(p, sprintf("%s needs exactly one of expr and status", label))
+    }
+    if (has_expr && !is.null(pc[["expr"]]) && !is_string(pc[["expr"]])) {
+      p <- c(p, sprintf("%s expr must be a string or null", label))
+    }
+    if (has_status && !(is_string(pc[["status"]]) &&
+                        pc[["status"]] %in% .dl_formula_status)) {
+      p <- c(p, sprintf("%s status must be one of: %s", label,
+                        paste(.dl_formula_status, collapse = ", ")))
+    }
+    if ("condition" %in% nm && !is_string(pc[["condition"]])) {
+      p <- c(p, sprintf("%s condition must be a string", label))
+    }
+    if (length(pieces) > 1L && !"condition" %in% nm) {
+      p <- c(p, sprintf("%s needs a condition", label))
+    }
   }
   p
 }

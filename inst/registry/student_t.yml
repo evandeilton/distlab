@@ -25,6 +25,54 @@ functions:
 latex:
   pdf: "f(x) = \\frac{\\Gamma\\left(\\frac{\\nu + 1}{2}\\right)}{\\sqrt{\\nu\\pi}\\, \\Gamma\\left(\\frac{\\nu}{2}\\right)} \\left(1 + \\frac{x^2}{\\nu}\\right)^{-(\\nu + 1)/2}"
   cdf: "F(x) = 1 - \\frac{1}{2} I_{\\nu / (x^2 + \\nu)}\\left(\\frac{\\nu}{2}, \\frac{1}{2}\\right), \\quad x \\ge 0"
+  quantile:
+    expr: null
+  mean:
+    - expr: "0"
+      condition: "\\nu > 1"
+    - status: undefined
+      condition: "\\nu \\le 1"
+  variance:
+    - expr: "\\frac{\\nu}{\\nu - 2}"
+      condition: "\\nu > 2"
+    - status: infinite
+      condition: "1 < \\nu \\le 2"
+    - status: undefined
+      condition: "\\nu \\le 1"
+  skewness:
+    - expr: "0"
+      condition: "\\nu > 3"
+    - status: undefined
+      condition: "\\nu \\le 3"
+  excess_kurtosis:
+    - expr: "\\frac{6}{\\nu - 4}"
+      condition: "\\nu > 4"
+    - status: infinite
+      condition: "2 < \\nu \\le 4"
+    - status: undefined
+      condition: "\\nu \\le 2"
+  raw_moment:
+    - expr: "0"
+      condition: "j \\in \\{1, 3, 5, \\ldots\\}, j < \\nu"
+    - expr: "\\frac{\\nu^{j/2} \\, \\Gamma\\left(\\frac{j + 1}{2}\\right) \\Gamma\\left(\\frac{\\nu - j}{2}\\right)}{\\sqrt{\\pi} \\, \\Gamma\\left(\\frac{\\nu}{2}\\right)}"
+      condition: "j \\in \\{2, 4, 6, \\ldots\\}, j < \\nu"
+    - status: undefined
+      condition: "j \\in \\{1, 3, 5, \\ldots\\}, j \\ge \\nu"
+    - status: infinite
+      condition: "j \\in \\{2, 4, 6, \\ldots\\}, j \\ge \\nu"
+  mgf:
+    status: undefined
+  cf:
+    - expr: "\\frac{K_{\\nu/2}\\left(\\sqrt{\\nu} |t|\\right) \\left(\\sqrt{\\nu} |t|\\right)^{\\nu/2}}{\\Gamma(\\nu/2) \\, 2^{\\nu/2 - 1}}"
+      condition: "t \\ne 0"
+    - expr: "1"
+      condition: "t = 0"
+  median:
+    expr: "0"
+  mode:
+    expr: "0"
+  entropy:
+    expr: "\\frac{\\nu + 1}{2} \\left[\\psi\\left(\\frac{\\nu + 1}{2}\\right) - \\psi\\left(\\frac{\\nu}{2}\\right)\\right] + \\log\\left(\\sqrt{\\nu} \\, B\\left(\\frac{\\nu}{2}, \\frac{1}{2}\\right)\\right)"
 story:
   en-US: >-
     Standardize a sample mean with the sample standard deviation instead of
@@ -62,3 +110,6 @@ references:
   - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
   - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
   - "Leemis, L. M. and McQueston, J. T. (2008). Univariate distribution relationships. The American Statistician, 62(1), 45-53."
+  - "Johnson, N. L., Kotz, S. and Balakrishnan, N. (1995). Continuous Univariate Distributions, Vol. 2, 2nd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."
+  - "Lazo, A. V. and Rathie, P. N. (1978). On the entropy of continuous probability distributions. IEEE Transactions on Information Theory, 24(1), 120-122."

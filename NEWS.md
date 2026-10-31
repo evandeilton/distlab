@@ -12,6 +12,9 @@
 * `dl_moments()` has closed forms for every entry and returns `Inf` for
   infinite moments and `NA` for moments that do not exist; the Explorer shows
   them as "∞" and "does not exist".
+* Registry entries carry LaTeX formulas for the quantile, moments, raw
+  moments, mgf, cf, pgf, median, mode and entropy, with conditions and
+  infinite/undefined statuses that match `dl_moments()`.
 * Registry entries list their relationships to other distributions (special
   cases, sums, limits and transformations).
 * Numeric moments of continuous distributions integrate over probabilities,
