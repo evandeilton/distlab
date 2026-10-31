@@ -1,0 +1,23 @@
+app.title: distlab
+nav.explorer: Explorador
+nav.about: Sobre
+explorer.distribution: Distribuição
+explorer.parameters: Parâmetros
+explorer.density: Função densidade
+explorer.pmf: Função de probabilidade
+explorer.cdf: Função de distribuição acumulada
+explorer.story: História
+explorer.formulas: Fórmulas
+moments.mean: Média
+moments.variance: Variância
+moments.sd: Desvio-padrão
+moments.skewness: Assimetria
+moments.excess_kurtosis: Excesso de curtose
+plot.x: x
+plot.density: f(x)
+plot.probability: P(X = x)
+plot.cdf: F(x)
+error.invalid_params: "Valores de parâmetros fora do domínio: {message}"
+about.text: >-
+  O distlab é um laboratório interativo para estudar distribuições de
+  probabilidade.

@@ -1,0 +1,45 @@
+id: normal
+names:
+  en-US: Normal
+  pt-BR: Normal
+type: continuous
+group: real_line
+subgroup: normal_family
+tier: 1
+support:
+  lower: -.inf
+  upper: .inf
+parameters:
+  - name: mean
+    latex: "\\mu"
+    lower: -.inf
+    upper: .inf
+    default: 0
+    slider: {min: -10, max: 10, step: 0.1}
+  - name: sd
+    latex: "\\sigma"
+    lower: 0
+    lower_open: true
+    upper: .inf
+    default: 1
+    slider: {min: 0.1, max: 10, step: 0.1}
+functions:
+  d: stats::dnorm
+  p: stats::pnorm
+  q: stats::qnorm
+  r: stats::rnorm
+latex:
+  pdf: "f(x) = \\frac{1}{\\sigma\\sqrt{2\\pi}} \\exp\\left\\{-\\frac{(x-\\mu)^2}{2\\sigma^2}\\right\\}"
+  cdf: "F(x) = \\Phi\\left(\\frac{x-\\mu}{\\sigma}\\right)"
+story:
+  en-US: >-
+    Add up many small, independent effects and the total tends to a bell
+    shape centered at its mean. The Normal distribution describes that limit:
+    mu sets the center and sigma sets the spread.
+  pt-BR: >-
+    Some muitos efeitos pequenos e independentes e o total tende a uma forma
+    de sino centrada na média. A distribuição Normal descreve esse limite:
+    mu define o centro e sigma define a dispersão.
+references:
+  - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
+  - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."

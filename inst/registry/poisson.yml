@@ -1,0 +1,41 @@
+id: poisson
+names:
+  en-US: Poisson
+  pt-BR: Poisson
+type: discrete
+group: counts
+subgroup: poisson_family
+tier: 1
+support:
+  lower: 0
+  upper: .inf
+parameters:
+  - name: lambda
+    latex: "\\lambda"
+    lower: 0
+    lower_open: true
+    upper: .inf
+    default: 3
+    slider: {min: 0.1, max: 30, step: 0.1}
+functions:
+  d: stats::dpois
+  p: stats::ppois
+  q: stats::qpois
+  r: stats::rpois
+latex:
+  pdf: "P(X = x) = \\frac{e^{-\\lambda} \\lambda^{x}}{x!}, \\quad x = 0, 1, 2, \\ldots"
+  cdf: "F(x) = \\sum_{k=0}^{\\lfloor x \\rfloor} \\frac{e^{-\\lambda} \\lambda^{k}}{k!}"
+story:
+  en-US: >-
+    Count how many rare, independent events happen in a fixed interval of
+    time or space. When they occur at an average rate lambda, the count
+    follows a Poisson distribution. It is also the limit of a Binomial with
+    many trials and a small success probability.
+  pt-BR: >-
+    Conte quantos eventos raros e independentes acontecem num intervalo fixo
+    de tempo ou espaço. Quando ocorrem a uma taxa média lambda, a contagem
+    segue uma distribuição de Poisson. Ela também é o limite de uma Binomial
+    com muitos ensaios e pequena probabilidade de sucesso.
+references:
+  - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
+  - "Bussab, W. O. and Morettin, P. A. (2017). Estatística Básica, 9th ed. Saraiva."
