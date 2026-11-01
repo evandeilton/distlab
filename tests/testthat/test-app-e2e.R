@@ -59,4 +59,11 @@ test_that("the language switch keeps tab, distribution and parameters", {
   app$wait_for_idle()
   expect_gt(app$get_js("document.querySelectorAll('.dl-sim-rel-head .katex').length"), 0)
   expect_gt(app$get_js("document.querySelectorAll('.dl-sim .js-plotly-plot').length"), 0)
+  # On a phone the open tab, its table and its code stay inside the screen.
+  app$run_js("document.querySelector('.dl-sim [data-value=\"sample\"]').click()")
+  app$set_window_size(375, 812)
+  app$wait_for_idle()
+  pane <- ".dl-sim .tab-content > .tab-pane.active"
+  expect_lte(app$get_js(sprintf("document.querySelector('%s').getBoundingClientRect().right", pane)),
+             app$get_js("window.innerWidth"))
 })
