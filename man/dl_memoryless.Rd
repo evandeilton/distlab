@@ -26,7 +26,8 @@ otherwise an error asks for a smaller \code{s} or more draws);
 \item \code{exact}: data frame with columns \code{t}, \code{survival} (\eqn{S(t)}) and
 \code{residual} (the conditional survival of the residual);
 \item \code{memoryless}: \code{TRUE} for the Exponential and the Geometric;
-\item \code{s}, \code{seed}, \code{code} (as in \code{\link[=dl_lln]{dl_lln()}}).
+\item \code{s}, \code{seed}, \code{code} (R code that reproduces the residuals, both
+survival curves and their largest gap exactly when a seed is given).
 }
 }
 \description{

@@ -280,3 +280,153 @@ compare.error.value: "The value {value} is outside the domain of the parameter."
 compare.note.mixed: >-
   Bars are probabilities P(X = x) of discrete distributions; curves are
   densities f(x) of continuous ones.
+explorer.to_sim: Simulate
+compendium.simulate: Simulate
+compendium.simulate_label: "Simulate {name}"
+compendium.simulate_relation: Simulate this relation
+compendium.simulate_relation_label: "Simulate the relation {name}"
+sim.relation: Relation
+sim.settings: Simulation settings
+sim.seed: Seed
+sim.new_seed: New random seed
+sim.draws: Number of draws
+sim.seed_help: >-
+  Same seed, same numbers: the R code in each tab repeats them exactly.
+sim.tab.sample: Sample
+sim.tab.lln: Law of Large Numbers
+sim.tab.clt: Central Limit Theorem
+sim.tab.transform: Sums and transformations
+sim.tab.relations: Relations
+sim.tab.memoryless: Memorylessness
+sim.simulated: Simulated
+sim.exact: Exact
+sim.approx: Normal approximation
+sim.play: Play
+sim.hist.density: Histogram and exact density
+sim.hist.pmf: Relative frequencies and exact probabilities
+sim.ecdf: Empirical and exact CDF
+sim.ecdf.empirical: Empirical
+sim.note.outside: "{pct} of the draws lie outside the plotted range (heavy tails)."
+sim.sample.intro: >-
+  A sample drawn with the seed, compared with the exact law. Each 95%
+  interval should hold the exact value in about 95 of 100 seeds.
+sim.sample.check: Monte Carlo check
+sim.col.quantity: Quantity
+sim.col.exact: Exact
+sim.col.estimate: Estimate
+sim.col.se: Std. error
+sim.col.interval: 95% interval
+sim.col.covered: Holds the exact value
+sim.covered.yes: "yes"
+sim.covered.no: "no"
+sim.covered.na: no interval
+sim.lln.intro: >-
+  The mean of the first k draws, for k = 1, 2, …, n, in independent paths.
+  When the mean exists, every path settles at it.
+sim.lln.paths: Number of paths
+sim.lln.log: Logarithmic k axis
+sim.lln.xlab: Number of draws k
+sim.lln.ylab: Mean of the first k draws
+sim.lln.path: "Path {n}"
+sim.lln.note.band: >-
+  The running means settle at the mean μ = {mu}; about 95% of them stay in
+  the band μ ± 2σ/√k, which narrows as k grows.
+sim.lln.note.no_mean: >-
+  This distribution has no mean, so the running means never settle: a single
+  extreme draw can move them at any time, however large k is.
+sim.lln.note.infinite_mean: >-
+  The mean is infinite, so the running means keep drifting upward without
+  settling.
+sim.lln.note.infinite_var: >-
+  The mean μ = {mu} exists but the variance is infinite: the running means
+  still converge, slowly, and there is no μ ± 2σ/√k band.
+sim.clt.intro: >-
+  Means of samples of size n, standardized as (X̄ − μ)/(σ/√n). Press Play to
+  watch the histogram approach the standard Normal as n grows.
+sim.clt.reps: Samples per size
+sim.clt.xlab: (X̄ − μ) / (σ/√n)
+sim.clt.xlab_raw: Sample mean X̄
+sim.clt.col.size: Sample size n
+sim.clt.col.ks: Distance to N(0, 1)
+sim.metric.clt: "Kolmogorov distance sup|F̂ − Φ| between the standardized means and N(0, 1)"
+sim.clt.note: >-
+  Each frame shows the standardized means of the samples of size n. The
+  distance to N(0, 1) shrinks as n grows, as the central limit theorem says.
+sim.clt.note.discrete: >-
+  The draws are whole numbers, so the means fall on a grid and the distance
+  falls more slowly for small n.
+sim.clt.note.raw: >-
+  The variance is not finite, so the means cannot be standardized and the
+  central limit theorem does not apply: the histogram of the raw means does
+  not narrow as n grows. The mean of n Cauchy draws is again Cauchy.
+sim.transform.intro: >-
+  Y is computed from independent draws of X; when Y follows a distribution
+  of the catalog, its exact law is drawn over the histogram.
+sim.transform.op: Operation
+sim.transform.k: Number of copies k
+sim.transform.title: Simulated values of Y
+sim.op.sum: Sum of k copies
+sim.op.mean: Mean of k copies
+sim.op.min: Minimum of k copies
+sim.op.max: Maximum of k copies
+sim.op.affine: a + bX
+sim.op.square: X²
+sim.op.exp: exp(X)
+sim.op.log: log(X)
+sim.transform.exact: "Exact law of Y: {law}"
+sim.transform.approx: "No exact law in the catalog; Normal approximation: {law}"
+sim.transform.none: >-
+  No catalog distribution is known for Y; the histogram shows the simulated
+  values only.
+sim.transform.dropped: "{n} values that were not finite (overflow or log 0) were left out."
+sim.transform.note.cauchy_mean: >-
+  The mean of k Cauchy draws has the same Cauchy law as a single draw:
+  averaging does not concentrate it.
+sim.rel.params: "Recipe:"
+sim.rel.series.approx: Approximating law
+sim.rel.series.target: Limit law
+sim.rel.col.frame: Step
+sim.rel.col.distance: Distance
+sim.rel.col.band: 95% noise level
+sim.rel.note.draws: >-
+  The histogram builds up as draws accumulate. A distance below the 95%
+  noise level 1.36/√n agrees with the exact law.
+sim.rel.note.sum: >-
+  Each frame adds terms to the sum, and its exact law changes with the number
+  of terms k.
+sim.rel.note.limit: >-
+  No draws: the approximating law is computed exactly, and the distance to
+  the limit law shrinks along the frames.
+sim.metric.ks: Kolmogorov–Smirnov distance sup|F̂ − F| to the exact law
+sim.metric.tv: Total variation distance to the exact law
+sim.metric.kolmogorov: Kolmogorov distance sup|F − G| between the two laws
+sim.mem.intro: >-
+  After waiting until s without the event, is the remaining wait X − s like
+  starting over? Only for the Exponential and, for counts, the Geometric.
+sim.mem.s: Threshold s
+sim.mem.survival: Survival of X and of the residual
+sim.mem.hist: Residuals X − s and the law of X
+sim.mem.law_x: Law of X
+sim.mem.ylab: Survival probability
+sim.mem.verdict.yes: >-
+  Memoryless: the residual X − s has the same law as X, whatever s is.
+sim.mem.verdict.no: >-
+  Not memoryless: the residual X − s has a different law from X.
+sim.mem.kept: "{kept} of {n} draws passed s."
+sim.mem.gap: "Largest gap between the two survival curves: {gap}."
+sim.mem.note.discrete: >-
+  For counts the residual is X − s given X ≥ s; the Geometric counts the
+  failures before the first success, starting at 0.
+sim.mem.unsupported: >-
+  Memorylessness concerns waiting times: distributions with support [0, ∞).
+sim.mem.to_exp: Switch to the Exponential
+sim.error.seed: The seed must be a whole number from 1 to 2147483647.
+sim.error.ab: Enter a number for a and for b.
+sim.error.log_support: >-
+  log(X) needs X > 0: choose a distribution whose support lies in (0, ∞).
+sim.error.affine_b: The slope b must not be 0, since a + 0·X is a constant.
+sim.error.memoryless_support: >-
+  Memorylessness concerns waiting times: distributions with support [0, ∞).
+sim.error.memoryless_few: >-
+  Fewer than 30 draws passed s; choose a smaller s or more draws.
+sim.error.engine: "The simulation could not be run: {message}"

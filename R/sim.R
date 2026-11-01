@@ -429,7 +429,8 @@ dl_clt <- function(dist, sizes = c(1, 2, 5, 10, 30, 100), reps = 2000, seed = NU
 #'   * `exact`: data frame with columns `t`, `survival` (\eqn{S(t)}) and
 #'     `residual` (the conditional survival of the residual);
 #'   * `memoryless`: `TRUE` for the Exponential and the Geometric;
-#'   * `s`, `seed`, `code` (as in [dl_lln()]).
+#'   * `s`, `seed`, `code` (R code that reproduces the residuals, both
+#'     survival curves and their largest gap exactly when a seed is given).
 #'
 #' @details The distribution must have support \eqn{[0, \infty)}.
 #'
@@ -492,7 +493,8 @@ dl_memoryless <- function(dist, s, n = 10000, seed = NULL) {
     sprintf("t <- %s", t_code),
     sprintf("survival <- %s", code_fn(dist, "p", paste0("t", shift), "lower.tail = FALSE")),
     sprintf("conditional <- exp(%s -", code_fn(dist, "p", paste0("s + t", shift), tail_args)),
-    sprintf("  %s)", code_fn(dist, "p", paste0("s", shift), tail_args))
+    sprintf("  %s)", code_fn(dist, "p", paste0("s", shift), tail_args)),
+    "max(abs(survival - conditional))"
   ), collapse = "\n")
   list(residual = residual, kept = length(residual),
        exact = data.frame(t = t, survival = survival, residual = conditional),

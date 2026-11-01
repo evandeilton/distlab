@@ -25,6 +25,9 @@ mod_explore_ui <- function(id, lang) {
                             class = "btn-sm btn-outline-primary"),
         shiny::actionButton(ns("to_compare"), i18n_span("explorer.to_compare", lang),
                             icon = shiny::icon("layer-group", `aria-hidden` = "true"),
+                            class = "btn-sm btn-outline-primary"),
+        shiny::actionButton(ns("to_sim"), i18n_span("explorer.to_sim", lang),
+                            icon = shiny::icon("shuffle", `aria-hidden` = "true"),
                             class = "btn-sm btn-outline-primary")
       )
     ),
@@ -96,10 +99,12 @@ dist_choices <- function(lang) {
 }
 
 # `lang` may be a fixed language or a reactive; `dark` a reactive logical.
-# `select` is a reactive navigation request from other pages (Home, Compendium):
-# list(tab, id); requests for the Explorer open distribution `id`.
+# `select` is a reactive navigation request from other pages (Home,
+# Compendium, Simulation): list(tab, id, params); requests for the Explorer
+# open distribution `id`, with `params` when given.
 # Returns the reactives of the current entry, parameter values and
-# distribution, and `route`, a request to open the Calculator or Compare.
+# distribution, and `route`, a request to open the Calculator, Compare or the
+# Simulation.
 mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
                                select = shiny::reactive(NULL)) {
   lang_r <- if (shiny::is.reactive(lang)) lang else shiny::reactive(lang)
@@ -123,12 +128,14 @@ mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
     }
     shiny::observeEvent(select(), {
       r <- select()
-      if (is.null(r$tab) || identical(r$tab, "explorer")) open_dist(r$id)
+      if (!is.null(r$tab) && !identical(r$tab, "explorer")) return()
+      if (is_string(r$id) && r$id %in% dl_ids() && length(r$params)) sliders$set(r$id, r$params)
+      open_dist(r$id)
     })
     shiny::observeEvent(input$goto, open_dist(input$goto))
 
-    # Links to the Calculator and Compare carry the open distribution and
-    # its parameter values.
+    # Links to the Calculator, Compare and the Simulation carry the open
+    # distribution and its parameter values.
     route <- shiny::reactiveVal(NULL)
     count <- 0L
     send_to <- function(tab) {
@@ -139,6 +146,7 @@ mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
     }
     shiny::observeEvent(input$to_calc, send_to("calculator"))
     shiny::observeEvent(input$to_compare, send_to("compare"))
+    shiny::observeEvent(input$to_sim, send_to("simulation"))
 
     # Current distribution, built from the resolved values.
     dist <- shiny::reactive({
