@@ -14,10 +14,10 @@ test_that("the Fit UI exposes bilingual input, diagnostics and export controls",
 test_that("loading and fitting are explicit, and both preserve the prior fit", {
   shiny::testServer(distlab:::mod_fit_server, args = list(lang = "en-US"), {
     session$setInputs(source = "example", example = "iris", level = ".95", load = 0, run = 0)
-    expect_null(data())
+    expect_null(loaded())
     expect_null(result())
     session$setInputs(load = 1)
-    expect_equal(data()$n, 150)
+    expect_equal(loaded()$n, 150)
     expect_match(output$descriptives$html, "Mean", fixed = TRUE)
     expect_null(result())
     session$setInputs(candidates = c("normal", "gamma"), run = 1)
@@ -28,7 +28,7 @@ test_that("loading and fitting are explicit, and both preserve the prior fit", {
     session$setInputs(example = "faithful", candidates = "normal")
     expect_identical(result(), first)
     session$setInputs(load = 2)
-    expect_equal(data()$n, 272)
+    expect_equal(loaded()$n, 272)
     expect_identical(result(), first)
     expect_match(output$status$html, "previous data", fixed = TRUE)
     session$setInputs(run = 2)
@@ -40,13 +40,13 @@ test_that("invalid tables report errors without destroying the loaded data", {
   shiny::testServer(distlab:::mod_fit_server, args = list(lang = "pt-BR"), {
     session$setInputs(source = "example", example = "iris", load = 0)
     session$setInputs(load = 1)
-    original <- data()
+    original <- loaded()
     session$setInputs(source = "paste", kind = "raw", text = "name\nhello\nworld", value_col = "name", load = 2)
     expect_match(output$status$html, "Não foi possível carregar", fixed = TRUE)
-    expect_identical(data(), original)
+    expect_identical(loaded(), original)
     session$setInputs(text = "value\n1\n2\nInf", value_col = "value", load = 3)
     expect_match(output$status$html, "Não foi possível carregar", fixed = TRUE)
-    expect_identical(data(), original)
+    expect_identical(loaded(), original)
   })
 })
 
@@ -55,9 +55,9 @@ test_that("decimal-comma frequency tables retain exact weighted descriptives", {
     session$setInputs(source = "paste", kind = "frequency", decimal = ",",
       text = "valor;contagem\n1,5;2\n2,5;3\n4,5;1", value_col = "valor", freq_col = "contagem", load = 0)
     session$setInputs(load = 1)
-    expect_identical(data()$type, "frequency")
-    expect_equal(data()$n, 6)
-    expect_equal(distlab:::dl_fit_describe(data())$mean, mean(c(1.5, 1.5, 2.5, 2.5, 2.5, 4.5)))
+    expect_identical(loaded()$type, "frequency")
+    expect_equal(loaded()$n, 6)
+    expect_equal(distlab:::dl_fit_describe(loaded())$mean, mean(c(1.5, 1.5, 2.5, 2.5, 2.5, 4.5)))
     expect_match(output$descriptives$html, "2,5", fixed = TRUE)
     expect_type(output$histogram, "character")
     expect_type(output$ecdf, "character")
@@ -74,7 +74,7 @@ test_that("grouped input retains intervals and disables individual diagnostics",
       text = "lower,upper,n\n-Inf,-1,12\n-1,0,32\n0,1,40\n1,Inf,16",
       lower_col = "lower", upper_col = "upper", freq_col = "n", load = 0, run = 0)
     session$setInputs(load = 1)
-    expect_identical(data()$type, "grouped")
+    expect_identical(loaded()$type, "grouped")
     expect_match(output$descriptives$html, "approximate", fixed = TRUE)
     session$setInputs(candidates = "normal", run = 1)
     expect_s3_class(result(), "dl_fit")
@@ -88,8 +88,9 @@ test_that("grouped input retains intervals and disables individual diagnostics",
 
 test_that("changing language and dark mode does not repeat estimation", {
   calls <- 0L
-  real <- distlab:::dl_fit
-  local_mocked_bindings(dl_fit = function(...) { calls <<- calls + 1L; real(...) }, .package = "distlab")
+  real <- distlab:::fit_models
+  local_mocked_bindings(fit_models = function(...) { calls <<- calls + 1L; real(...) },
+                        .package = "distlab")
   lang <- shiny::reactiveVal("en-US")
   dark <- shiny::reactiveVal(FALSE)
   shiny::testServer(distlab:::mod_fit_server, args = list(lang = lang, dark = dark), {
@@ -138,9 +139,9 @@ test_that("seeded data loading preserves the session RNG and is reproducible", {
     rng <- .Random.seed
     session$setInputs(load = 1)
     expect_identical(.Random.seed, rng)
-    first <- data()
+    first <- loaded()
     session$setInputs(load = 2)
-    expect_identical(data(), first)
+    expect_identical(loaded(), first)
     expect_equal(first$n, 100)
   })
 })
@@ -170,4 +171,81 @@ test_that("fit failures, warnings and input errors follow the live language", {
                "Não foi possível concluir", fixed = TRUE)
   expect_match(distlab:::fit_message_text("Fixed parameter `size` is outside its domain.", "pt-BR"),
                "parâmetro fixo está fora do domínio", fixed = TRUE)
+})
+
+test_that("pasted decimal-comma columns keep their decimals in both languages", {
+  for (lg in c("pt-BR", "en-US")) {
+    shiny::testServer(distlab:::mod_fit_server, args = list(lang = lg), {
+      session$setInputs(source = "paste", kind = "raw", decimal = "auto",
+                        text = "tempo\n1,5\n2,7\n3,1\n4,9", load = 0)
+      expect_match(output$columns$html, ">tempo<", fixed = TRUE)
+      expect_no_match(output$columns$html, "V1", fixed = TRUE)
+      session$setInputs(load = 1)
+      expect_equal(loaded()$x, c(1.5, 2.7, 3.1, 4.9))
+      session$setInputs(text = "valor\n1,5\nNA\n4,1", value_col = "valor", load = 2)
+      expect_equal(loaded()$x, c(1.5, 4.1))
+      expect_equal(loaded()$removed, 1)
+      session$setInputs(text = "1,5 2,7 3,1", value_col = "V1", load = 3)
+      expect_equal(loaded()$x, c(1.5, 2.7, 3.1))
+      before <- loaded()
+      session$setInputs(text = "x\n1\n2\n1,2,3", value_col = "x", load = 4)
+      expect_identical(loaded(), before)
+      expect_match(output$status$html, if (lg == "pt-BR") "números diferentes de campos" else
+        "different numbers of fields", fixed = TRUE)
+    })
+  }
+})
+
+test_that("tables report removed frequencies and estimates explain their intervals", {
+  shiny::testServer(distlab:::mod_fit_server, args = list(lang = "en-US"), {
+    session$setInputs(source = "paste", kind = "frequency", decimal = ".",
+      text = "x,n\n1,4\nNA,30\n2,6", value_col = "x", freq_col = "n", load = 0)
+    session$setInputs(load = 1)
+    expect_equal(loaded()$removed_frequency, 30)
+    expect_match(output$descriptives$html, "Frequency in removed rows", fixed = TRUE)
+    session$setInputs(source = "paste", kind = "grouped",
+      text = "lower,upper,n\n0,10,5\n10,20,10\n20,NA,30",
+      lower_col = "lower", upper_col = "upper", freq_col = "n", load = 2)
+    expect_match(output$status$html, "Type -Inf or Inf", fixed = TRUE)
+  })
+  ui <- as.character(distlab:::mod_fit_ui("fit", "pt-BR"))
+  expect_match(ui, "escala logit das probabilidades", fixed = TRUE)
+  expect_match(ui, "Abrir no Explorador", fixed = TRUE)
+})
+
+test_that("every note of a combined message is translated", {
+  msg <- paste("Support endpoints are nonregular; Wald uncertainty is unavailable and",
+               "information criteria need caution. Observed information is singular or",
+               "unstable; Wald uncertainty is unavailable.")
+  pt <- distlab:::fit_message_text(msg, "pt-BR")
+  expect_match(pt, "Limites de suporte estimados", fixed = TRUE)
+  expect_match(pt, "informação observada é singular", fixed = TRUE)
+  expect_lt(regexpr("Limites", pt), regexpr("informação", pt))
+  constant <- dl_fit(rep(2, 5), "uniform")$failures$uniform
+  expect_match(distlab:::fit_message_text(constant, "en-US"), "Constant observations", fixed = TRUE)
+  for (id in c("cauchy", "betabinomial")) {
+    fit <- dl_fit(c(3, 3, 3, 4), id, fixed = if (id == "betabinomial") list(betabinomial = list(size = 10)) else list())
+    expect_no_match(distlab:::fit_message_text(fit$failures[[id]], "pt-BR"), "Não foi possível concluir",
+                    fixed = TRUE)
+  }
+  expect_match(distlab:::fit_message_text("Input exceeds 5 MB.", "pt-BR"), "5 MB", fixed = TRUE)
+  expect_match(distlab:::fit_message_text(
+    "Singular or non-positive observed information: no stable finite interior MLE.", "pt-BR"),
+    "não é positiva definida", fixed = TRUE)
+  expect_match(distlab:::tr("fit.gof_help", "en-US"), "assume known parameters", fixed = TRUE)
+  expect_match(distlab:::tr("fit.gof_help", "pt-BR"), "supõem parâmetros conhecidos", fixed = TRUE)
+})
+
+test_that("open classes are drawn inside the plotted range", {
+  expect_equal(distlab:::fit_finite_steps(c(10, 20, Inf), c(-Inf, 10, 20, 10, 20, Inf)),
+               c(10, 20, 20.5))
+  expect_equal(distlab:::fit_finite_steps(c(1, 2), c(1, 2)), c(1, 2))
+  g <- dl_fit_data(lower = c(-Inf, 0, 1), upper = c(0, 1, Inf), frequency = c(2, 3, 4))
+  built <- plotly::plotly_build(distlab:::fit_preview_plot(g, "ecdf", "en-US", distlab:::plot_theme(FALSE)))
+  expect_true(all(is.finite(built$x$data[[1]]$x)))
+  expect_equal(max(built$x$data[[1]]$y), 1)
+  d <- dl_fit_diagnostics(dl_fit(g, "normal", fixed = list(normal = list(mean = .5, sd = 1))))
+  built <- plotly::plotly_build(distlab:::fit_diagnostic_plot(d, "cdf", "en-US", distlab:::plot_theme(FALSE)))
+  expect_true(all(is.finite(built$x$data[[1]]$x)))
+  expect_equal(max(built$x$data[[1]]$y), 1)
 })

@@ -1,21 +1,5 @@
 # distlab 0.0.0.9000
 
-* New Fit lab: load CSV/TSV or pasted observations, value/frequency tables,
-  grouped intervals, built-in examples or a seeded simulated sample. Data
-  summaries and support checks explain which catalog families can be fitted.
-* New `dl_fit_data()`, `dl_fit_describe()`, `dl_fit_candidates()`, `dl_fit()`
-  and `dl_fit_diagnostics()` expose data preparation, maximum likelihood and
-  diagnostics outside Shiny. Frequency counts stay compressed; grouped
-  likelihoods use interval probabilities without conditioning away tails.
-* Fits provide estimates, observed-information standard errors and Wald
-  intervals where regularity permits them, convergence and boundary notes,
-  and AIC/BIC rankings separated by comparable likelihoods. Integer design
-  parameters can be fixed explicitly; failures remain visible per candidate.
-* The bilingual Fit page provides density/PMF and CDF overlays, conditional
-  pointwise Q-Q envelopes, P-P plots and descriptive goodness-of-fit results,
-  plus CSV tables/data and reproducible R code. Grouped diagnostics retain
-  the original classes. Language and theme changes preserve the fitted result.
-
 * Initial package structure: distribution registry, engine for d/p/q/r and
   moments, bilingual dictionary, and a 'shiny' app with the Explorer page.
 * The registry now holds 21 univariate distributions: Bernoulli, Binomial,
@@ -95,3 +79,23 @@
   return R code that reproduces their numbers exactly.
 * The Explorer and the Compendium open the Simulation with the chosen
   distribution, and the Compendium simulates a selected relation.
+* New Fit page: load pasted or uploaded CSV/TSV data (raw values,
+  value/frequency tables or grouped classes), an example or a seeded
+  simulated sample, then fit catalog distributions by maximum likelihood and
+  compare them by AIC and BIC.
+* Fits show estimates, standard errors and Wald intervals that stay inside
+  the parameter space. Samples without a finite estimate, such as a Cauchy
+  sample in which half the values coincide, are listed as failures instead
+  of being ranked.
+* Density or PMF, CDF, Q-Q and P-P plots and descriptive goodness-of-fit
+  tests check each fit. The page exports the tables, the data and R code
+  that reproduces the fit.
+* Pasted and uploaded tables accept decimal commas and thousands separators
+  ("1.234,5" or "1,234.5"), and one line of numbers is read as one sample.
+  Files are limited to 5 MB.
+* New `dl_fit_data()`, `dl_fit_describe()`, `dl_fit_candidates()`, `dl_fit()`
+  and `dl_fit_diagnostics()` do the same outside the app. Frequency tables
+  are never expanded, and common families use closed-form estimates, so
+  samples of 100,000 values fit in seconds.
+* Parameter sliders widen to show values opened from a fit and keep that
+  range while you drag.

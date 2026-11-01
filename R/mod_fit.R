@@ -1,5 +1,5 @@
 # Fit lab: input and estimation are explicit actions. Changing the interface
-# language, colour mode or diagnostic view never repeats an optimization.
+# language, color mode or diagnostic view never repeats an optimization.
 
 mod_fit_ui <- function(id, lang) {
   ns <- shiny::NS(id)
@@ -84,7 +84,9 @@ mod_fit_ui <- function(id, lang) {
                                  class = "btn-sm btn-outline-primary")),
         panel("estimates",
           shiny::selectInput(ns("diagnostic_id"), i18n_span("fit.selected", lang), choices = character()),
-          shiny::uiOutput(ns("estimates")), shiny::uiOutput(ns("fit_notes")),
+          shiny::uiOutput(ns("estimates")),
+          shiny::tags$p(class = "dl-muted dl-field-help", i18n_span("fit.estimates_help", lang)),
+          shiny::uiOutput(ns("fit_notes")),
           shiny::actionButton(ns("open_explorer"), i18n_span("fit.open_explorer", lang),
                                class = "btn-sm btn-outline-primary"),
           shiny::downloadButton(ns("download_estimates"), i18n_span("fit.download_estimates", lang),
@@ -138,6 +140,7 @@ fit_error_tag <- function(key, lang, detail = NULL) shiny::tags$p(
 # Engine errors remain intact in its return object and CSV exports. The app
 # maps their stable meanings to dictionary keys so technical English does not
 # leak into a Portuguese session, including after a live language change.
+# A ranking note may join several engine sentences; each one is translated.
 fit_message_text <- function(message, lang) {
   if (!is_string(message) || !nzchar(message)) return("")
   own <- paste0("fit.", c("error_n", "error_empty", "error_column", "error_numeric",
@@ -148,26 +151,30 @@ fit_message_text <- function(message, lang) {
   }
   patterns <- c(
     error_frequency = "Frequencies must|frequency must|frequency.*positive|At least one frequency",
+    error_open_class = "need both limits",
     error_intervals = "Grouped intervals|Grouped data require",
     error_missing = "Missing data|No complete observations",
     error_finite = "Observations must be finite",
     error_numeric = "nonempty numeric vectors",
     error_empty = "Paste a nonempty|No data rows",
-    error_size = "exceeds 10 MB",
+    error_shape = "different numbers of fields",
+    error_size = "exceeds 5 MB",
     error_upload = "Upload path",
     error_confidence = "`level` must",
     error_seed = "`seed` must",
     failure_fixed_domain = "Fixed parameter|Parameter '.*outside its domain|Parameters of .*must satisfy",
     failure_fixed_required = "integer designs or grouped endpoints",
     failure_constant = "Constant data",
-    failure_cauchy_ties = "Cauchy likelihood is unbounded",
+    failure_cauchy_ties = "Cauchy likelihood has no unique",
     failure_negbin_zero = "All-zero data do not identify",
     failure_negbin_limit = "No finite Negative-binomial size MLE",
+    failure_betabinomial_limit = "No finite Beta-binomial MLE",
     failure_poisson_zero = "Poisson likelihood supremum",
     failure_exponential_zero = "All-zero data have no finite Exponential",
     failure_support = "strictly inside this family's support|Discrete distributions require integer",
     failure_likelihood = "No finite likelihood",
-    failure_boundary = "No stable finite interior MLE",
+    failure_boundary = "No stable finite interior MLE: optimization",
+    failure_information = "Singular or non-positive observed information",
     failure_grouped_information = "Grouped data do not identify a stable finite maximum",
     warning_student = "Student t uses",
     warning_endpoints = "Support endpoints are nonregular",
@@ -177,8 +184,11 @@ fit_message_text <- function(message, lang) {
     warning_optimizer = "Optimizer:",
     failure_settings = "Unknown fixed parameter|must be a named list|`ids` must|`fixed` contains"
   )
-  for (key in names(patterns)) if (grepl(patterns[[key]], message)) return(tr(paste0("fit.", key), lang))
-  tr("fit.failure_generic", lang)
+  at <- vapply(patterns, function(p) regexpr(p, message)[[1]], 0)
+  found <- names(patterns)[at > 0]
+  if (!length(found)) return(tr("fit.failure_generic", lang))
+  found <- found[order(at[found])]
+  paste(vapply(found, function(key) tr(paste0("fit.", key), lang), ""), collapse = " ")
 }
 
 mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
@@ -186,7 +196,7 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
   lang_r <- if (shiny::is.reactive(lang)) lang else shiny::reactive(lang)
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
-    data <- shiny::reactiveVal(NULL)
+    loaded <- shiny::reactiveVal(NULL)
     result <- shiny::reactiveVal(NULL)
     data_error <- shiny::reactiveVal(NULL)
     fit_error <- shiny::reactiveVal(NULL)
@@ -262,20 +272,20 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
         }
       }, error = function(e) e)
       if (inherits(got, "error")) data_error(conditionMessage(got)) else {
-        data(got)
+        loaded(got)
         serial(serial() + 1L)
         fit_error(NULL)
         bslib::nav_select("tab", "data", session = session)
       }
     }, ignoreInit = TRUE)
 
-    candidates <- shiny::reactive({ shiny::req(data()); dl_fit_candidates(data()) })
+    candidates <- shiny::reactive({ shiny::req(loaded()); dl_fit_candidates(loaded()) })
     selected_candidates <- shiny::reactive({
       cand <- candidates()
       intersect(input$candidates %||% character(), cand$id[cand$eligible])
     })
     output$candidate_choices <- shiny::renderUI({
-      if (is.null(data())) return(shiny::tags$p(class = "dl-muted", tr("fit.load_first", lang_r())))
+      if (is.null(loaded())) return(shiny::tags$p(class = "dl-muted", tr("fit.load_first", lang_r())))
       cand <- candidates()
       ids <- cand$id[cand$eligible]
       labels <- vapply(ids, function(k) entry_text(dl_entry(k), "names", lang_r()), "")
@@ -286,7 +296,7 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
     })
     output$fixed <- shiny::renderUI({
       ids <- selected_candidates()
-      d <- data()
+      d <- loaded()
       needs <- list(binomial = "size", betabinomial = "size", hypergeometric = c("m", "n", "k"))
       if (d$type == "grouped") needs <- c(needs, list(uniform = c("min", "max"),
                                                        discrete_uniform = c("min", "max")))
@@ -306,13 +316,13 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
     shiny::observeEvent(input$run, {
       fit_error(NULL)
       got <- tryCatch({
-        shiny::req(data())
+        shiny::req(loaded())
         ids <- selected_candidates()
         if (!length(ids)) stop(tr("fit.error_candidates", shiny::isolate(lang_r())), call. = FALSE)
         fixed <- lapply(ids, function(id) {
           keys <- switch(id, binomial = "size", betabinomial = "size",
                          hypergeometric = c("m", "n", "k"),
-                         if (data()$type == "grouped" && id %in% c("uniform", "discrete_uniform")) c("min", "max"))
+                         if (loaded()$type == "grouped" && id %in% c("uniform", "discrete_uniform")) c("min", "max"))
           vals <- lapply(keys, function(nm) input[[paste0("fixed_", id, "_", nm)]])
           if (length(keys) && any(vapply(vals, is.null, logical(1)))) {
             stop(tr("fit.error_fixed", shiny::isolate(lang_r())), call. = FALSE)
@@ -321,8 +331,12 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
         })
         names(fixed) <- ids
         level <- suppressWarnings(as.numeric(input$level %||% ".95"))
-        shiny::withProgress(message = tr("fit.fitting", shiny::isolate(lang_r())), value = .25,
-          dl_fit(data(), ids = ids, fixed = fixed, level = level))
+        lg <- shiny::isolate(lang_r())
+        # Report each candidate as it starts; large samples take a moment.
+        shiny::withProgress(message = tr("fit.fitting", lg), value = 0,
+          fit_models(loaded(), ids = ids, fixed = fixed, level = level,
+            progress = function(id, i, total) shiny::setProgress(value = (i - 1) / total,
+              detail = entry_text(dl_entry(id), "names", lg))))
       }, error = function(e) e)
       if (inherits(got, "error")) fit_error(conditionMessage(got)) else {
         result(got)
@@ -360,15 +374,18 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
       shiny::tagList(
         if (!is.null(data_error())) fit_error_tag("fit.error_input", lg, fit_message_text(data_error(), lg)),
         if (!is.null(fit_error())) fit_error_tag("fit.error_fit", lg, fit_message_text(fit_error(), lg)),
-        if (is.null(data())) fit_error_tag("fit.welcome", lg),
+        if (is.null(loaded())) fit_error_tag("fit.welcome", lg),
         if (!is.null(result()) && serial() != fitted_serial()) fit_error_tag("fit.stale", lg))
     })
     output$descriptives <- shiny::renderUI({
-      shiny::req(data())
-      s <- dl_fit_describe(data())
-      keys <- c("n", "removed", "unique", "ties", "zeros", "negatives", "integer", "mean", "sd",
-                "variance", "min", "q1", "median", "q3", "max", "skewness", "kurtosis")
+      shiny::req(loaded())
+      s <- dl_fit_describe(loaded())
+      keys <- c("n", "removed", "removed_frequency", "unique", "ties", "zeros", "negatives",
+                "integer", "mean", "sd", "variance", "min", "q1", "median", "q3", "max",
+                "skewness", "kurtosis")
       keys <- intersect(keys, names(s))
+      # Raw observations count one per removed entry; tables report both.
+      if (loaded()$type == "raw") keys <- setdiff(keys, "removed_frequency")
       df <- data.frame(measure = vapply(keys, function(k) tr(paste0("fit.desc_", k), lang_r()), ""),
         value = vapply(keys, function(k) if (is.logical(s[[k]]) && !is.na(s[[k]])) {
           tr(if (s[[k]]) "fit.yes" else "fit.no", lang_r())
@@ -444,10 +461,10 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
 
     # Plots and exports are registered below to keep data and fitting code
     # independent of rendering. Each view reads the already-fitted object.
-    output$histogram <- plotly::renderPlotly(fit_preview_plot(data(), "histogram", lang_r(), plot_theme(dark())))
-    output$ecdf <- plotly::renderPlotly(fit_preview_plot(data(), "ecdf", lang_r(), plot_theme(dark())))
+    output$histogram <- plotly::renderPlotly(fit_preview_plot(loaded(), "histogram", lang_r(), plot_theme(dark())))
+    output$ecdf <- plotly::renderPlotly(fit_preview_plot(loaded(), "ecdf", lang_r(), plot_theme(dark())))
     output$preview_note <- shiny::renderUI({
-      d <- data()
+      d <- loaded()
       shiny::req(d)
       keys <- if (d$type == "grouped") {
         if (any(!is.finite(d$x))) "fit.note_open_bins"
@@ -483,13 +500,13 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
     output$download_estimates <- csv_download("estimates", function() selected_fit()$estimates)
     output$download_gof <- csv_download("gof", function() diagnostics()$gof)
     output$download_data <- csv_download("data", function() {
-      d <- if (!is.null(result())) result()$data else data()
+      d <- if (!is.null(result())) result()$data else loaded()
       shiny::req(d)
       fit_data_table(d)
     })
     output$download_code <- shiny::downloadHandler(filename = function() "distlab-fit.R",
       content = function(file) { shiny::req(result()); writeLines(result()$code, file, useBytes = TRUE) })
-    list(data = shiny::reactive(data()), fit = shiny::reactive(result()), route = shiny::reactive(route()))
+    list(data = shiny::reactive(loaded()), fit = shiny::reactive(result()), route = shiny::reactive(route()))
   })
 }
 
@@ -504,11 +521,26 @@ fit_preview_range <- function(data) {
   rg
 }
 
+# JSON has no infinity, so an open class limit would vanish from the plot.
+# Draw it a little beyond the finite limits, where the cumulative step to
+# one still shows.
+fit_finite_steps <- function(x, limits) {
+  finite <- limits[is.finite(limits)]
+  if (!length(finite)) return(x)
+  span <- diff(range(finite))
+  pad <- if (span > 0) .05 * span else max(1, abs(finite[1]) * .05)
+  x[x == Inf] <- max(finite) + pad
+  x[x == -Inf] <- min(finite) - pad
+  x
+}
+
 fit_preview_plot <- function(data, view, lang, th) {
   shiny::req(data)
   p <- plotly::plot_ly()
   if (view == "ecdf") {
-    x <- if (data$type == "grouped") data$upper else data$x
+    x <- if (data$type == "grouped") {
+      fit_finite_steps(data$upper, c(data$lower, data$upper))
+    } else data$x
     o <- order(x)
     y <- cumsum(data$counts[o]) / data$n
     p <- plotly::add_trace(p, x = x[o], y = y, type = "scatter", mode = "lines",
@@ -569,8 +601,12 @@ fit_diagnostic_plot <- function(diagnostics, view, lang, th) {
       th, lang, ylim = ylim), bargap = 0), th))
   }
   if (view == "cdf") {
-    p <- plotly::add_trace(p, x = d$x, y = d$empirical, type = "scatter", mode = "lines",
-      name = tr("fit.empirical", lang), line = list(color = th$line, width = 2, shape = "hv"))
+    # The fitted CDF is known only at the finite limits; the empirical step
+    # of an open last class is drawn at the right end.
+    p <- plotly::add_trace(p, x = fit_finite_steps(d$x, d$x), y = d$empirical, type = "scatter",
+      mode = "lines", name = tr("fit.empirical", lang),
+      line = list(color = th$line, width = 2, shape = "hv"))
+    d <- d[is.finite(d$x), , drop = FALSE]
     p <- plotly::add_trace(p, x = d$x, y = d$fitted, type = "scatter", mode = "lines",
       name = tr("fit.fitted", lang), line = list(color = th$line2, width = 2,
         shape = if (isTRUE(diagnostics$discrete)) "hv" else "linear"))
