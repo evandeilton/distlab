@@ -157,15 +157,30 @@ sweep_param_choices <- function(entry) {
   stats::setNames(nm, nm)
 }
 
-# Four values around the default of a parameter, inside its slider range.
-sweep_defaults <- function(entry, param) {
+# Four values around the default of a parameter, inside its slider range
+# and valid with the other parameters at `others` (the defaults unless
+# given), so a sweep never starts with a domain or constraint error.
+sweep_defaults <- function(entry, param, others = default_params(entry)) {
   par <- param_spec(entry, param)
   d <- par$default
   v <- if (isTRUE(par$integer)) d + c(-2, 0, 3, 8) * max(1, round(d / 4)) else
     signif(d * c(0.5, 1, 2, 4), 3)
   if (par$slider$min < 0 && !isTRUE(par$integer)) v <- d + c(-2, -1, 0, 2) * par$slider$step * 10
-  v <- v[v >= par$slider$min & v <= par$slider$max & vapply(v, in_domain, logical(1), par = par)]
-  unique(round(v, 10))
+  valid <- function(v) {
+    v <- v[v >= par$slider$min & v <= par$slider$max]
+    ok <- vapply(v, function(x) {
+      vals <- others
+      vals[[param]] <- x
+      !is.null(tryCatch(do.call(dl_dist, c(list(entry$id), vals)), error = function(e) NULL))
+    }, logical(1))
+    unique(round(v[ok], 10))
+  }
+  out <- valid(v)
+  # Other parameters far from their defaults: step away from the current value.
+  if (length(out) < 2L && is.numeric(others[[param]])) {
+    out <- valid(others[[param]] + par$slider$step * c(-10, -5, 0, 5, 10, 20))
+  }
+  out
 }
 
 # Numbers as one text field: "; " between values, decimal mark of `lang`.
@@ -470,7 +485,7 @@ mod_compare_server <- function(id, lang, dark = shiny::reactive(FALSE),
       if (is.null(param) || !param %in% sweep_param_choices(e)) {
         param <- shiny::isolate(input$sw_param)
         if (!is_string(param) || !param %in% sweep_param_choices(e)) param <- e$parameters[[1]]$name
-        values <- sweep_defaults(e, param)
+        values <- sweep_defaults(e, param, sw_sliders$get(e$id))
       }
       pending$param <- NULL
       pending$values <- NULL
@@ -480,7 +495,7 @@ mod_compare_server <- function(id, lang, dark = shiny::reactive(FALSE),
       e <- sw_entry()
       p <- input$sw_param
       if (is_string(p) && p %in% sweep_param_choices(e) && !identical(sweep_key, paste(e$id, p))) {
-        apply_sweep_choice(e$id, p, sweep_defaults(e, p))
+        apply_sweep_choice(e$id, p, sweep_defaults(e, p, sw_sliders$get(e$id)))
         preset(NULL)
       }
     }, ignoreInit = TRUE)

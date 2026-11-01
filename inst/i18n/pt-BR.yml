@@ -190,7 +190,9 @@ calc.help.p: >-
   Probabilidade p entre 0 e 1; o resultado é o x com P(X ≤ x) = p, ou o
   primeiro x que passa de p quando X é discreta.
 calc.help.prob: Probabilidade entre 0 e 1, dividida igualmente entre as duas caudas.
-calc.help.decimal: Use vírgula ou ponto decimal; Inf e -Inf são aceitos.
+calc.help.decimal: >-
+  Use vírgula decimal (1,5). Um ponto seguido de grupos de três dígitos
+  separa milhares (1.234 é 1234). Inf e -Inf são aceitos.
 calc.result: Resultado
 calc.lower_end: Extremo esquerdo
 calc.upper_end: Extremo direito
@@ -216,6 +218,8 @@ calc.code: Código R
 calc.copy: Copiar
 calc.copied: Copiado
 calc.error.number: Digite um número em cada campo.
+calc.error.range: O número é grande demais para o cálculo (acima de cerca de 1,8e308).
+calc.note.thousands: "{text} foi lido como {value} (separador de milhar)."
 calc.error.order: O extremo esquerdo a não pode ser maior que b.
 calc.error.p: A probabilidade deve estar estritamente entre 0 e 1.
 calc.sentence.le: "A probabilidade de X ser menor ou igual a {x} é {p} ({pct})."

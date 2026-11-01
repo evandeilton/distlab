@@ -41,6 +41,12 @@ used, computed with \code{lower.tail = FALSE}, so upper-tail probabilities are
 never formed as \code{1 - p}. Both terms are combined on the log scale, so
 probabilities below the smallest double (about \eqn{10^{-308}}) are still
 available with \code{log = TRUE}.
+
+Accuracy is still bounded by the subtraction of two CDF values: for a very
+narrow interval where both values are of moderate size (near the median),
+the relative error grows as the interval shrinks, roughly
+\eqn{10^{-16} / P(a < X \le b)}, so an interval of probability
+\eqn{10^{-7}} keeps about nine significant digits.
 }
 \examples{
 g <- dl_dist("gamma", shape = 2, rate = 1)

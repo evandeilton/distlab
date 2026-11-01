@@ -203,3 +203,61 @@ test_that("calculator results and sentences follow the mode", {
   d <- distlab:::calc_defaults(dl_dist("bernoulli", prob = 0.9))
   expect_lt(d$a, d$b)
 })
+
+test_that("thousands and decimal marks follow the language", {
+  pn <- distlab:::parse_num
+  v <- pn("1.234", "pt-BR")
+  expect_equal(as.vector(v), 1234)
+  expect_true(attr(v, "thousands"))
+  v <- pn("1,234", "en-US")
+  expect_equal(as.vector(v), 1234)
+  expect_true(attr(v, "thousands"))
+  expect_equal(as.vector(pn("-1.234.567", "pt-BR")), -1234567)
+  expect_null(attr(pn("1.234,5", "pt-BR"), "thousands"))
+  # With both marks, the last one must be the decimal mark of the language.
+  expect_true(is.na(pn("1,234.5", "pt-BR")))
+  expect_true(is.na(pn("1.234,5", "en-US")))
+  expect_true(is.na(pn("12.34,5", "pt-BR")))
+  # A lone mark that is not a thousands group is a decimal mark.
+  expect_identical(pn("0.001", "pt-BR"), 0.001)
+  expect_identical(pn("12.34", "pt-BR"), 12.34)
+  expect_identical(pn("1,5", "en-US"), 1.5)
+  # Overflow is rejected, not read as Inf.
+  v <- pn("1e400", "en-US")
+  expect_true(is.na(v))
+  expect_identical(attr(v, "reason"), "range")
+  expect_identical(distlab:::parse_num_list("1.000; 2", "pt-BR"), c(1000, 2))
+})
+
+test_that("typed values survive a round trip through the fields", {
+  for (lang in dl_languages()) {
+    for (x in c(1 / 3, 0.123456789, -1.96, 1234.5678, 1e-7)) {
+      txt <- distlab:::format_input(x, lang)
+      expect_equal(as.vector(distlab:::parse_num(txt, lang)), x, tolerance = 1e-14,
+                   info = paste(lang, txt))
+    }
+  }
+})
+
+test_that("code for an underflowing difference reproduces the shown value", {
+  n <- dl_dist("normal")
+  res <- distlab:::calc_result(n, "between", a = 40, b = 41)
+  code <- distlab:::calc_code(n, res)
+  expect_match(code, "log = TRUE) / log(10)", fixed = TRUE)
+  expect_identical(exp(res$log_p), 0)
+  expect_equal(eval_code(code), res$log_p / log(10))
+  expect_identical(distlab:::format_prob(eval_code(code) * log(10), "en-US"),
+                   distlab:::format_prob(res$log_p, "en-US"))
+})
+
+test_that("an empty complement is shown as 0", {
+  b <- dl_dist("beta", shape1 = 2, shape2 = 3)
+  res <- distlab:::calc_result(b, "le", x = 1)
+  expect_true(res$comp_empty)
+  expect_identical(distlab:::format_prob(res$log_comp, "en-US", empty = res$comp_empty), "0")
+  res <- distlab:::calc_result(dl_dist("binomial", size = 5, prob = 0.5), "between",
+                               a = 0, b = 5, lower_closed = TRUE)
+  expect_true(res$comp_empty)
+  res <- distlab:::calc_result(dl_dist("normal"), "gt", x = 40)
+  expect_false(res$comp_empty)
+})

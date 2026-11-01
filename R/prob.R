@@ -12,6 +12,12 @@
 #' probabilities below the smallest double (about \eqn{10^{-308}}) are still
 #' available with `log = TRUE`.
 #'
+#' Accuracy is still bounded by the subtraction of two CDF values: for a very
+#' narrow interval where both values are of moderate size (near the median),
+#' the relative error grows as the interval shrinks, roughly
+#' \eqn{10^{-16} / P(a < X \le b)}, so an interval of probability
+#' \eqn{10^{-7}} keeps about nine significant digits.
+#'
 #' @param dist A `dl_dist` object from [dl_dist()].
 #' @param lower,upper Single numbers with `lower <= upper`; `-Inf` and `Inf`
 #'   give one-sided probabilities.

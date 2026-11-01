@@ -106,14 +106,33 @@ mod_calc_server <- function(id, lang, dark = shiny::reactive(FALSE),
     current_id <- NULL
     current_lang <- NULL
 
-    # Numbers in the fields, read with the decimal mark of the language.
-    values <- shiny::reactive({
+    # Fields read with the marks of the language; NULL for unset fields.
+    parsed <- shiny::reactive({
       lg <- lang_r()
-      s <- shown()
       stats::setNames(lapply(fields, function(f) {
         v <- input[[f]]
-        if (is.null(v)) s[[f]] else parse_num(v, lg)
+        if (is.null(v)) NULL else parse_num(v, lg)
       }), fields)
+    })
+    # Numbers in the fields, without parsing attributes.
+    values <- shiny::reactive({
+      s <- shown()
+      p <- parsed()
+      stats::setNames(lapply(fields, function(f) {
+        if (is.null(p[[f]])) s[[f]] else as.vector(p[[f]])
+      }), fields)
+    })
+    # Fields used by each mode.
+    mode_fields <- list(le = "x", gt = "x", between = c("a", "b"), quantile = "p",
+                        central = "prob")
+    # Notes on how the fields of the current mode were read: a mark taken as
+    # a thousands separator, or a number beyond the double range.
+    read_info <- shiny::reactive({
+      p <- parsed()[mode_fields[[mode()]]]
+      list(
+        thousands = Filter(function(f) isTRUE(attr(p[[f]], "thousands")), names(p)),
+        range = Filter(function(f) identical(attr(p[[f]], "reason"), "range"), names(p))
+      )
     })
 
     send_fields <- function(vals, lg) {
@@ -198,6 +217,7 @@ mod_calc_server <- function(id, lang, dark = shiny::reactive(FALSE),
       lg <- lang_r()
       v <- values()
       m <- mode()
+      shiny::validate(shiny::need(!length(read_info()$range), tr("calc.error.range", lg)))
       need_num <- function(...) {
         shiny::validate(shiny::need(all(!is.na(c(...))), tr("calc.error.number", lg)))
       }
@@ -255,7 +275,13 @@ mod_calc_server <- function(id, lang, dark = shiny::reactive(FALSE),
 
     output$result <- shiny::renderUI({
       r <- res()
-      calc_result_tag(r, dist_now(), lang_r(), session$ns("code"))
+      lg <- lang_r()
+      th <- read_info()$thousands
+      read <- lapply(th, function(f) {
+        tr("calc.note.thousands", lg, text = input[[f]],
+           value = format_value(values()[[f]], lg, digits = 15))
+      })
+      calc_result_tag(r, dist_now(), lg, session$ns("code"), read = read)
     })
 
     plot_data <- shiny::reactive({
@@ -392,7 +418,8 @@ calc_cdf_plot <- function(d, res, dist, lang, th) {
 
 # Result card: the event in math, the probability (or quantile) in large
 # type with its percentage, a sentence, the complement, notes and the R code.
-calc_result_tag <- function(res, dist, lang, code_id) {
+# `read` holds notes on how typed numbers were read.
+calc_result_tag <- function(res, dist, lang, code_id, read = list()) {
   discrete <- identical(dist$entry$type, "discrete")
   prob_mode <- res$mode %in% c("le", "gt", "between")
   big <- switch(res$mode,
@@ -403,10 +430,10 @@ calc_result_tag <- function(res, dist, lang, code_id) {
   chip <- if (prob_mode) format_pct(res$log_p, lang) else if (res$mode == "central" && discrete) {
     tr("calc.coverage", lang, p = format_prob(res$log_p, lang))
   }
-  notes <- list()
+  notes <- read
   if (prob_mode) {
     notes <- c(notes, list(tr("calc.complement", lang,
-                              p = format_prob(res$log_comp, lang, empty = FALSE))))
+                              p = format_prob(res$log_comp, lang, empty = res$comp_empty))))
     if (is.finite(res$log_p) && exp(res$log_p) < 1e-4) {
       notes <- c(notes, list(tr("calc.note.tiny", lang)))
     }

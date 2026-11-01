@@ -130,3 +130,17 @@ test_that("a request from the Explorer opens the distribution with its values", 
     expect_length(input_messages(sess, "dist"), n)
   })
 })
+
+test_that("a thousands separator is reported and overflow is rejected", {
+  shiny::testServer(distlab:::mod_calc_server, args = list(lang = "pt-BR"), {
+    session$setInputs(dist = "normal", p_normal_mean = 0, p_normal_sd = 1,
+                      mode = "le", x = "1.234")
+    session$elapse(200)
+    expect_identical(values()$x, 1234)
+    expect_match(output$result$html, "1.234 foi lido como 1234", fixed = TRUE)
+    session$setInputs(x = "1e400")
+    expect_error(res(), "grande demais")
+    session$setInputs(x = "1,234.5")
+    expect_error(res(), "Digite um número")
+  })
+})

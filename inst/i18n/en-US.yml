@@ -189,7 +189,9 @@ calc.help.p: >-
   Probability p between 0 and 1; the result is the x with P(X ≤ x) = p, or
   the first x past p when X is discrete.
 calc.help.prob: Probability between 0 and 1, split equally between the two tails.
-calc.help.decimal: Use a decimal point or comma; Inf and -Inf are accepted.
+calc.help.decimal: >-
+  Use a decimal point (1.5). A comma followed by groups of three digits
+  separates thousands (1,234 is 1234). Inf and -Inf are accepted.
 calc.result: Result
 calc.lower_end: Left end
 calc.upper_end: Right end
@@ -214,6 +216,8 @@ calc.code: R code
 calc.copy: Copy
 calc.copied: Copied
 calc.error.number: Enter a number in each field.
+calc.error.range: The number is too large to compute (beyond about 1.8e308).
+calc.note.thousands: "{text} was read as {value} (thousands separator)."
 calc.error.order: The left end a must not be greater than b.
 calc.error.p: The probability must be strictly between 0 and 1.
 calc.sentence.le: "The probability that X is less than or equal to {x} is {p} ({pct})."

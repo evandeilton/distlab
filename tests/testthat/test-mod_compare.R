@@ -187,3 +187,22 @@ test_that("support text and labels follow the language", {
     }
   }
 })
+
+test_that("sweep defaults respect constraints with the other parameters", {
+  for (id in dl_ids()) {
+    e <- dl_entry(id)
+    for (par in e$parameters) {
+      for (v in distlab:::sweep_defaults(e, par$name)) {
+        vals <- distlab:::default_params(e)
+        vals[[par$name]] <- v
+        expect_s3_class(do.call(dl_dist, c(list(id), vals)), "dl_dist")
+      }
+    }
+  }
+  expect_true(all(distlab:::sweep_defaults(dl_entry("uniform"), "min") < 1))
+  expect_true(all(distlab:::sweep_defaults(dl_entry("discrete_uniform"), "max") >= 1))
+  # Values far from the defaults still give a sweep.
+  v <- distlab:::sweep_defaults(dl_entry("uniform"), "max", list(min = 9, max = 9.5))
+  expect_gte(length(v), 2L)
+  expect_true(all(v > 9))
+})

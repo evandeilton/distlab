@@ -3,9 +3,16 @@
 
 .dl_calc_modes <- c("le", "gt", "between", "quantile", "central")
 
-# Number typed by the student. Accepts a decimal comma or point, thousands
-# marks of the language ("1.234,5" in pt-BR, "1,234.5" in en-US), a Unicode
-# minus and "Inf" or the infinity sign. NA when the text is not a number.
+# Number typed by the student, read with the marks of the language: the
+# decimal mark is "," in pt-BR and "." in en-US, the other mark separates
+# thousands. With both marks, the last one must be the decimal mark
+# ("1.234,5" in pt-BR, "1,234.5" in en-US). A lone thousands mark followed by
+# groups of exactly three digits (lead group 1-9, up to three digits) is a
+# thousands separator ("1.234" is 1234 in pt-BR) and the result carries the
+# attribute `thousands = TRUE`; any other lone mark is taken as a decimal
+# mark. A Unicode minus and "Inf" or the infinity sign are accepted. NA when
+# the text is not a number; NA with attribute `reason = "range"` when it
+# overflows the double range ("1e400").
 parse_num <- function(x, lang) {
   if (is.numeric(x) && length(x) == 1L) return(as.numeric(x))
   if (!is_string(x)) return(NA_real_)
@@ -15,15 +22,37 @@ parse_num <- function(x, lang) {
   low <- tolower(s)
   if (low %in% c("inf", "\u221e")) return(Inf)
   if (low %in% c("-inf", "-\u221e")) return(-Inf)
-  if (grepl(",", s, fixed = TRUE) && grepl(".", s, fixed = TRUE)) {
-    s <- if (match_lang(lang) == "pt-BR") gsub(".", "", s, fixed = TRUE) else
-      gsub(",", "", s, fixed = TRUE)
+  pt <- match_lang(lang) == "pt-BR"
+  dec <- if (pt) "," else "."
+  sep <- if (pt) "." else ","
+  # Regex-quoted marks.
+  qdec <- paste0("\\", dec)
+  qsep <- paste0("\\", sep)
+  exp_part <- "([eE][-+]?[0-9]+)?"
+  grouped <- paste0("-?[1-9][0-9]{0,2}(", qsep, "[0-9]{3})+")
+  has_dec <- grepl(dec, s, fixed = TRUE)
+  has_sep <- grepl(sep, s, fixed = TRUE)
+  thousands <- FALSE
+  if (has_dec && has_sep) {
+    # Thousands groups first, then one decimal mark at the end.
+    if (!grepl(paste0("^", grouped, qdec, "[0-9]+", exp_part, "$"), s)) return(NA_real_)
+    s <- gsub(sep, "", s, fixed = TRUE)
+  } else if (has_sep) {
+    if (grepl(paste0("^", grouped, "$"), s)) {
+      s <- gsub(sep, "", s, fixed = TRUE)
+      thousands <- TRUE
+    } else {
+      s <- sub(sep, dec, s, fixed = TRUE)
+    }
   }
-  s <- gsub(",", ".", s, fixed = TRUE)
+  s <- gsub(dec, ".", s, fixed = TRUE)
   if (!grepl("^-?([0-9]+\\.?[0-9]*|\\.[0-9]+)([eE][-+]?[0-9]+)?$", s)) {
     return(NA_real_)
   }
-  as.numeric(s)
+  v <- as.numeric(s)
+  if (!is.finite(v)) return(structure(NA_real_, reason = "range"))
+  if (thousands) attr(v, "thousands") <- TRUE
+  v
 }
 
 # List of numbers separated by semicolons or spaces (and commas in en-US,
@@ -34,7 +63,7 @@ parse_num_list <- function(x, lang) {
   sep <- if (match_lang(lang) == "pt-BR") "[;[:space:]]+" else "[;,[:space:]]+"
   parts <- strsplit(trimws(x), sep)[[1]]
   parts <- parts[nzchar(parts)]
-  vapply(parts, parse_num, numeric(1), lang = lang, USE.NAMES = FALSE)
+  vapply(parts, function(p) as.vector(parse_num(p, lang)), numeric(1), USE.NAMES = FALSE)
 }
 
 # Value for a text input or a sentence: up to `digits` significant digits
@@ -44,10 +73,11 @@ format_value <- function(x, lang, digits = 6) {
   format_num(x, lang, digits = digits)
 }
 
-# Same as format_value() but with "Inf", so the text parses back.
+# Value for a text input: 15 significant digits so a typed value survives a
+# language or distribution switch, and "Inf", so the text parses back.
 format_input <- function(x, lang) {
   if (is.infinite(x)) return(if (x > 0) "Inf" else "-Inf")
-  format_num(x, lang, digits = 6)
+  format_num(x, lang, digits = 15)
 }
 
 # Digits as Unicode superscripts, for powers of ten in plain text.
@@ -192,11 +222,18 @@ calc_code <- function(dist, res) {
                               cut_text(lo, hi)))
   }
   lines <- c(lines, expr)
-  # A tail too small for a double is still available on the log scale.
+  # A probability too small for a double is still available on the log
+  # scale: the log.p form for one tail, the engine for a difference.
   single <- !grepl(" - ", expr, fixed = TRUE) && expr != "1"
-  if (single && is.finite(res$log_p) && exp(res$log_p) < 1e-300) {
-    lp_expr <- paste0(substr(expr, 1L, nchar(expr) - 1L), ", log.p = TRUE)")
-    lines <- c(lines, paste0(lp_expr, " / log(10)  # log10"))
+  if (is.finite(res$log_p) && exp(res$log_p) < 1e-300) {
+    if (single) {
+      lp_expr <- paste0(substr(expr, 1L, nchar(expr) - 1L), ", log.p = TRUE)")
+      lines <- c(lines, paste0(lp_expr, " / log(10)  # log10"))
+    } else {
+      lines <- c(lines, code_dist(dist), sprintf(
+        "distlab::dl_prob(d, lower = %s, upper = %s, lower_closed = %s, upper_closed = %s, log = TRUE) / log(10)  # log10",
+        code_num(r$lower), code_num(r$upper), r$lower_closed, r$upper_closed))
+    }
   }
   paste(lines, collapse = "\n")
 }
@@ -218,6 +255,17 @@ complement_log <- function(dist, r) {
   m <- max(parts)
   if (m == -Inf) return(-Inf)
   m + log(sum(exp(parts - m)))
+}
+
+# TRUE when no support point lies outside the region, so the complement is
+# exactly 0 (not an underflow).
+complement_empty <- function(dist, r) {
+  part_empty <- function(lower, upper, lc, uc) {
+    pr <- list(lower = lower, upper = upper, lower_closed = lc, upper_closed = uc)
+    region_empty(dist, pr, prob_ends(dist, lower, upper, lc, uc))
+  }
+  (r$lower == -Inf || part_empty(-Inf, r$lower, FALSE, !r$lower_closed)) &&
+    (r$upper == Inf || part_empty(r$upper, Inf, !r$upper_closed, FALSE))
 }
 
 # TRUE when the region holds no support point, so its probability is 0
@@ -265,6 +313,7 @@ calc_result <- function(dist, mode, x = NA, a = NA, b = NA, lower_closed = FALSE
   out$ends <- prob_ends(dist, r$lower, r$upper, r$lower_closed, r$upper_closed)
   out$log_p <- dl_prob(dist, r$lower, r$upper, r$lower_closed, r$upper_closed, log = TRUE)
   out$log_comp <- complement_log(dist, r)
+  out$comp_empty <- complement_empty(dist, r)
   out$empty <- region_empty(dist, r, out$ends)
   out
 }
