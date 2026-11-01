@@ -21,8 +21,11 @@
 #' Ungrouped Normal, Lognormal, Exponential, Poisson, Bernoulli, Binomial and
 #' Geometric fits use their closed-form estimates and exact observed
 #' information; Gamma, Chi-square and Beta likelihoods are evaluated from
-#' sufficient statistics. Other families are maximized numerically, and their
-#' observed information is a numerical Hessian.
+#' sufficient statistics. Other families are maximized numerically, with
+#' locations measured from the center of the data in units of its spread and
+#' scales on the log scale, so estimates, standard errors and the
+#' identification checks do not depend on the units or location of the data;
+#' their observed information is a numerical Hessian in those coordinates.
 #'
 #' Standard errors come from the observed information, by the delta method
 #' for the natural parameters. Wald intervals are built where each parameter
@@ -209,7 +212,42 @@ fit_transform <- function(spec, inverse = FALSE, x) {
   } else x
 }
 
+# Location families whose location is found numerically (all grouped fits,
+# raw Logistic and Cauchy) are fitted to data shifted by a central value.
+# Their likelihood is exactly invariant, and difference steps then stay far
+# above the rounding of a location such as 1e6 with a scale of 1e-3.
 fit_one <- function(data, id, fixed, level, control) {
+  grouped <- identical(data$type, "grouped")
+  location <- c(normal = "mean", logistic = "location", cauchy = "location", laplace = "mu")[id]
+  if (!grouped && id %in% c("normal", "laplace")) location <- NA
+  limits <- if (grouped) c(data$lower, data$upper) else data$x
+  center <- stats::median(limits[is.finite(limits)])
+  if (is.na(location) || location %in% names(fixed) || !is.finite(center) || center == 0) {
+    return(fit_one_core(data, id, fixed, level, control))
+  }
+  shifted <- data
+  shifted$x <- data$x - center
+  if (grouped) {
+    shifted$lower <- data$lower - center
+    shifted$upper <- data$upper - center
+  }
+  fit <- fit_one_core(shifted, id, fixed, level, control)
+  params <- fit$dist$params
+  params[[location]] <- params[[location]] + center
+  fit$dist <- do.call(dl_dist, c(list(id), params))
+  row <- fit$estimates$parameter == location
+  fit$estimates[row, c("estimate", "lower", "upper")] <-
+    fit$estimates[row, c("estimate", "lower", "upper")] + center
+  logLik <- suppressWarnings(fit_loglik(data, fit$dist))
+  if (is.finite(logLik)) {
+    fit$logLik <- logLik
+    fit$AIC <- 2 * fit$k - 2 * logLik
+    fit$BIC <- log(data$n) * fit$k - 2 * logLik
+  }
+  fit
+}
+
+fit_one_core <- function(data, id, fixed, level, control) {
   entry <- dl_entry(id)
   fit_check_named_list(fixed, paste0("fixed$", id))
   specs <- stats::setNames(entry$parameters,
@@ -383,10 +421,17 @@ fit_one <- function(data, id, fixed, level, control) {
   }
   convergence <- 0L
   if (length(free) && !analytic) {
-    starts <- list(theta, theta + 0.5, theta - 0.5,
-                   theta + rep(c(-1, 1), length.out = length(theta)))
+    # Optimize theta = origin + unit * z, with locations in units of the
+    # starting spread, so starts and tolerances do not depend on the data scale.
+    origin <- theta
+    start_dist <- tryCatch(suppressWarnings(make_dist(pars)), error = function(e) NULL)
+    unit <- fit_units(start_dist, free, specs, pars)
+    unit[is.na(unit)] <- 1
+    standardized <- function(z) objective(origin + unit * z)
+    zero <- rep(0, length(free))
+    starts <- list(zero, zero + 0.5, zero - 0.5, rep(c(-1, 1), length.out = length(free)))
     opt <- lapply(starts, function(start) {
-      suppressWarnings(tryCatch(stats::nlminb(start, objective, control = control),
+      suppressWarnings(tryCatch(stats::nlminb(start, standardized, control = control),
                                 error = function(e) NULL))
     })
     valid <- vapply(opt, function(o) !is.null(o) && is.finite(o$objective) &&
@@ -401,11 +446,11 @@ fit_one <- function(data, id, fixed, level, control) {
                           values <= min(values) + 1e-8 * (1 + abs(min(values))))
     if (length(equivalent)) best_index <- equivalent[which.min(values[equivalent])]
     best <- opt[[best_index]]
-    theta <- best$par
+    theta <- origin + unit * best$par
     pars <- decode(theta)
     convergence <- best$convergence
     if (convergence != 0L) warnings <- c(warnings, paste("Optimizer:", best$message))
-    moved <- abs(theta - starts[[1]]) > 20
+    moved <- abs(theta - origin) > 20
     bounded <- vapply(specs[free], function(s) is.finite(s$lower) || is.finite(s$upper), logical(1))
     boundary <- any(moved & bounded)
     if (boundary) {
@@ -420,10 +465,12 @@ fit_one <- function(data, id, fixed, level, control) {
   }
   # A numerical optimum without positive definite information is not a
   # finite interior maximum (flat ridges, limiting families).
+  unit <- fit_units(dist, free, specs, pars)
+  unit[is.na(unit)] <- 1
   uncertainty <- fit_uncertainty(theta, free, specs, pars, objective, level,
                                  regular = !boundary && convergence == 0L &&
                                    !(raw && id == "laplace" && "mu" %in% free),
-                                 exact = exact, strict = raw && !analytic)
+                                 exact = exact, strict = raw && !analytic, unit = unit)
   warnings <- c(warnings, uncertainty$warnings)
   k <- length(free)
   list(id = id, dist = dist, estimates = uncertainty$estimates,
@@ -498,15 +545,8 @@ fit_grouped_check <- function(data, dist, theta, free, specs, pars, decode,
   cuts <- sort(unique(c(data$lower, data$upper)))
   cuts <- cuts[is.finite(cuts)]
   if (length(cuts) < length(free)) fail()
-  scale <- rep(1, length(free))
-  iqr <- diff(dl_quantile(dist, c(.25, .75)))
-  for (j in seq_along(free)) {
-    spec <- specs[[free[j]]]
-    if (!is.finite(spec$lower) && !is.finite(spec$upper)) {
-      scale[j] <- if (free[j] == "meanlog") pars$sdlog else iqr
-      if (!is.finite(scale[j]) || scale[j] <= 0) fail()
-    }
-  }
+  scale <- fit_units(dist, free, specs, pars)
+  if (anyNA(scale)) fail()
   upper <- dl_cdf(dist, cuts) > .5
   probabilities <- function(z) {
     d <- make_dist(decode(theta + scale * z))
@@ -536,12 +576,40 @@ fit_grouped_check <- function(data, dist, theta, free, specs, pars, decode,
   invisible(NULL)
 }
 
+# Units that make optimizer coordinates dimensionless. A location parameter
+# is measured in interquartile ranges of `dist` (meanlog in sdlog); log and
+# logit coordinates are already free of the data scale. NA when unavailable.
+fit_units <- function(dist, free, specs, pars) {
+  iqr <- if (is.null(dist)) NA_real_ else
+    tryCatch(diff(dl_quantile(dist, c(.25, .75))), error = function(e) NA_real_)
+  unit <- vapply(free, function(nm) {
+    spec <- specs[[nm]]
+    if (is.finite(spec$lower) || is.finite(spec$upper)) return(1)
+    if (nm == "meanlog") pars$sdlog else iqr
+  }, 0)
+  unit[!is.finite(unit) | unit <= 0] <- NA_real_
+  unname(unit)
+}
+
+# Derivative of a natural parameter with respect to its optimizer
+# coordinate (fit_transform()), at the natural value `x`.
+fit_transform_slope <- function(spec, x) {
+  lo <- spec$lower
+  hi <- spec$upper
+  if (is.finite(lo) && is.finite(hi)) {
+    u <- (x - lo) / (hi - lo)
+    (hi - lo) * u * (1 - u)
+  } else if (is.finite(lo)) x - lo else if (is.finite(hi)) x - hi else 1
+}
+
 # Standard errors from the observed information: `exact` is the inverse
-# information of the natural parameters, otherwise a numerical Hessian on the
-# optimizer coordinates is mapped back by the delta method. With `strict`, a
-# singular or indefinite Hessian is a fitting failure instead of a note.
+# information of the natural parameters. Otherwise the Hessian is taken at
+# theta + unit * z, so a location far from zero or a tiny or huge scale
+# neither distorts the difference steps nor the singularity test, and is
+# mapped back by the delta method. With `strict`, singular or indefinite
+# information is a fitting failure instead of a note.
 fit_uncertainty <- function(theta, free, specs, pars, objective, level, regular,
-                            exact = NULL, strict = FALSE) {
+                            exact = NULL, strict = FALSE, unit = rep(1, length(free))) {
   nms <- names(pars)
   p <- unlist(pars, use.names = FALSE)
   cov <- matrix(NA_real_, length(p), length(p), dimnames = list(nms, nms))
@@ -552,17 +620,17 @@ fit_uncertainty <- function(theta, free, specs, pars, objective, level, regular,
   warnings <- character()
   if (length(free) && regular) {
     result <- if (!is.null(exact)) exact else tryCatch({
-      h <- numDeriv::hessian(objective, theta)
+      # In these units a first step of 0.01 is small for the curvature yet
+      # large enough that rounding in the log-likelihood stays negligible.
+      h <- numDeriv::hessian(function(z) objective(theta + unit * z), rep(0, length(free)),
+                             method.args = list(eps = 1e-2, d = 1e-2))
       eigenvalues <- eigen(h, symmetric = TRUE, only.values = TRUE)$values
       if (any(!is.finite(h)) || min(eigenvalues) <= max(eigenvalues) * 1e-10) {
         stop("Singular or non-positive information matrix.")
       }
-      jac <- numDeriv::jacobian(function(th) {
-        vapply(seq_along(free), function(j) {
-          fit_transform(specs[[free[j]]], inverse = TRUE, x = th[j])
-        }, 0)
-      }, theta)
-      jac %*% solve(h) %*% t(jac)
+      # d natural / d z = slope of the coordinate times its unit.
+      jac <- unit * vapply(free, function(nm) fit_transform_slope(specs[[nm]], pars[[nm]]), 0)
+      solve(h) * outer(jac, jac)
     }, error = function(e) NULL)
     if (is.null(result) && strict) {
       stop("Singular or non-positive observed information: no stable finite interior MLE.",

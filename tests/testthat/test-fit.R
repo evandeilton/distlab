@@ -384,3 +384,72 @@ test_that("Wald limits use the derivative of the optimizer coordinate", {
   expect_true(all(is.na(distlab:::fit_wald_limits(specs[[2]], 2, NA_real_, z))))
   expect_true(all(is.na(distlab:::fit_wald_limits(specs[[1]], 1, .1, z))))
 })
+
+test_that("location-scale estimates and standard errors are equivariant", {
+  skip_if_not_installed("MASS")
+  set.seed(21)
+  samples <- list(logistic = rlogis(80), cauchy = rcauchy(80))
+  cases <- list(c(1e-6, 0), c(1e-3, 0), c(1e5, 0), c(1e6, 0), c(2, 1e3), c(2, 1e4), c(2, 1e6),
+                c(1e-3, 1e6))
+  for (id in names(samples)) {
+    z <- samples[[id]]
+    ref <- suppressWarnings(MASS::fitdistr(z, id))
+    unit <- dl_fit(z, id)$fits[[id]]$estimates
+    expect_equal(unit$estimate, unname(ref$estimate), tolerance = 1e-3, info = id)
+    expect_equal(unit$se, unname(ref$sd), tolerance = 1e-3, info = id)
+    for (case in cases) {
+      s <- case[1]
+      loc <- case[2]
+      fit <- dl_fit(z * s + loc, id)
+      label <- sprintf("%s scale %g location %g", id, s, loc)
+      expect_length(fit$failures, 0)
+      e <- fit$fits[[id]]$estimates
+      # MASS on the unit sample, mapped by equivariance of the MLE.
+      expect_equal((e$estimate - c(loc, 0)) / s, unname(ref$estimate), tolerance = 1e-3, info = label)
+      expect_equal(e$se / s, unname(ref$sd), tolerance = 1e-3, info = label)
+      expect_equal((e$estimate - c(loc, 0)) / s, unit$estimate, tolerance = 1e-5, info = label)
+      expect_equal(e$se / s, unit$se, tolerance = 1e-5, info = label)
+    }
+  }
+  # MASS directly on a shifted sample, where its optimizer is reliable.
+  shifted <- samples$logistic * 2 + 1e4
+  direct <- suppressWarnings(MASS::fitdistr(shifted, "logistic"))
+  e <- dl_fit(shifted, "logistic")$fits$logistic$estimates
+  expect_equal(e$estimate, unname(direct$estimate), tolerance = 1e-3)
+  expect_equal(e$se, unname(direct$sd), tolerance = 1e-3)
+})
+
+test_that("grouped standard errors do not depend on the class location", {
+  set.seed(3)
+  breaks <- c(-Inf, seq(-6, 6, 2), Inf)
+  counts <- as.vector(table(cut(rnorm(500, 0, 3), breaks)))
+  near <- dl_fit(dl_fit_data(lower = head(breaks, -1), upper = breaks[-1], frequency = counts),
+                 "normal")$fits$normal$estimates
+  far <- dl_fit(dl_fit_data(lower = head(breaks, -1) + 1e4, upper = breaks[-1] + 1e4,
+                            frequency = counts), "normal")$fits$normal$estimates
+  expect_equal(far$estimate - c(1e4, 0), near$estimate, tolerance = 1e-6)
+  expect_equal(far$se, near$se, tolerance = 1e-6)
+  # Information of the interval likelihood, differentiated around the estimate.
+  nll <- function(d) -sum(counts * log(diff(pnorm(breaks + 1e4, far$estimate[1] + d[1],
+                                                    far$estimate[2] + d[2]))))
+  expect_equal(far$se, sqrt(diag(solve(numDeriv::hessian(nll, c(0, 0))))), tolerance = 1e-5)
+})
+
+test_that("coordinate slopes agree with numerical derivatives", {
+  specs <- list(list(lower = 0, upper = 1), list(lower = 0, upper = Inf),
+                list(lower = -Inf, upper = 5), list(lower = -Inf, upper = Inf))
+  for (spec in specs) {
+    for (x in c(.2, .7)) {
+      x <- if (is.finite(spec$upper) && spec$upper == 5) 5 - x else x
+      t <- distlab:::fit_transform(spec, x = x)
+      slope <- numDeriv::grad(function(v) distlab:::fit_transform(spec, inverse = TRUE, x = v), t)
+      expect_equal(distlab:::fit_transform_slope(spec, x), slope, tolerance = 1e-8)
+    }
+  }
+  # Location units come from the fitted spread; bounded coordinates keep unit 1.
+  specs <- stats::setNames(dl_entry("logistic")$parameters, c("location", "scale"))
+  d <- dl_dist("logistic", location = 1e6, scale = 3)
+  expect_equal(distlab:::fit_units(d, c("location", "scale"), specs, d$params),
+               c(diff(qlogis(c(.25, .75), 1e6, 3)), 1))
+  expect_true(is.na(distlab:::fit_units(NULL, "location", specs, d$params)))
+})

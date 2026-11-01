@@ -52,8 +52,11 @@ a class. Nonregular estimates and boundary estimates have no Wald intervals.
 Ungrouped Normal, Lognormal, Exponential, Poisson, Bernoulli, Binomial and
 Geometric fits use their closed-form estimates and exact observed
 information; Gamma, Chi-square and Beta likelihoods are evaluated from
-sufficient statistics. Other families are maximized numerically, and their
-observed information is a numerical Hessian.
+sufficient statistics. Other families are maximized numerically, with
+locations measured from the center of the data in units of its spread and
+scales on the log scale, so estimates, standard errors and the
+identification checks do not depend on the units or location of the data;
+their observed information is a numerical Hessian in those coordinates.
 
 Standard errors come from the observed information, by the delta method
 for the natural parameters. Wald intervals are built where each parameter
