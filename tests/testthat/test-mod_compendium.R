@@ -225,3 +225,13 @@ test_that("the Support column is not sortable", {
   expect_no_match(html, 'data-col="4"', fixed = TRUE)
   expect_match(html, "<th scope=\"col\">Support</th>")
 })
+
+test_that("the node panel links to the Calculator and Compare", {
+  html <- as.character(distlab:::node_panel(dl_entry("gamma"), "pt-BR", "c-open", "c-edge",
+                                            calc_id = "c-calc", compare_id = "c-compare"))
+  expect_match(html, 'data-input="c-calc"', fixed = TRUE)
+  expect_match(html, 'data-input="c-compare"', fixed = TRUE)
+  expect_match(html, "Comparar com")
+  html <- as.character(distlab:::node_panel(dl_entry("gamma"), "en-US", "c-open", "c-edge"))
+  expect_no_match(html, "c-calc", fixed = TRUE)
+})

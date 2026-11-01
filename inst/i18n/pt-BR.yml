@@ -175,3 +175,105 @@ compendium.table.no_match: Nenhuma distribuição corresponde a este texto.
 compendium.stat_dists: distribuições
 compendium.stat_relations: relações
 compendium.filtered: Visão filtrada
+explorer.to_calc: Calcular probabilidades
+explorer.to_compare: Comparar
+compendium.calc: Calcular probabilidades
+compendium.calc_label: "Calcular probabilidades da {name}"
+compendium.compare: Comparar com…
+compendium.compare_label: "Comparar a {name} com outras distribuições"
+calc.question: Pergunta
+calc.mode: O que você quer calcular?
+calc.mode.quantile: Quantil
+calc.mode.central: Intervalo central
+calc.prob_label: Probabilidade do intervalo
+calc.help.p: >-
+  Probabilidade p entre 0 e 1; o resultado é o x com P(X ≤ x) = p, ou o
+  primeiro x que passa de p quando X é discreta.
+calc.help.prob: Probabilidade entre 0 e 1, dividida igualmente entre as duas caudas.
+calc.help.decimal: Use vírgula ou ponto decimal; Inf e -Inf são aceitos.
+calc.result: Resultado
+calc.lower_end: Extremo esquerdo
+calc.upper_end: Extremo direito
+calc.note.continuous_ends: >-
+  Numa distribuição contínua P(X = a) = 0, então < e ≤ dão a mesma
+  probabilidade.
+calc.note.discrete_ends: >-
+  Numa distribuição discreta os extremos importam: ≤ conta a probabilidade
+  daquele valor, < a deixa de fora.
+calc.note.quantile_discrete: >-
+  A função de distribuição discreta salta nos inteiros, então em geral nenhum
+  x tem F(x) = p exatamente. O quantil é o menor x com F(x) ≥ p, a regra
+  usada pelo R.
+calc.note.tiny: >-
+  Probabilidades de cauda são calculadas diretamente na cauda superior ou
+  inferior e em escala logarítmica, então mantêm a precisão.
+calc.note.outside: >-
+  Um valor está fora do suporte de X, onde a distribuição não põe
+  probabilidade.
+calc.complement: "Complementar: 1 − P = {p}"
+calc.coverage: "cobre {p}"
+calc.code: Código R
+calc.copy: Copiar
+calc.copied: Copiado
+calc.error.number: Digite um número em cada campo.
+calc.error.order: O extremo esquerdo a não pode ser maior que b.
+calc.error.p: A probabilidade deve estar estritamente entre 0 e 1.
+calc.sentence.le: "A probabilidade de X ser menor ou igual a {x} é {p} ({pct})."
+calc.sentence.gt: "A probabilidade de X ser maior que {x} é {p} ({pct})."
+calc.sentence.between: "A probabilidade de X estar entre {a} e {b} é {p} ({pct})."
+calc.sentence.between_discrete: "A probabilidade de X estar entre {a} e {b} ({event}) é {p} ({pct})."
+calc.sentence.quantile: "O quantil de ordem {p} é {x}: P(X ≤ {x}) = {p}."
+calc.sentence.quantile_discrete: "O menor x com F(x) ≥ {p} é {x}; P(X ≤ {x}) = {fx}."
+calc.sentence.central: >-
+  Um intervalo com {prob} da probabilidade no centro é [{a}; {b}], deixando
+  {tail} em cada cauda.
+calc.sentence.central_discrete: >-
+  O intervalo central para {prob} é [{a}; {b}]; com valores inteiros ele
+  cobre {cov}, pelo menos {prob}.
+compare.subtitle: >-
+  Sobreponha distribuições, ou varie um parâmetro, para ver como formas,
+  centros e caudas diferem.
+compare.presets: Exemplos
+compare.preset.binom_pois: Binomial(n, p) vs Poisson(np)
+compare.preset.t_normal: t(ν) vs Normal
+compare.preset.gamma_shape: Variando a forma da Gama
+compare.preset.beta_shapes: Formas da Beta
+compare.preset.exp_weibull: Exponencial vs Weibull
+compare.preset.poisson_lambda: Variando o λ da Poisson
+compare.preset.binom_pois.hint: >-
+  Com muitos ensaios e probabilidade de sucesso pequena, a Binomial(50; 0,06)
+  fica próxima da Poisson(3), com a mesma média np = 3.
+compare.preset.t_normal.hint: >-
+  A t de Student tem caudas mais pesadas que a Normal; quando ν cresce, ela se
+  aproxima da Normal. Com ν = 1 é a Cauchy, que não tem média.
+compare.preset.gamma_shape.hint: >-
+  A forma α muda o desenho da Gama: abaixo de 1 a densidade é ilimitada em 0,
+  em 1 é a Exponencial, e fica mais simétrica conforme α aumenta.
+compare.preset.beta_shapes.hint: >-
+  Os dois parâmetros de forma da Beta deslocam a massa em (0, 1): em U,
+  assimétrica para um dos lados ou simétrica.
+compare.preset.exp_weibull.hint: >-
+  A Weibull com forma 1 é a Exponencial (as curvas coincidem); forma 2 dá uma
+  corcova e uma cauda mais leve.
+compare.preset.poisson_lambda.hint: >-
+  Conforme λ cresce, a Poisson se desloca para a direita, se espalha
+  (variância λ) e fica mais simétrica.
+compare.preset_none: Escolha um exemplo ou monte a sua comparação.
+compare.mode: Modo
+compare.mode.overlay: Sobrepor
+compare.mode.sweep: Variar um parâmetro
+compare.slot: "Distribuição {n}"
+compare.remove: Remover esta distribuição
+compare.add: Adicionar distribuição
+compare.sweep_param: Parâmetro que varia
+compare.sweep_values: Valores
+compare.sweep_help: De dois a cinco valores separados por ponto e vírgula, como 0,5; 1; 2.
+compare.sweep_fixed: Demais parâmetros
+compare.density: Função de densidade ou de probabilidade
+compare.summary: Resumo
+compare.col.dist: Distribuição
+compare.error.values: Digite de dois a cinco números separados por ponto e vírgula.
+compare.error.value: "O valor {value} está fora do domínio do parâmetro."
+compare.note.mixed: >-
+  Barras são probabilidades P(X = x) de distribuições discretas; curvas são
+  densidades f(x) das contínuas.

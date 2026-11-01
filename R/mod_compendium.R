@@ -174,7 +174,8 @@ graph_legend <- function(lang, reg = dl_registry()) {
 
 # `lang` may be fixed or reactive; `dark` a reactive logical; `request` a
 # reactive navigation request from other pages (list(tab, group, ...)).
-# Returns a reactive with the latest navigation request: list(tab, id, n).
+# Returns a reactive with the latest navigation request: list(tab, id, n),
+# where tab is "explorer", "calculator" or "compare".
 mod_compendium_server <- function(id, lang, dark = shiny::reactive(FALSE),
                                   request = shiny::reactive(NULL)) {
   lang_r <- if (shiny::is.reactive(lang)) lang else shiny::reactive(lang)
@@ -271,6 +272,12 @@ mod_compendium_server <- function(id, lang, dark = shiny::reactive(FALSE),
     shiny::observeEvent(input$open, {
       if (valid_node(input$open)) go("explorer", input$open)
     })
+    shiny::observeEvent(input$calc, {
+      if (valid_node(input$calc)) go("calculator", input$calc)
+    })
+    shiny::observeEvent(input$compare, {
+      if (valid_node(input$compare)) go("compare", input$compare)
+    })
     shiny::observeEvent(input$pick_node, {
       if (valid_node(input$pick_node)) select_node(input$pick_node)
     })
@@ -326,7 +333,8 @@ mod_compendium_server <- function(id, lang, dark = shiny::reactive(FALSE),
       lg <- lang_r()
       if (is.null(s)) return(empty_panel(lg, reg, rel))
       if (s$kind == "node") {
-        node_panel(reg[[s$id]], lg, ns("open"), ns("pick_edge"), rel = rel)
+        node_panel(reg[[s$id]], lg, ns("open"), ns("pick_edge"), rel = rel,
+                   calc_id = ns("calc"), compare_id = ns("compare"))
       } else {
         edge_panel(rel[rel$id == s$id, , drop = FALSE], lg, ns("open"), reg = reg)
       }
@@ -386,8 +394,10 @@ entry_badges <- function(entry, lang, group = TRUE) {
 }
 
 # Side panel of a selected distribution: name, badges, support, parameters,
-# story excerpt, its relations (each selects the edge) and the Explorer button.
-node_panel <- function(entry, lang, open_id, edge_id, rel = NULL) {
+# story excerpt, its relations (each selects the edge) and buttons that open
+# it in the Explorer, the Calculator and Compare.
+node_panel <- function(entry, lang, open_id, edge_id, rel = NULL, calc_id = NULL,
+                       compare_id = NULL) {
   reg <- dl_registry()
   if (is.null(rel)) {
     rel <- relations_frame(reg)
@@ -433,7 +443,17 @@ node_panel <- function(entry, lang, open_id, edge_id, rel = NULL) {
       class = "dl-panel-actions",
       dist_button(entry$id, tr("compendium.open", lang), open_id,
                   class = "btn btn-primary btn-sm",
-                  label = tr("related.open", lang, name = entry_text(entry, "names", lang)))
+                  label = tr("related.open", lang, name = entry_text(entry, "names", lang))),
+      if (!is.null(calc_id)) {
+        dist_button(entry$id, tr("compendium.calc", lang), calc_id,
+                    class = "btn btn-outline-primary btn-sm",
+                    label = tr("compendium.calc_label", lang, name = entry_text(entry, "names", lang)))
+      },
+      if (!is.null(compare_id)) {
+        dist_button(entry$id, tr("compendium.compare", lang), compare_id,
+                    class = "btn btn-outline-primary btn-sm",
+                    label = tr("compendium.compare_label", lang, name = entry_text(entry, "names", lang)))
+      }
     )
   )
 }

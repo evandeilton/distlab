@@ -147,6 +147,13 @@ dl_curve <- function(dist, n = 401L, tail = 1e-4) {
   if (!is.numeric(tail) || length(tail) != 1L || !(tail > 0 && tail < 0.5)) {
     stop("`tail` must be a single number in (0, 0.5).", call. = FALSE)
   }
+  r <- curve_range(dist, tail)
+  curve_grid(dist, r[1], r[2], n)
+}
+
+# Plotting range (lo, hi) covering the central 1 - 2 * tail probability,
+# clipped for heavy tails; errors when no finite range exists.
+curve_range <- function(dist, tail = 1e-4) {
   # Upper tail via lower.tail = FALSE keeps precision for small tail values.
   lo <- dl_quantile(dist, tail)
   hi <- dl_quantile(dist, tail, lower.tail = FALSE)
@@ -171,7 +178,13 @@ dl_curve <- function(dist, n = 401L, tail = 1e-4) {
       hi <- min(hi, qq[2] + 15 * iqr)
     }
   }
-  x <- if (discrete) {
+  c(lo, hi)
+}
+
+# Density and CDF on [lo, hi]: an even grid of n points for continuous
+# distributions, every integer for discrete ones.
+curve_grid <- function(dist, lo, hi, n = 401L) {
+  x <- if (identical(dist$entry$type, "discrete")) {
     seq(floor(lo), ceiling(hi))
   } else {
     seq(lo, hi, length.out = n)

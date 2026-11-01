@@ -54,6 +54,8 @@ dl_moments(g, method = "numeric")
 Other engine:
 \code{\link[=dl_curve]{dl_curve()}},
 \code{\link[=dl_density]{dl_density()}},
-\code{\link[=dl_dist]{dl_dist()}}
+\code{\link[=dl_dist]{dl_dist()}},
+\code{\link[=dl_interval]{dl_interval()}},
+\code{\link[=dl_prob]{dl_prob()}}
 }
 \concept{engine}

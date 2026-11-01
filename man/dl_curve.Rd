@@ -31,6 +31,8 @@ head(dl_curve(dl_dist("poisson", lambda = 2)))
 Other engine:
 \code{\link[=dl_density]{dl_density()}},
 \code{\link[=dl_dist]{dl_dist()}},
-\code{\link[=dl_moments]{dl_moments()}}
+\code{\link[=dl_interval]{dl_interval()}},
+\code{\link[=dl_moments]{dl_moments()}},
+\code{\link[=dl_prob]{dl_prob()}}
 }
 \concept{engine}
