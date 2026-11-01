@@ -110,3 +110,72 @@ test_that("candidate eligibility checks support without restricting registry def
   narrow <- dl_fit_data(lower = .1, upper = .9, frequency = 2)
   expect_false(any(dl_fit_candidates(narrow)$eligible[choices$type == "discrete"]))
 })
+
+test_that("open classes need infinite limits and removed frequencies are reported", {
+  expect_error(dl_fit_data(lower = c(0, 10, 20), upper = c(10, 20, NA), frequency = c(5, 10, 30)),
+               "-Inf or Inf")
+  expect_error(dl_fit_data(lower = c(NA, 10), upper = c(10, 20), frequency = c(5, 10)), "both limits")
+  open <- dl_fit_data(lower = c(0, 10, 20), upper = c(10, 20, Inf), frequency = c(5, 10, 30))
+  expect_equal(open$n, 45)
+  empty <- dl_fit_data(lower = c(0, 10, 20), upper = c(10, 20, NA), frequency = c(5, 10, 0))
+  expect_equal(c(empty$n, empty$removed, empty$removed_frequency), c(15, 1, 0))
+  unknown <- dl_fit_data(lower = c(0, 10), upper = c(10, 20), frequency = c(NA, 4))
+  expect_equal(c(unknown$removed, unknown$removed_frequency), c(1, 0))
+  table <- dl_fit_data(c(1, NA, 3), frequency = c(2, 30, 5))
+  expect_equal(c(table$n, table$removed, table$removed_frequency), c(7, 1, 30))
+  expect_equal(dl_fit_describe(table)$removed_frequency, 30)
+  expect_equal(dl_fit_data(c(1, NA, NA))$removed_frequency, 2)
+  # Frequencies of removed rows are still validated.
+  expect_error(dl_fit_data(c(1, NA), frequency = c(2, -1)), "Frequencies")
+})
+
+test_that("decimal commas survive headers, missing values and whole numbers", {
+  expect_equal(fit_read_table(text = "tempo\n1,5\n2,7\n3,1\n4,9")$tempo, c(1.5, 2.7, 3.1, 4.9))
+  expect_equal(fit_read_table(text = "tempo de espera\n1,5\n2,5")$tempo.de.espera, c(1.5, 2.5))
+  expect_equal(fit_read_table(text = "valor\n1,5\nNA\n4,1")$valor, c(1.5, NA, 4.1))
+  expect_equal(fit_read_table(text = "valor\n1,5\n2\n4,1")$valor, c(1.5, 2, 4.1))
+  expect_equal(fit_read_table(text = "valor\r\n1,5\r\n\r\n4,1\r\n")$valor, c(1.5, NA, 4.1))
+  expect_equal(fit_read_table(text = "t\n1,5\n2,5", decimal_mark = ",")$t, c(1.5, 2.5))
+  expect_equal(fit_read_table(text = "\ufeffvalor\n-1,5\n+2,25")$valor, c(-1.5, 2.25))
+  # A comma in the header line still separates two columns.
+  expect_identical(names(fit_read_table(text = "a,b\n1,5\n2,5")), c("a", "b"))
+  # Ragged rows are input errors, not reshaped tables.
+  expect_error(fit_read_table(text = "valor\n1.5\n2,5"), "different numbers of fields")
+  expect_error(fit_read_table(text = "x\n1\n2\n1,2,3"), "different numbers of fields")
+  expect_error(fit_read_table(text = "a,b\n1,2\n3,4,5\n6,7"), "different numbers of fields")
+})
+
+test_that("thousands separators and one-line samples are read as numbers", {
+  expect_equal(fit_read_table(text = "x;f\n1.234,5;3\n2.345,25;4")$x, c(1234.5, 2345.25))
+  expect_equal(fit_read_table(text = "x;f\n1.234,5;3\n2,5;4", decimal_mark = ",")$x, c(1234.5, 2.5))
+  expect_equal(fit_read_table(text = "x,f\n\"1,234.5\",3\n\"2,000\",4")$x, c(1234.5, 2000))
+  expect_equal(fit_read_table(text = "x;f\n1,234.5;3\n2,000.25;4", decimal_mark = ".")$x,
+               c(1234.5, 2000.25))
+  expect_equal(fit_read_table(text = "valor\n1.234,5\n2,5")$valor, c(1234.5, 2.5))
+  file <- tempfile(fileext = ".csv")
+  writeLines("x;f\n1.234,5;3\n2,5;4", file)
+  expect_equal(fit_read_table(path = file)$x, c(1234.5, 2.5))
+  # Only well-formed groups of three digits are separators.
+  expect_type(fit_read_table(text = "x;f\n1.23,5;3\n2,5;4")$x, "character")
+  expect_type(fit_read_table(text = "x;f\n1,234.5;3\n2,5;4", decimal_mark = ",")$x, "character")
+  for (text in c("1.2 2.4 0.8 3.1", "1.2;2.4;0.8;3.1", "1.2\t2.4\t0.8\t3.1", "1.2, 2.4, 0.8, 3.1")) {
+    one <- fit_read_table(text = text)
+    expect_identical(dim(one), c(4L, 1L), info = text)
+    expect_equal(one$V1, c(1.2, 2.4, .8, 3.1), info = text)
+  }
+  expect_equal(fit_read_table(text = "1,5 2,7 3,1")$V1, c(1.5, 2.7, 3.1))
+  expect_equal(fit_read_table(text = "1,5;2,7;3,1")$V1, c(1.5, 2.7, 3.1))
+  expect_equal(fit_read_table(text = "1,5", decimal_mark = ".")$V1, c(1, 5))
+  expect_equal(fit_read_table(text = "1,5")$V1, 1.5)
+  expect_error(fit_read_table(text = "valor"), "No data rows")
+  # A header and one data row remain a one-row table.
+  expect_identical(dim(fit_read_table(text = "lower;upper;n\n0;10;5")), c(1L, 3L))
+})
+
+test_that("inputs above the 5 MB limit are rejected", {
+  big <- strrep("1\n", 5 * 1024^2 / 2 + 1)
+  expect_error(fit_read_table(text = big), "5 MB")
+  file <- tempfile(fileext = ".csv")
+  writeLines(big, file)
+  expect_error(fit_read_table(path = file), "5 MB")
+})

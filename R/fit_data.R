@@ -9,11 +9,15 @@
 #' @param lower,upper Numeric class boundaries for grouped observations.
 #'   Infinite outer boundaries are allowed. Classes must be ordered and must
 #'   not overlap; gaps are allowed and are not conditioned away in fitting.
+#'   A class with a positive frequency needs both boundaries: use `-Inf` or
+#'   `Inf` for an open class, not `NA`.
 #' @param na.rm Remove incomplete rows. For raw data `removed` counts missing
-#'   observations; for tables it counts incomplete rows, not unknown frequencies.
+#'   observations; for tables it counts incomplete rows, and
+#'   `removed_frequency` adds up the known frequencies of those rows.
 #'
 #' @returns A `dl_fit_data` list with `type`, `x`, `counts`, `lower`, `upper`,
-#'   `n` and `removed`. Counts and total sample size cannot exceed `2^53 - 1`.
+#'   `n`, `removed` and `removed_frequency`. Counts and total sample size
+#'   cannot exceed `2^53 - 1`.
 #' @export
 #' @examples
 #' dl_fit_data(c(1, 2, 2, NA))
@@ -37,19 +41,29 @@ dl_fit_data <- function(x = NULL, frequency = NULL, lower = NULL, upper = NULL,
       !length(values[[1]]) || length(unique(lengths(values))) != 1L) {
     stop("Data must be nonempty numeric vectors of equal length.", call. = FALSE)
   }
-  missing <- Reduce(`|`, lapply(values, is.na))
-  if (any(missing) && !na.rm) stop("Missing data; use `na.rm = TRUE`.", call. = FALSE)
-  removed <- sum(missing)
-  values <- lapply(values, function(v) v[!missing])
-  if (!length(values[[1]])) stop("No complete observations remain.", call. = FALSE)
+  # A missing class limit would silently drop its observations; open classes
+  # are written with infinite limits instead.
+  if (grouped && any((is.na(lower) | is.na(upper)) & !is.na(frequency) & frequency > 0)) {
+    stop("Grouped classes with a positive frequency need both limits; use -Inf or Inf for an open class.",
+         call. = FALSE)
+  }
+  # Validate every known frequency, including those of rows removed below.
   if (type != "raw") {
-    counts <- values$frequency
-    if (any(!is.finite(counts) | counts < 0 | counts != floor(counts)) ||
-        sum(counts) > 2^53 - 1) {
+    known <- frequency[!is.na(frequency)]
+    if (any(!is.finite(known) | known < 0 | known != floor(known)) ||
+        sum(known) > 2^53 - 1) {
       stop("Frequencies must be finite nonnegative whole numbers with total < 2^53.",
            call. = FALSE)
     }
-  } else counts <- rep(1, length(values$x))
+  }
+  missing <- Reduce(`|`, lapply(values, is.na))
+  if (any(missing) && !na.rm) stop("Missing data; use `na.rm = TRUE`.", call. = FALSE)
+  removed <- sum(missing)
+  removed_frequency <- if (type == "raw") removed else
+    sum(frequency[missing & !is.na(frequency)])
+  values <- lapply(values, function(v) v[!missing])
+  if (!length(values[[1]])) stop("No complete observations remain.", call. = FALSE)
+  counts <- if (type != "raw") values$frequency else rep(1, length(values$x))
   if (sum(counts) == 0) stop("At least one frequency must be positive.", call. = FALSE)
   if (grouped) {
     lower <- values$lower
@@ -77,7 +91,8 @@ dl_fit_data <- function(x = NULL, frequency = NULL, lower = NULL, upper = NULL,
     lower <- upper <- NULL
   }
   structure(list(type = type, x = x, counts = as.numeric(counts), lower = lower,
-                 upper = upper, n = sum(counts), removed = removed),
+                 upper = upper, n = sum(counts), removed = removed,
+                 removed_frequency = as.numeric(removed_frequency)),
             class = "dl_fit_data")
 }
 
@@ -101,9 +116,11 @@ fit_weighted_quantile <- function(x, counts, p) {
 #' unavailable when a positive-frequency class has an infinite boundary.
 #'
 #' @param data A [dl_fit_data()] object or raw numeric vector.
-#' @returns A named list. Variance is the sample variance; skewness and
-#'   excess `kurtosis` use population central moments. For grouped tables,
-#'   zeros, negatives, ties and the integer flag are unavailable.
+#' @returns A named list. `removed` and `removed_frequency` repeat the
+#'   counts of incomplete entries from [dl_fit_data()]. Variance is the sample
+#'   variance; skewness and excess `kurtosis` use population central moments.
+#'   For grouped tables, zeros, negatives, ties and the integer flag are
+#'   unavailable.
 #' @export
 #' @examples
 #' dl_fit_describe(dl_fit_data(c(1, 2, 2, 4)))
@@ -115,6 +132,7 @@ dl_fit_describe <- function(data) {
   n <- data$n
   grouped <- data$type == "grouped"
   out <- list(n = n, removed = data$removed,
+              removed_frequency = data$removed_frequency %||% data$removed,
               unique = if (grouped) NA_real_ else length(x),
               ties = if (grouped) NA_real_ else n - length(x),
               zeros = if (grouped) NA_real_ else sum(w[x == 0]),
@@ -139,6 +157,9 @@ dl_fit_describe <- function(data) {
   out
 }
 
+# Largest upload or pasted table, in bytes; the default request limit of 'shiny'.
+fit_input_limit <- 5 * 1024^2
+
 # Read uploaded CSV/TSV or pasted data. fread detects semicolon delimiters
 # together with decimal commas; explicit decimal_mark is useful for ambiguous
 # one-column text. No shell commands or remote URLs are accepted.
@@ -153,34 +174,117 @@ fit_read_table <- function(text = NULL, path = NULL, decimal_mark = "auto") {
     if (!is_string(path) || !file.exists(path) || dir.exists(path)) {
       stop("Upload path does not identify a readable file.", call. = FALSE)
     }
-    if (file.info(path)$size > 10 * 1024^2) stop("Input exceeds 10 MB.", call. = FALSE)
+    if (file.info(path)$size > fit_input_limit) stop("Input exceeds 5 MB.", call. = FALSE)
     text <- paste(readLines(path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
   }
   if (!is.character(text) || length(text) != 1L || is.na(text) || !nzchar(trimws(text))) {
     stop("Paste a nonempty numeric table.", call. = FALSE)
   }
-  if (nchar(text, type = "bytes") > 10 * 1024^2) stop("Input exceeds 10 MB.", call. = FALSE)
-  # Newline-only decimal-comma columns have no delimiter to disambiguate.
+  if (nchar(text, type = "bytes") > fit_input_limit) stop("Input exceeds 5 MB.", call. = FALSE)
+  # A byte order mark from spreadsheet exports is not part of the header.
+  text <- sub("^\ufeff", "", text)
   lines <- trimws(strsplit(text, "\n", fixed = TRUE)[[1]])
-  numeric_lines <- grepl("^[+-]?[0-9]+,[0-9]+([eE][+-]?[0-9]+)?$", lines)
-  single_comma <- length(lines) > 1L &&
-    (all(numeric_lines | !nzchar(lines)) ||
-     (!grepl("[,;\\t]", lines[1]) && all(numeric_lines[-1] | !nzchar(lines[-1]))))
-  if (single_comma && decimal_mark != ".") {
-    text <- gsub(",", ".", text, fixed = TRUE)
-    decimal_mark <- "."
+  filled <- which(nzchar(lines))
+  lines <- lines[min(filled):max(filled)]
+  marks <- if (decimal_mark == "auto") c(",", ".") else decimal_mark
+  single <- fit_single_column(lines, marks)
+  if (!is.null(single)) return(single)
+  if (length(lines) == 1L) {
+    across <- fit_one_line(lines, decimal_mark)
+    if (!is.null(across)) return(across)
   }
-  out <- data.table::fread(text = text, dec = decimal_mark, data.table = FALSE,
-                          na.strings = c("", "NA", "NaN"), check.names = TRUE,
-                          showProgress = FALSE)
+  # fread recovers from ragged rows by inventing or dropping columns; here a
+  # ragged table is an input error, never a silently different table. The
+  # warning is recorded and fread is left to finish its own cleanup.
+  ragged <- FALSE
+  out <- withCallingHandlers(
+    data.table::fread(text = text, dec = decimal_mark, data.table = FALSE,
+                      na.strings = c("", "NA", "NaN"), check.names = TRUE,
+                      showProgress = FALSE),
+    warning = function(w) {
+      if (grepl("column names but the data has|Stopped early|Discarded single-line footer",
+                conditionMessage(w))) {
+        ragged <<- TRUE
+        invokeRestart("muffleWarning")
+      }
+    })
+  if (ragged) {
+    stop("Rows have different numbers of fields; check the delimiter and decimal mark.",
+         call. = FALSE)
+  }
   if (!nrow(out) || !ncol(out)) stop("No data rows found.", call. = FALSE)
-  # A single column containing decimal commas may have a header.
-  if (ncol(out) == 1L && is.character(out[[1]]) && decimal_mark != ".") {
-    changed <- gsub(",", ".", out[[1]], fixed = TRUE)
-    parsed <- suppressWarnings(as.numeric(changed))
-    if (all(is.na(out[[1]]) | !is.na(parsed))) out[[1]] <- parsed
+  # Text columns may still be numbers with thousands separators.
+  for (j in seq_along(out)) {
+    if (!is.character(out[[j]])) next
+    for (mark in fit_mark_order(out[[j]], decimal_mark)) {
+      parsed <- fit_parse_numbers(out[[j]], mark)
+      if (!is.null(parsed)) {
+        out[[j]] <- parsed
+        break
+      }
+    }
   }
   out
+}
+
+# Decimal marks to try, in order. In automatic mode a comma anywhere makes the
+# decimal comma the first reading, as fread does for semicolon tables.
+fit_mark_order <- function(tokens, decimal_mark) {
+  if (decimal_mark != "auto") return(decimal_mark)
+  if (any(grepl(",", tokens, fixed = TRUE))) c(",", ".") else c(".", ",")
+}
+
+# Numbers written with decimal mark `mark`. The other mark may separate
+# thousands in well-formed groups of three ("1.234,5" or "1,234.5"). NULL
+# unless every token is a number, a missing value or an infinite value.
+fit_parse_numbers <- function(tokens, mark) {
+  s <- trimws(tokens)
+  missing <- is.na(s) | s %in% c("", "NA", "NaN")
+  infinite <- s %in% c("Inf", "+Inf", "-Inf")
+  group <- if (mark == ",") "." else ","
+  g <- if (mark == ",") "\\." else ","
+  d <- if (mark == ",") "," else "\\."
+  int <- paste0("([0-9]{1,3}(", g, "[0-9]{3})+|[0-9]+)")
+  pattern <- paste0("^[+-]?(", int, "(", d, "[0-9]+)?|", d, "[0-9]+)([eE][+-]?[0-9]+)?$")
+  if (!all(missing | infinite | grepl(pattern, s, perl = TRUE))) return(NULL)
+  clean <- gsub(group, "", s[!missing], fixed = TRUE)
+  if (mark == ",") clean <- chartr(",", ".", clean)
+  out <- rep(NA_real_, length(s))
+  out[!missing] <- as.numeric(clean)
+  out
+}
+
+# A newline-only column of decimal commas has no field delimiter, and fread
+# would take its commas for one. Read it directly, with an optional header.
+fit_single_column <- function(lines, marks) {
+  if (any(grepl("[;\t]", lines)) || !any(grepl(",", lines, fixed = TRUE))) return(NULL)
+  header <- !grepl(",", lines[1], fixed = TRUE) &&
+    all(vapply(marks, function(m) is.null(fit_parse_numbers(lines[1], m)), logical(1)))
+  body <- if (header) lines[-1] else lines
+  if (!length(body) || !any(grepl(",", body, fixed = TRUE))) return(NULL)
+  for (mark in marks) {
+    values <- fit_parse_numbers(body, mark)
+    if (!is.null(values)) {
+      name <- if (header) make.names(gsub('^"|"$', "", lines[1])) else "V1"
+      return(stats::setNames(data.frame(values), name))
+    }
+  }
+  NULL
+}
+
+# One line of numbers is a single sample written across rather than down.
+# Delimiters are tried in order; a comma never separates decimal-comma values.
+fit_one_line <- function(line, decimal_mark) {
+  for (sep in c(";", "\t", ",", " ")) {
+    tokens <- if (sep == " ") strsplit(line, "[[:space:]]+")[[1]] else
+      strsplit(line, sep, fixed = TRUE)[[1]]
+    if (length(tokens) < 2L) next
+    for (mark in setdiff(fit_mark_order(tokens, decimal_mark), if (sep == ",") ",")) {
+      values <- fit_parse_numbers(tokens, mark)
+      if (!is.null(values)) return(data.frame(V1 = values))
+    }
+  }
+  NULL
 }
 
 #' Suggest fitting candidates from observation support

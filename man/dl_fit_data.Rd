@@ -19,14 +19,18 @@ dl_fit_data(
 
 \item{lower, upper}{Numeric class boundaries for grouped observations.
 Infinite outer boundaries are allowed. Classes must be ordered and must
-not overlap; gaps are allowed and are not conditioned away in fitting.}
+not overlap; gaps are allowed and are not conditioned away in fitting.
+A class with a positive frequency needs both boundaries: use \code{-Inf} or
+\code{Inf} for an open class, not \code{NA}.}
 
 \item{na.rm}{Remove incomplete rows. For raw data \code{removed} counts missing
-observations; for tables it counts incomplete rows, not unknown frequencies.}
+observations; for tables it counts incomplete rows, and
+\code{removed_frequency} adds up the known frequencies of those rows.}
 }
 \value{
 A \code{dl_fit_data} list with \code{type}, \code{x}, \code{counts}, \code{lower}, \code{upper},
-\code{n} and \code{removed}. Counts and total sample size cannot exceed \code{2^53 - 1}.
+\code{n}, \code{removed} and \code{removed_frequency}. Counts and total sample size
+cannot exceed \code{2^53 - 1}.
 }
 \description{
 Raw observations and value/frequency tables are stored without expanding

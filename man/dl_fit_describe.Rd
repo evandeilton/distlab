@@ -10,9 +10,11 @@ dl_fit_describe(data)
 \item{data}{A \code{\link[=dl_fit_data]{dl_fit_data()}} object or raw numeric vector.}
 }
 \value{
-A named list. Variance is the sample variance; skewness and
-excess \code{kurtosis} use population central moments. For grouped tables,
-zeros, negatives, ties and the integer flag are unavailable.
+A named list. \code{removed} and \code{removed_frequency} repeat the
+counts of incomplete entries from \code{\link[=dl_fit_data]{dl_fit_data()}}. Variance is the sample
+variance; skewness and excess \code{kurtosis} use population central moments.
+For grouped tables, zeros, negatives, ties and the integer flag are
+unavailable.
 }
 \description{
 Frequency tables have exact sample descriptives. Grouped tables use
