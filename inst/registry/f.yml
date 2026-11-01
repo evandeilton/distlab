@@ -6,6 +6,7 @@ type: continuous
 group: positive
 subgroup: sampling_family
 tier: 1
+graph: {xy: [-20, 330]}
 support:
   lower: 0
   upper: .inf

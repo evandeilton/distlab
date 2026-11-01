@@ -6,6 +6,7 @@ type: continuous
 group: bounded
 subgroup: uniform_family
 tier: 1
+graph: {xy: [-830, 330]}
 support:
   lower: min
   upper: max
@@ -96,12 +97,14 @@ story:
 relationships:
   - to: exponential
     type: transformation
+    label: "−log(U)/λ"
     condition:
       en-US: "If U ~ Uniform(0, 1), then -log(U) / lambda is Exponential with rate lambda (inverse transform)."
       pt-BR: "Se U ~ Uniforme(0, 1), então -log(U) / lambda é Exponencial com taxa lambda (transformação inversa)."
     latex: "U \\sim U(0, 1) \\Rightarrow -\\frac{\\log U}{\\lambda} \\sim \\mathrm{Exp}(\\lambda)"
   - to: logistic
     type: transformation
+    label: "log(U/(1−U))"
     condition:
       en-US: "If U ~ Uniform(0, 1), the log-odds log(U / (1 - U)) is standard Logistic."
       pt-BR: "Se U ~ Uniforme(0, 1), o log da chance log(U / (1 - U)) é Logística padrão."

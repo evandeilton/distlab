@@ -6,6 +6,7 @@ type: discrete
 group: counts
 subgroup: binomial_family
 tier: 1
+graph: {xy: [-700, -190]}
 support:
   lower: "max(0, k - n)"
   upper: "min(k, m)"
@@ -109,6 +110,7 @@ story:
 relationships:
   - to: binomial
     type: limit
+    label: "m+n→∞"
     condition:
       en-US: "When the urn is large (m + n grows with m / (m + n) = p fixed) and k stays fixed, drawing without replacement is almost drawing with replacement: the limit is Binomial(k, p)."
       pt-BR: "Quando a urna é grande (m + n cresce com m / (m + n) = p fixo) e k fica fixo, retirar sem reposição é quase retirar com reposição: o limite é Binomial(k, p)."

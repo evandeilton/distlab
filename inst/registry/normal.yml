@@ -6,6 +6,7 @@ type: continuous
 group: real_line
 subgroup: normal_family
 tier: 1
+graph: {xy: [-170, 0]}
 support:
   lower: -.inf
   upper: .inf
@@ -63,24 +64,28 @@ story:
 relationships:
   - to: normal
     type: transformation
+    label: "(X−μ)/σ"
     condition:
       en-US: "Standardization: subtracting the mean and dividing by the standard deviation gives the standard Normal."
       pt-BR: "Padronização: subtrair a média e dividir pelo desvio-padrão resulta na Normal padrão."
     latex: "X \\sim N(\\mu, \\sigma^2) \\Rightarrow Z = \\frac{X - \\mu}{\\sigma} \\sim N(0, 1)"
   - to: lognormal
     type: transformation
+    label: "exp(X)"
     condition:
       en-US: "The exponential of a Normal(mu, sigma) variable is Lognormal(mu, sigma)."
       pt-BR: "A exponencial de uma variável Normal(mu, sigma) é Lognormal(mu, sigma)."
     latex: "X \\sim N(\\mu, \\sigma^2) \\Rightarrow e^{X} \\sim \\mathrm{Lognormal}(\\mu, \\sigma)"
   - to: chisq
     type: transformation
+    label: "Z²"
     condition:
       en-US: "The square of a standard Normal variable is Chi-square with 1 degree of freedom."
       pt-BR: "O quadrado de uma variável Normal padrão é Qui-quadrado com 1 grau de liberdade."
     latex: "Z \\sim N(0, 1) \\Rightarrow Z^2 \\sim \\chi^2_1"
   - to: cauchy
     type: transformation
+    label: "Z₁/Z₂"
     condition:
       en-US: "The ratio of two independent standard Normal variables is standard Cauchy."
       pt-BR: "A razão entre duas variáveis Normais padrão independentes é Cauchy padrão."

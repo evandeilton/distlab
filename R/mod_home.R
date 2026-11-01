@@ -55,13 +55,14 @@ search_choices <- function(lang) {
 
 # Data-type groups present in the registry, in their canonical order.
 registry_groups <- function(reg = dl_registry()) {
-  intersect(.dl_groups, unique(vapply(reg, `[[`, "", "group")))
+  intersect(.dl_groups, unique(unlist(lapply(reg, entry_groups))))
 }
 
-# One card per group with its distributions as clickable chips.
-group_cards <- function(lang, input_id, reg = dl_registry()) {
+# One card per group with its distributions as clickable chips and, when
+# `compendium_id` is given, a link that opens the group in the Compendium.
+group_cards <- function(lang, input_id, compendium_id = NULL, reg = dl_registry()) {
   cards <- lapply(registry_groups(reg), function(g) {
-    ids <- names(reg)[vapply(reg, function(e) identical(e$group, g), logical(1))]
+    ids <- group_members(g, reg)
     labels <- vapply(ids, function(i) entry_text(reg[[i]], "names", lang), "")
     o <- order(labels, method = "radix")
     bslib::card(
@@ -85,7 +86,16 @@ group_cards <- function(lang, input_id, reg = dl_registry()) {
             dist_button(ids[k], labels[k], input_id,
                         label = tr("related.open", lang, name = labels[k]))
           })
-        )
+        ),
+        if (!is.null(compendium_id)) {
+          shiny::tags$div(
+            class = "dl-group-more",
+            dist_button(g, tr("home.in_compendium", lang), compendium_id,
+                        class = "dl-link-btn",
+                        label = tr("home.in_compendium_group", lang,
+                                   group = tr(paste0("group.", g), lang)))
+          )
+        }
       )
     )
   })
@@ -93,19 +103,21 @@ group_cards <- function(lang, input_id, reg = dl_registry()) {
           c(list(width = "240px", fill = FALSE, class = "dl-groups"), cards))
 }
 
-# Returns a reactive with the latest navigation request: list(tab, id, n),
+# Returns a reactive with the latest navigation request: list(tab, id, group, n),
 # where `n` increases so repeated requests for the same target still fire.
 mod_home_server <- function(id, lang) {
   lang_r <- if (shiny::is.reactive(lang)) lang else shiny::reactive(lang)
   shiny::moduleServer(id, function(input, output, session) {
     route <- shiny::reactiveVal(NULL)
     count <- 0L
-    go <- function(tab, did = NULL) {
+    go <- function(tab, did = NULL, group = NULL) {
       count <<- count + 1L
-      route(list(tab = tab, id = did, n = count))
+      route(list(tab = tab, id = did, group = group, n = count))
     }
 
-    output$groups <- shiny::renderUI(group_cards(lang_r(), session$ns("pick")))
+    output$groups <- shiny::renderUI(
+      group_cards(lang_r(), session$ns("pick"), session$ns("compendium"))
+    )
 
     shiny::observeEvent(lang_r(), {
       shiny::updateSelectizeInput(
@@ -122,6 +134,11 @@ mod_home_server <- function(id, lang) {
     })
     shiny::observeEvent(input$pick, {
       if (is_string(input$pick) && input$pick %in% dl_ids()) go("explorer", input$pick)
+    })
+    shiny::observeEvent(input$compendium, {
+      if (is_string(input$compendium) && input$compendium %in% .dl_groups) {
+        go("compendium", group = input$compendium)
+      }
     })
     shiny::observeEvent(input$go_normal, go("explorer", "normal"))
     shiny::observeEvent(input$go_fit, go("fit"))

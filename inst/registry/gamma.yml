@@ -6,6 +6,7 @@ type: continuous
 group: positive
 subgroup: gamma_family
 tier: 1
+graph: {xy: [-500, 170]}
 support:
   lower: 0
   lower_open: true
@@ -78,18 +79,21 @@ story:
 relationships:
   - to: exponential
     type: special_case
+    label: "α=1"
     condition:
       en-US: "Waiting for a single event (shape alpha = 1) gives Exponential(beta)."
       pt-BR: "Esperar por um único evento (forma alfa = 1) resulta na Exponencial(beta)."
     latex: "\\mathrm{Gamma}(1, \\beta) = \\mathrm{Exp}(\\beta)"
   - to: chisq
     type: special_case
+    label: "α=k/2, β=½"
     condition:
       en-US: "With shape k / 2 and rate 1 / 2, the Gamma is the Chi-square with k degrees of freedom."
       pt-BR: "Com forma k / 2 e taxa 1 / 2, a Gama é a Qui-quadrado com k graus de liberdade."
     latex: "\\mathrm{Gamma}\\left(\\tfrac{k}{2}, \\tfrac{1}{2}\\right) = \\chi^2_k"
   - to: beta
     type: transformation
+    label: "X/(X+Y)"
     condition:
       en-US: "If X ~ Gamma(a, beta) and Y ~ Gamma(b, beta) are independent with the same rate, X / (X + Y) is Beta(a, b)."
       pt-BR: "Se X ~ Gama(a, beta) e Y ~ Gama(b, beta) são independentes com a mesma taxa, X / (X + Y) é Beta(a, b)."

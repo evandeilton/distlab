@@ -100,3 +100,78 @@ about.details: >-
   controlada, e as fórmulas seguem a notação dos livros-texto de referência.
 about.version: "Versão {version}"
 about.license: Código distribuído sob a licença MIT.
+home.in_compendium: Ver no Compêndio
+home.in_compendium_group: "Ver o grupo {group} no Compêndio"
+tier.1: Essencial
+tier.2: Ampliado
+tier.3: Avançado
+subgroup.binomial_family: Família binomial
+subgroup.negbinomial_family: Família binomial negativa
+subgroup.poisson_family: Família de Poisson
+subgroup.uniform_family: Família uniforme
+subgroup.beta_family: Família beta
+subgroup.gamma_family: Família gama
+subgroup.weibull_family: Família de Weibull
+subgroup.normal_family: Família normal
+subgroup.sampling_family: Distribuições amostrais
+subgroup.t_family: Família t de Student
+subgroup.symmetric_family: Família simétrica de locação e escala
+compendium.subtitle: >-
+  Todas as distribuições em um só lugar: como se relacionam, que tipo de
+  dado modelam e quais funções do R as calculam.
+compendium.view.graph: Mapa de relações
+compendium.view.relations: Lista de relações
+compendium.view.bytype: Por tipo de dado
+compendium.view.table: Tabela
+compendium.map_label: >-
+  Mapa das relações entre distribuições. A mesma informação está na
+  visualização Lista de relações.
+compendium.search_label: Encontrar no mapa
+compendium.search_placeholder: Digite o nome de uma distribuição
+compendium.filters: Filtros
+compendium.filter.groups: Grupos
+compendium.filter.types: Tipos
+compendium.filter.relations: Relações
+compendium.reset: Restaurar visão
+compendium.legend.groups: Grupos por tipo de dado
+compendium.legend.styles: Formas e linhas
+compendium.legend.hint: >-
+  Clique em uma distribuição ou em uma seta para ver os detalhes; clique
+  duas vezes em uma distribuição para abri-la. Arraste para mover e use a
+  rolagem ou o gesto de pinça para ampliar.
+compendium.details: Detalhes
+compendium.details_empty: >-
+  Clique em uma distribuição ou em uma seta do mapa para ver os detalhes
+  aqui.
+compendium.support: Suporte
+compendium.parameters: Parâmetros
+compendium.relations_n: "{n} relações"
+compendium.relations_one: "1 relação"
+compendium.open: Abrir no Explorador
+compendium.open_name: "Abrir {name}"
+compendium.show_on_map: Mostrar no mapa
+compendium.show_relation: "Mostrar a relação {name} no mapa"
+compendium.relations.intro: >-
+  Cada linha é uma seta do mapa: onde começa, onde termina, a condição e a
+  fórmula.
+compendium.print: Imprimir
+compendium.empty: Nenhuma distribuição corresponde aos filtros.
+compendium.col.from: De
+compendium.col.to: Para
+compendium.col.type: Tipo
+compendium.col.condition: Condição
+compendium.col.formula: Fórmula
+compendium.col.action: Ação
+compendium.col.name: Distribuição
+compendium.col.group: Grupo
+compendium.col.family: Família
+compendium.col.support: Suporte
+compendium.col.parameters: Parâmetros
+compendium.col.functions: Funções do R
+compendium.col.relations: Relações
+compendium.table.filter: Filtrar a tabela
+compendium.table.filter_placeholder: Filtre por nome, grupo, família ou função
+compendium.table.no_match: Nenhuma distribuição corresponde a este texto.
+compendium.stat_dists: distribuições
+compendium.stat_relations: relações
+compendium.filtered: Visão filtrada

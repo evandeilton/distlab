@@ -6,6 +6,7 @@ type: continuous
 group: real_line
 subgroup: t_family
 tier: 1
+graph: {xy: [120, 0]}
 support:
   lower: -.inf
   upper: .inf

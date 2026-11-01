@@ -87,7 +87,8 @@ dist_choices <- function(lang) {
 }
 
 # `lang` may be a fixed language or a reactive; `dark` a reactive logical.
-# `select` is a reactive with a distribution id requested from outside (Home).
+# `select` is a reactive navigation request from other pages (Home, Compendium):
+# list(tab, id); requests for the Explorer open distribution `id`.
 # Returns the reactives of the current entry, parameter values and distribution.
 mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
                                select = shiny::reactive(NULL)) {
@@ -114,7 +115,10 @@ mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
         shiny::updateSelectInput(session, "dist", selected = did)
       }
     }
-    shiny::observeEvent(select(), open_dist(select()$id))
+    shiny::observeEvent(select(), {
+      r <- select()
+      if (is.null(r$tab) || identical(r$tab, "explorer")) open_dist(r$id)
+    })
     shiny::observeEvent(input$goto, open_dist(input$goto))
 
     # One slider per parameter, rebuilt when the distribution changes. Ids carry

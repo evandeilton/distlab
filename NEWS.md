@@ -37,3 +37,15 @@
   entry, and moment tiles and plots in the brand colors.
 * Linked sliders keep parameter constraints (Uniform `min < max`,
   Hypergeometric `k <= m + n`) by moving values and ranges.
+* New Compendium page with four views: a relationship map of every
+  distribution (fixed layout, colors by data type, dashed arrows for limits;
+  click a node or arrow for details, double-click to open it in the
+  Explorer), an accessible and printable list of relations, cards by data
+  type and family, and a sortable, searchable table. Filters by group, type
+  and relation type apply to every view and survive a language switch.
+* Home group cards link to their group in the Compendium.
+* New `dl_relations()` and `dl_catalog()` return the relationship edges and
+  the catalog of distributions as data frames.
+* Registry entries may set a map position (`graph`), a short map label per
+  relationship (`label`) and extra groups for cross-listing (`also_in`).
+* 'visNetwork' is now imported for the relationship map.

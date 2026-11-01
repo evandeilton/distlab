@@ -6,6 +6,7 @@ type: continuous
 group: real_line
 subgroup: t_family
 tier: 1
+graph: {xy: [120, 170]}
 support:
   lower: -.inf
   upper: .inf
@@ -98,18 +99,21 @@ story:
 relationships:
   - to: cauchy
     type: special_case
+    label: "ν=1"
     condition:
       en-US: "With one degree of freedom (nu = 1) the t is the standard Cauchy."
       pt-BR: "Com um grau de liberdade (nu = 1), a t é a Cauchy padrão."
     latex: "t_1 = \\mathrm{Cauchy}(0, 1)"
   - to: normal
     type: limit
+    label: "ν→∞"
     condition:
       en-US: "As nu grows, the t tends to the standard Normal."
       pt-BR: "Conforme nu cresce, a t tende à Normal padrão."
     latex: "t_\\nu \\xrightarrow{d} N(0, 1), \\quad \\nu \\to \\infty"
   - to: f
     type: transformation
+    label: "T²"
     condition:
       en-US: "The square of a t variable with nu degrees of freedom is F(1, nu)."
       pt-BR: "O quadrado de uma variável t com nu graus de liberdade é F(1, nu)."

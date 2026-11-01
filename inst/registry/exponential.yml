@@ -6,6 +6,7 @@ type: continuous
 group: positive
 subgroup: gamma_family
 tier: 1
+graph: {xy: [-500, 330]}
 support:
   lower: 0
   upper: .inf
@@ -67,12 +68,14 @@ story:
 relationships:
   - to: gamma
     type: sum
+    label: "ΣXᵢ"
     condition:
       en-US: "The sum of n independent Exponential(lambda) variables is Gamma(n, lambda)."
       pt-BR: "A soma de n variáveis Exponencial(lambda) independentes é Gama(n, lambda)."
     latex: "X_1, \\ldots, X_n \\overset{iid}{\\sim} \\mathrm{Exp}(\\lambda) \\Rightarrow \\sum_{i=1}^{n} X_i \\sim \\mathrm{Gamma}(n, \\lambda)"
   - to: laplace
     type: transformation
+    label: "X₁−X₂"
     condition:
       en-US: "The difference of two independent Exponential(lambda) variables is Laplace with location 0 and scale 1 / lambda."
       pt-BR: "A diferença entre duas variáveis Exponencial(lambda) independentes é Laplace com locação 0 e escala 1 / lambda."

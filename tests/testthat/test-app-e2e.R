@@ -32,4 +32,11 @@ test_that("the language switch keeps tab, distribution and parameters", {
   expect_match(app$get_js(dark_label), "^Switch to (dark|light) mode$")
   # Formulas are typeset by KaTeX in the browser.
   expect_gt(app$get_js("document.querySelectorAll('.dl-math .katex').length"), 0)
+  # The Compendium draws the map and typesets the list of relations.
+  app$run_js("document.querySelector('[data-value=\"compendium\"]').click()")
+  app$wait_for_idle()
+  expect_gt(app$get_js("document.querySelectorAll('#graphcompendium-graph canvas').length"), 0)
+  app$run_js("document.querySelector('[data-value=\"relations\"]').click()")
+  app$wait_for_idle()
+  expect_gt(app$get_js("document.querySelectorAll('.dl-rel-table .katex').length"), 20)
 })

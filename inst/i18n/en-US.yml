@@ -101,3 +101,76 @@ about.details: >-
   textbooks.
 about.version: "Version {version}"
 about.license: Code released under the MIT license.
+home.in_compendium: See in the Compendium
+home.in_compendium_group: "See the {group} group in the Compendium"
+tier.1: Core
+tier.2: Extended
+tier.3: Advanced
+subgroup.binomial_family: Binomial family
+subgroup.negbinomial_family: Negative binomial family
+subgroup.poisson_family: Poisson family
+subgroup.uniform_family: Uniform family
+subgroup.beta_family: Beta family
+subgroup.gamma_family: Gamma family
+subgroup.weibull_family: Weibull family
+subgroup.normal_family: Normal family
+subgroup.sampling_family: Sampling distributions
+subgroup.t_family: Student's t family
+subgroup.symmetric_family: Symmetric location-scale family
+compendium.subtitle: >-
+  Every distribution in one place: how they connect, what kind of data they
+  model and which R functions compute them.
+compendium.view.graph: Relationship map
+compendium.view.relations: List of relations
+compendium.view.bytype: By data type
+compendium.view.table: Table
+compendium.map_label: >-
+  Map of the relationships between distributions. The same information is
+  in the List of relations view.
+compendium.search_label: Find on the map
+compendium.search_placeholder: Type a distribution name
+compendium.filters: Filters
+compendium.filter.groups: Groups
+compendium.filter.types: Types
+compendium.filter.relations: Relations
+compendium.reset: Reset view
+compendium.legend.groups: Data-type groups
+compendium.legend.styles: Shapes and lines
+compendium.legend.hint: >-
+  Click a distribution or an arrow to see its details; double-click a
+  distribution to open it. Drag to pan and scroll or pinch to zoom.
+compendium.details: Details
+compendium.details_empty: >-
+  Click a distribution or an arrow on the map to see its details here.
+compendium.support: Support
+compendium.parameters: Parameters
+compendium.relations_n: "{n} relations"
+compendium.relations_one: "1 relation"
+compendium.open: Open in the Explorer
+compendium.open_name: "Open {name}"
+compendium.show_on_map: Show on the map
+compendium.show_relation: "Show the relation {name} on the map"
+compendium.relations.intro: >-
+  Each row is one arrow of the map: where it starts, where it ends, the
+  condition and the formula.
+compendium.print: Print
+compendium.empty: No distribution matches the filters.
+compendium.col.from: From
+compendium.col.to: To
+compendium.col.type: Type
+compendium.col.condition: Condition
+compendium.col.formula: Formula
+compendium.col.action: Action
+compendium.col.name: Distribution
+compendium.col.group: Group
+compendium.col.family: Family
+compendium.col.support: Support
+compendium.col.parameters: Parameters
+compendium.col.functions: R functions
+compendium.col.relations: Relations
+compendium.table.filter: Filter the table
+compendium.table.filter_placeholder: Filter by name, group, family or function
+compendium.table.no_match: No distribution matches this text.
+compendium.stat_dists: distributions
+compendium.stat_relations: relations
+compendium.filtered: Filtered view

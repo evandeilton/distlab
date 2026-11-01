@@ -6,6 +6,7 @@ type: discrete
 group: counts
 subgroup: negbinomial_family
 tier: 1
+graph: {xy: [380, -190]}
 support:
   lower: 0
   upper: .inf
@@ -87,6 +88,7 @@ story:
 relationships:
   - to: geometric
     type: special_case
+    label: "r=1"
     condition:
       en-US: "Waiting for a single success (r = 1) gives Geometric(p)."
       pt-BR: "Esperar por um único sucesso (r = 1) resulta na Geométrica(p)."

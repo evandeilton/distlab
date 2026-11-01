@@ -25,7 +25,7 @@ run_app <- function(lang = "pt-BR", ...) {
 # module yet show a header only.
 .dl_sections <- list(
   list(value = "home", icon = "house"),
-  list(value = "compendium", icon = "book-open", upcoming = TRUE),
+  list(value = "compendium", icon = "book-open"),
   list(value = "explorer", icon = "magnifying-glass-chart"),
   list(value = "calculator", icon = "calculator", upcoming = TRUE),
   list(value = "compare", icon = "layer-group", upcoming = TRUE),
@@ -44,6 +44,7 @@ app_ui <- function(lang) {
   panel_body <- function(s) {
     switch(s$value,
            home = mod_home_ui("home", lang),
+           compendium = mod_compendium_ui("compendium", lang),
            explorer = mod_explore_ui("explore", lang),
            about = about_panel(lang),
            upcoming_panel(s, lang))
@@ -160,8 +161,13 @@ app_server <- function(lang) {
     lang_r <- shiny::reactive(coerce_lang(input$lang, initial))
     dark <- shiny::reactive(identical(input$dark_mode, "dark"))
 
+    # One navigation request at a time, from any page: list(tab, id, group).
+    route <- shiny::reactiveVal(NULL)
     home <- mod_home_server("home", lang_r)
-    explore <- mod_explore_server("explore", lang_r, dark = dark, select = home)
+    compendium <- mod_compendium_server("compendium", lang_r, dark = dark, request = route)
+    explore <- mod_explore_server("explore", lang_r, dark = dark, select = route)
+    shiny::observeEvent(home(), route(c(home(), from = "home")))
+    shiny::observeEvent(compendium(), route(c(compendium(), from = "compendium")))
 
     # Static texts are re-translated in the browser from the dictionary.
     shiny::observeEvent(lang_r(), {
@@ -169,9 +175,10 @@ app_server <- function(lang) {
                                                 dict = dl_dictionary(lang_r())))
     }, ignoreInit = TRUE)
 
-    # Navigation requested by Home (search, chips, quick start).
-    shiny::observeEvent(home(), {
-      bslib::nav_select("nav", home()$tab, session = session)
+    # Navigation requested by Home (search, chips, quick start) or by the
+    # Compendium (open in the Explorer).
+    shiny::observeEvent(route(), {
+      bslib::nav_select("nav", route()$tab, session = session)
     })
   }
 }

@@ -36,6 +36,8 @@ reg$gamma$parameters[[1]]$name
 \code{\link[=dl_ids]{dl_ids()}}, \code{\link[=dl_dist]{dl_dist()}}
 
 Other registry:
-\code{\link[=dl_ids]{dl_ids()}}
+\code{\link[=dl_catalog]{dl_catalog()}},
+\code{\link[=dl_ids]{dl_ids()}},
+\code{\link[=dl_relations]{dl_relations()}}
 }
 \concept{registry}
