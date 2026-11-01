@@ -1,5 +1,21 @@
 # distlab 0.0.0.9000
 
+* New Fit lab: load CSV/TSV or pasted observations, value/frequency tables,
+  grouped intervals, built-in examples or a seeded simulated sample. Data
+  summaries and support checks explain which catalog families can be fitted.
+* New `dl_fit_data()`, `dl_fit_describe()`, `dl_fit_candidates()`, `dl_fit()`
+  and `dl_fit_diagnostics()` expose data preparation, maximum likelihood and
+  diagnostics outside Shiny. Frequency counts stay compressed; grouped
+  likelihoods use interval probabilities without conditioning away tails.
+* Fits provide estimates, observed-information standard errors and Wald
+  intervals where regularity permits them, convergence and boundary notes,
+  and AIC/BIC rankings separated by comparable likelihoods. Integer design
+  parameters can be fixed explicitly; failures remain visible per candidate.
+* The bilingual Fit page provides density/PMF and CDF overlays, conditional
+  pointwise Q-Q envelopes, P-P plots and descriptive goodness-of-fit results,
+  plus CSV tables/data and reproducible R code. Grouped diagnostics retain
+  the original classes. Language and theme changes preserve the fitted result.
+
 * Initial package structure: distribution registry, engine for d/p/q/r and
   moments, bilingual dictionary, and a 'shiny' app with the Explorer page.
 * The registry now holds 21 univariate distributions: Bernoulli, Binomial,

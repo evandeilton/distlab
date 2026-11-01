@@ -10,5 +10,8 @@
 ^\.gitignore$
 ^\.claude$
 ^PLAN\.md$
+^AGENTS\.md$
+^CLAUDE\.md$
+^COLLABORATION\.md$
 ^cran-comments\.md$
 ^\.Rhistory$

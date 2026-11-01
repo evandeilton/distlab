@@ -10,6 +10,47 @@ test_that("explorer builds the distribution from slider inputs", {
   })
 })
 
+test_that("opening a fitted model expands its sliders and keeps useful precision", {
+  request <- shiny::reactiveVal(NULL)
+  sess <- recording_session()
+  shiny::testServer(distlab:::mod_explore_server,
+    args = list(lang = "en-US", select = request), session = sess, {
+      session$setInputs(dist = "normal", p_normal_mean = 0, p_normal_sd = 1)
+      request(list(tab = "explorer", id = "normal",
+                   params = list(mean = 70.8970588235, sd = 13.56996)))
+      session$flushReact()
+      mean <- tail(input_messages(sess, "p_normal_mean"), 1)[[1]]$message
+      expect_equal(as.numeric(mean$value), 70.8970588235)
+      ranges <- Filter(function(m) !is.null(m$message$max), input_messages(sess, "p_normal_mean"))
+      expect_equal(as.numeric(tail(ranges, 1)[[1]]$message$max), 70.8970588235)
+      expect_equal(as.numeric(mean$step), .000001)
+      request(list(tab = "explorer", id = "normal",
+                   params = list(mean = 5.843333333, sd = .8253013)))
+      session$flushReact()
+      mean <- tail(input_messages(sess, "p_normal_mean"), 1)[[1]]$message
+      expect_equal(as.numeric(mean$value), 5.843333333)
+      expect_equal(as.numeric(mean$step), .000001)
+    })
+})
+
+test_that("stale sliders from an earlier visit cannot overwrite a routed fit", {
+  request <- shiny::reactiveVal(NULL)
+  shiny::testServer(distlab:::mod_explore_server,
+    args = list(lang = "en-US", select = request), {
+      session$setInputs(dist = "gamma", p_gamma_shape = 3, p_gamma_rate = 2,
+                        p_normal_mean = 0, p_normal_sd = 1)
+      request(list(tab = "explorer", id = "normal",
+                   params = list(mean = 70.8970588235, sd = 13.56996)))
+      session$flushReact()
+      session$setInputs(dist = "normal")
+      expect_equal(pars()$vals$mean, 70.8970588235)
+      # Echo of the programmatic update, then an ordinary student edit.
+      session$setInputs(p_normal_mean = 70.897059, p_normal_sd = 13.56996)
+      session$setInputs(p_normal_mean = 72)
+      expect_equal(dist()$params$mean, 72)
+    })
+})
+
 test_that("switching back to a distribution never reads another one's sliders", {
   shiny::testServer(distlab:::mod_explore_server, args = list(lang = "en-US"), {
     session$setInputs(dist = "gamma", p_gamma_shape = 3, p_gamma_rate = 2)

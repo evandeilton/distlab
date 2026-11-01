@@ -72,3 +72,14 @@ test_that("resolved defaults satisfy every registry constraint", {
     expect_s3_class(do.call(dl_dist, c(list(did), res)), "dl_dist")
   }
 })
+
+test_that("valid fitted parameters extend initial slider windows", {
+  lim <- distlab:::slider_limits(dl_entry("normal"), list(mean = 70.8970588235, sd = 13.56996))
+  expect_equal(lim$mean, c(-10, 70.8970588235))
+  expect_equal(lim$sd, c(.1, 13.56996))
+  small <- distlab:::slider_limits(dl_entry("gamma"), list(shape = 2, rate = .001))
+  expect_equal(small$rate[1], .001)
+  # Coupled constraints still override an invalid structural value.
+  h <- distlab:::slider_limits(dl_entry("hypergeometric"), list(m = 100, n = 100, k = 150))
+  expect_equal(h$k[2], 150)
+})

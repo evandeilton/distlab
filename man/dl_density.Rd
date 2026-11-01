@@ -50,6 +50,7 @@ dl_sample(nrm, 3)
 Other engine:
 \code{\link[=dl_curve]{dl_curve()}},
 \code{\link[=dl_dist]{dl_dist()}},
+\code{\link[=dl_fit]{dl_fit()}},
 \code{\link[=dl_interval]{dl_interval()}},
 \code{\link[=dl_moments]{dl_moments()}},
 \code{\link[=dl_prob]{dl_prob()}}
