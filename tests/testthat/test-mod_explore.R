@@ -148,3 +148,19 @@ test_that("clicking a related distribution opens it", {
     expect_identical(msgs[[length(msgs)]]$message$value, "exponential")
   })
 })
+
+test_that("plots and moments wait for the debounced distribution to catch up", {
+  shiny::testServer(distlab:::mod_explore_server, args = list(lang = "en-US"), {
+    session$setInputs(dist = "gamma", p_gamma_shape = 3, p_gamma_rate = 2)
+    session$elapse(200)
+    expect_identical(dist_now()$id, "gamma")
+    session$setInputs(dist = "poisson", p_poisson_lambda = 4)
+    # Inside the debounce window the old Gamma must not reach the outputs.
+    err <- tryCatch(dist_now(), error = function(e) e)
+    expect_s3_class(err, "shiny.silent.error")
+    expect_error(output$moments)
+    session$elapse(200)
+    expect_identical(dist_now()$id, "poisson")
+    expect_match(output$moments$html, ">4<")
+  })
+})

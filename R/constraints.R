@@ -29,6 +29,15 @@ param_spec <- function(entry, name) {
   NULL
 }
 
+# TRUE when two slider values are equal up to rounding noise; the client may
+# send integers or doubles for the same value.
+same_value <- function(a, b) {
+  a <- suppressWarnings(as.numeric(a))
+  b <- suppressWarnings(as.numeric(b))
+  length(a) == length(b) && all(is.finite(a) & is.finite(b)) &&
+    all(abs(a - b) <= 1e-9 * pmax(1, abs(a), abs(b)))
+}
+
 # Gap needed by a strict inequality: one slider step of the moved parameter.
 constraint_gap <- function(con, par) if (con$strict) par$slider$step else 0
 
@@ -46,16 +55,18 @@ slider_ok <- function(x, par) {
 
 # Bring parameter values back inside every constraint. `prev` holds the
 # previous values: a parameter the user did not just change is moved first,
-# so dragging `min` past `max` pushes `max` along. A side that is a sum
-# (as in "k <= m + n") is never moved; the single parameter on the other
-# side is clamped instead. Values that cannot be repaired are left as they
-# are, so the domain check reports them.
+# so dragging `min` past `max` pushes `max` along. When that parameter is
+# already at its slider end, both stop there (max at its slider maximum,
+# min one step below, and the mirror case at the minimum). A side that is a sum (as in "k <= m + n")
+# is never moved; the single parameter on the other side is clamped instead.
+# Values that cannot be repaired are left as they are, so the domain check
+# reports them.
 resolve_constraints <- function(entry, vals, prev = NULL) {
   par_names <- vapply(entry$parameters, `[[`, "", "name")
   cons <- Filter(Negate(is.null), lapply(entry$constraints, parse_constraint))
   if (!length(cons)) return(vals)
   changed <- if (is.null(prev)) par_names else
-    par_names[!mapply(identical, vals[par_names], prev[par_names])]
+    par_names[!mapply(same_value, vals[par_names], prev[par_names])]
   for (pass in 1:3) {
     stable <- TRUE
     for (con in cons) {
@@ -80,15 +91,35 @@ resolve_constraints <- function(entry, vals, prev = NULL) {
       }
       # Prefer the parameter the user left alone.
       unchanged <- vapply(cand, function(cd) !cd$name %in% changed, logical(1))
-      cand <- cand[order(!unchanged)]
-      for (cd in cand) {
-        v <- snap_value(cd$value, cd$par)
-        if (slider_ok(v, cd$par)) {
-          vals[[cd$name]] <- v
-          stable <- FALSE
-          break
+      try_move <- function(cands) {
+        for (cd in cands) {
+          v <- snap_value(cd$value, cd$par)
+          if (slider_ok(v, cd$par)) {
+            vals[[cd$name]] <<- v
+            return(TRUE)
+          }
+        }
+        FALSE
+      }
+      moved <- try_move(cand[unchanged])
+      # Both sides are single parameters and the untouched one is at its
+      # slider end: park it there and put the changed one a gap away.
+      if (!moved && any(unchanged) && !is.null(l) && !is.null(r)) {
+        if (identical(cand[unchanged][[1]]$name, r)) {
+          vr <- snap_value(pr$slider$max, pr)
+          vl <- snap_value(pr$slider$max - constraint_gap(con, pl), pl)
+        } else {
+          vl <- snap_value(pl$slider$min, pl)
+          vr <- snap_value(pl$slider$min + constraint_gap(con, pr), pr)
+        }
+        if (slider_ok(vr, pr) && slider_ok(vl, pl)) {
+          vals[[r]] <- vr
+          vals[[l]] <- vl
+          moved <- TRUE
         }
       }
+      if (!moved) moved <- try_move(cand[!unchanged])
+      if (moved) stable <- FALSE
     }
     if (stable) break
   }

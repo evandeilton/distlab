@@ -16,14 +16,32 @@ test_that("resolving moves the parameter the user did not change", {
   expect_identical(distlab:::resolve_constraints(u, list(min = 0, max = -1),
                                                  list(min = 0, max = 1)),
                    list(min = -1.1, max = -1))
-  # At the slider edge the changed value itself is pulled back.
+  # When the other slider cannot move far enough, both stop at its end.
   expect_identical(distlab:::resolve_constraints(u, list(min = 10, max = 5),
                                                  list(min = 0, max = 5)),
-                   list(min = 4.9, max = 5))
+                   list(min = 9.9, max = 10))
+  expect_identical(distlab:::resolve_constraints(u, list(min = 0, max = -10),
+                                                 list(min = 0, max = 5)),
+                   list(min = -10, max = -9.9))
+  # Without previous values the first fix that fits is used.
+  expect_identical(distlab:::resolve_constraints(u, list(min = 3, max = 1)),
+                   list(min = 3, max = 3.1))
   d <- dl_entry("discrete_uniform")
   expect_identical(distlab:::resolve_constraints(d, list(min = 6, max = 6),
                                                  list(min = 1, max = 6)),
                    list(min = 6, max = 7))
+})
+
+test_that("slider values compare with a tolerance, not by type", {
+  expect_true(distlab:::same_value(10L, 10))
+  expect_true(distlab:::same_value(0.1 + 0.2, 0.3))
+  expect_false(distlab:::same_value(1, 1.1))
+  expect_false(distlab:::same_value(NULL, 1))
+  expect_true(distlab:::same_value(c(1, 5), c(1L, 5L)))
+  # An integer from the client is not taken as a change.
+  h <- dl_entry("hypergeometric")
+  expect_identical(distlab:::resolve_constraints(h, list(m = 2L, n = 3L, k = 9L),
+                                                 list(m = 2, n = 3, k = 5))$k, 5)
 })
 
 test_that("valid values pass through unchanged", {

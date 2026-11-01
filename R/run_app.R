@@ -18,8 +18,6 @@
 #' }
 run_app <- function(lang = "pt-BR", ...) {
   lang <- match_lang(lang)
-  shiny::addResourcePath("distlab-www",
-                         system.file("app", "www", package = "distlab"))
   shiny::shinyApp(ui = app_ui(lang), server = app_server(lang), ...)
 }
 
@@ -39,6 +37,10 @@ run_app <- function(lang = "pt-BR", ...) {
 # Top-level page: branded navbar with one panel per app section, plus the
 # language and color-mode toggles.
 app_ui <- function(lang) {
+  # Logo and favicon are served from here; registered with the UI so the app
+  # also works when built without run_app().
+  shiny::addResourcePath("distlab-www",
+                         system.file("app", "www", package = "distlab"))
   panel_body <- function(s) {
     switch(s$value,
            home = mod_home_ui("home", lang),
@@ -75,7 +77,7 @@ app_ui <- function(lang) {
     list(
       bslib::nav_spacer(),
       bslib::nav_item(lang_toggle(lang)),
-      bslib::nav_item(bslib::input_dark_mode(id = "dark_mode", mode = "light"))
+      bslib::nav_item(dark_toggle(lang))
     )
   ))
   page
@@ -98,6 +100,17 @@ lang_toggle <- function(lang) {
     `data-i18n-aria-label` = "nav.language", `aria-label` = tr("nav.language", lang),
     btn("pt-BR", "PT", "nav.lang_pt"),
     btn("en-US", "EN", "nav.lang_en")
+  )
+}
+
+# Color-mode switch. It starts from the operating system preference; the
+# wrapper carries translated labels that distlab.js copies onto the button.
+dark_toggle <- function(lang) {
+  shiny::tags$span(
+    class = "dl-dark-toggle",
+    `data-i18n-label-dark` = "nav.to_dark", `data-label-dark` = tr("nav.to_dark", lang),
+    `data-i18n-label-light` = "nav.to_light", `data-label-light` = tr("nav.to_light", lang),
+    bslib::input_dark_mode(id = "dark_mode")
   )
 }
 

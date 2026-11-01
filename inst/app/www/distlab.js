@@ -57,7 +57,30 @@
         if (typeof t === "string") el.setAttribute(attr, t);
       });
     });
+    document.querySelectorAll(".dl-dark-toggle").forEach(function (w) {
+      ["dark", "light"].forEach(function (m) {
+        var t = dict[w.getAttribute("data-i18n-label-" + m)];
+        if (typeof t === "string") w.setAttribute("data-label-" + m, t);
+      });
+    });
+    labelDarkToggle();
     setToggle(lang);
+  }
+
+  // The dark-mode switch renders an English label inside its shadow DOM;
+  // copy the translated label for the next mode onto its button.
+  function labelDarkToggle() {
+    document.querySelectorAll(".dl-dark-toggle").forEach(function (w) {
+      var el = w.querySelector("bslib-input-dark-mode");
+      var btn = el && el.shadowRoot && el.shadowRoot.querySelector("button");
+      if (!btn) return;
+      var dark = document.documentElement.getAttribute("data-bs-theme") === "dark";
+      var label = w.getAttribute(dark ? "data-label-light" : "data-label-dark");
+      if (label) {
+        btn.setAttribute("aria-label", label);
+        btn.setAttribute("title", label);
+      }
+    });
   }
 
   function setToggle(lang) {
@@ -90,6 +113,15 @@
     if (t) setToggle(t.getAttribute("data-initial"));
     renderMath(document.body);
     observer.observe(document.body, { childList: true, subtree: true });
+    // Relabel after the switch renders and after every mode change.
+    new MutationObserver(function () { setTimeout(labelDarkToggle, 0); })
+      .observe(document.documentElement, { attributes: true, attributeFilter: ["data-bs-theme"] });
+    setTimeout(labelDarkToggle, 0);
+    if (window.customElements) {
+      window.customElements.whenDefined("bslib-input-dark-mode").then(function () {
+        setTimeout(labelDarkToggle, 50);
+      });
+    }
   });
 
   if (window.Shiny) {

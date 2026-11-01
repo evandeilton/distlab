@@ -86,3 +86,26 @@ test_that("the theme and palette come from the brand file", {
   expect_true(bslib::is_bs_theme(distlab:::dl_theme()))
   expect_identical(bslib::bs_get_variables(distlab:::dl_theme(), "primary")[[1]], "#2B2D6E")
 })
+
+test_that("the dark-mode switch follows the OS and has translated labels", {
+  html <- as.character(distlab:::dark_toggle("pt-BR"))
+  expect_match(html, 'data-label-dark="Mudar para o modo escuro"', fixed = TRUE)
+  expect_match(html, 'data-i18n-label-light="nav.to_light"', fixed = TRUE)
+  expect_no_match(html, 'mode="light"', fixed = TRUE)
+})
+
+test_that("every data-type group has a name and description in both languages", {
+  for (lang in dl_languages()) {
+    dict <- distlab:::dl_dictionary(lang)
+    for (g in distlab:::.dl_groups) {
+      expect_true(is.character(dict[[paste0("group.", g)]]), info = paste(lang, g))
+      expect_true(is.character(dict[[paste0("group.", g, ".desc")]]), info = paste(lang, g))
+    }
+  }
+})
+
+test_that("building the UI registers the resource path for logo and favicon", {
+  shiny::removeResourcePath("distlab-www")
+  distlab:::app_ui("en-US")
+  expect_true("distlab-www" %in% names(shiny::resourcePaths()))
+})

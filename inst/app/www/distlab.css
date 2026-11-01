@@ -11,7 +11,7 @@
   --dl-muted: #5B5E8A;
   --dl-border: #E3E5F0;
   --dl-navbar: #2B2D6E;
-  --dl-accent-text: #0E7C7A;     /* teal for text, 5:1 on white */
+  --dl-accent-text: #0A6664;     /* teal for text: >= 5.5:1 on surfaces and teal chips */
   --dl-amber-text: #8C5A0B;
   --dl-chip-bg: #EEF0FA;
   --dl-chip-hover: #E1E4F7;
@@ -23,7 +23,7 @@
   --dl-chip-teal: rgba(20, 163, 160, 0.14);
   --dl-chip-amber: rgba(242, 163, 58, 0.20);
   --dl-icon-indigo: #2B2D6E;
-  --dl-icon-teal: #0E7C7A;
+  --dl-icon-teal: #0A6664;
   --dl-icon-amber: #8C5A0B;
   --dl-formula-bg: #FAFBFE;
 }

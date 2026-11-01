@@ -14,6 +14,8 @@ nav.main: Main navigation
 nav.language: Interface language
 nav.lang_pt: Português (Brasil)
 nav.lang_en: English (US)
+nav.to_dark: Switch to dark mode
+nav.to_light: Switch to light mode
 upcoming.note: This section is part of an upcoming release.
 home.search_label: Find a distribution
 home.search_placeholder: Type a name, such as Normal or Poisson
@@ -33,6 +35,12 @@ group.positive: Positive
 group.positive.desc: Positive values such as waiting times, lifetimes and sizes.
 group.real_line: Real line
 group.real_line.desc: Values anywhere on the real line, such as errors and differences.
+group.directional: Directional
+group.directional.desc: Angles and directions, such as wind directions or times of day.
+group.multivariate: Multivariate
+group.multivariate.desc: Several variables observed together, such as vectors and proportions that add to one.
+group.mixed: Mixed
+group.mixed.desc: Mixtures and compound distributions built from simpler ones.
 type.discrete: Discrete
 type.continuous: Continuous
 explorer.distribution: Distribution

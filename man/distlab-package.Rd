@@ -24,5 +24,13 @@ Authors:
   \item José Evandeilton Lopes \email{evandeilton@gmail.com} (\href{https://orcid.org/0009-0007-5887-4084}{ORCID}) [copyright holder]
 }
 
+Other contributors:
+\itemize{
+  \item Khan Academy and other contributors (KaTeX library) [copyright holder]
+  \item The Inter Project Authors (Inter font) [copyright holder]
+  \item The Space Grotesk Project Authors (Space Grotesk font) [copyright holder]
+  \item The JetBrains Mono Project Authors (JetBrains Mono font) [copyright holder]
+}
+
 }
 \keyword{internal}

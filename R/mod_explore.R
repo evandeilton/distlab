@@ -164,8 +164,8 @@ mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
       lim <- slider_limits(e, fixed)
       for (nm in names(fixed)) {
         input_id <- param_input_id(e$id, nm)
-        new_lim <- if (!identical(sent_limits[[input_id]], lim[[nm]])) lim[[nm]]
-        if (!identical(fixed[[nm]], r$vals[[nm]]) || !is.null(new_lim)) {
+        new_lim <- if (!same_value(sent_limits[[input_id]], lim[[nm]])) lim[[nm]]
+        if (!same_value(fixed[[nm]], r$vals[[nm]]) || !is.null(new_lim)) {
           sent_limits[[input_id]] <- lim[[nm]]
           shiny::updateSliderInput(session, input_id, value = fixed[[nm]],
                                    min = new_lim[1], max = new_lim[2])
@@ -189,10 +189,17 @@ mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
     })
     # Slider drags fire many events; recompute only after a short pause.
     dist_d <- shiny::debounce(dist, 150)
+    # The debounced value lags a distribution switch; wait until it matches
+    # the selected entry so plots and moments never mix two distributions.
+    dist_now <- shiny::reactive({
+      d <- dist_d()
+      shiny::req(identical(d$id, entry()$id))
+      d
+    })
 
     # Engine errors (e.g. no finite plotting range) become messages, not crashes.
     curve <- shiny::reactive({
-      res <- tryCatch(dl_curve(dist_d()), error = function(err) conditionMessage(err))
+      res <- tryCatch(dl_curve(dist_now()), error = function(err) conditionMessage(err))
       shiny::validate(shiny::need(is.data.frame(res), res))
       res
     })
@@ -220,7 +227,7 @@ mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
                              hovertemplate = "x = %{x:.4f}<br>f(x) = %{y:.4f}<extra></extra>")
         ylab <- tr("plot.density", lg)
       }
-      p <- mean_marker(p, dist_d(), th, lg)
+      p <- mean_marker(p, dist_now(), th, lg)
       plot_layout(p, tr("plot.x", lg), ylab, th, lg, ylim = density_ylim(d))
     })
 
@@ -238,7 +245,7 @@ mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
 
     output$moments <- shiny::renderUI({
       # Read the reactive outside tryCatch so req()/validate() still propagate.
-      d <- dist_d()
+      d <- dist_now()
       lg <- lang_r()
       # An engine error shows a dash; NA from the engine means "does not exist".
       m <- tryCatch(dl_moments(d), error = function(err) NULL)
@@ -258,7 +265,7 @@ mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
       related_list_tag(entry()$id, lang_r(), ns("goto"))
     )
 
-    list(entry = entry, params = shiny::reactive(pars()), dist = dist)
+    list(entry = entry, params = shiny::reactive(pars()), dist = dist, dist_now = dist_now)
   })
 }
 

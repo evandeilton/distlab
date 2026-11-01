@@ -14,6 +14,8 @@ nav.main: Navegação principal
 nav.language: Idioma da interface
 nav.lang_pt: Português (Brasil)
 nav.lang_en: English (US)
+nav.to_dark: Mudar para o modo escuro
+nav.to_light: Mudar para o modo claro
 upcoming.note: Esta seção faz parte de uma próxima versão.
 home.search_label: Encontre uma distribuição
 home.search_placeholder: Digite um nome, como Normal ou Poisson
@@ -33,6 +35,12 @@ group.positive: Positivas
 group.positive.desc: Valores positivos, como tempos de espera, durações e tamanhos.
 group.real_line: Reta real
 group.real_line.desc: Valores em toda a reta real, como erros e diferenças.
+group.directional: Direcionais
+group.directional.desc: Ângulos e direções, como a direção do vento ou a hora do dia.
+group.multivariate: Multivariadas
+group.multivariate.desc: Várias variáveis observadas juntas, como vetores e proporções que somam um.
+group.mixed: Mistas
+group.mixed.desc: Misturas e distribuições compostas construídas a partir de outras mais simples.
 type.discrete: Discreta
 type.continuous: Contínua
 explorer.distribution: Distribuição

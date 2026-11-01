@@ -28,6 +28,8 @@ test_that("the language switch keeps tab, distribution and parameters", {
   expect_identical(app$get_js("document.querySelector('[data-i18n=\"nav.home\"]').textContent"),
                    "Home")
   expect_identical(app$get_js("document.documentElement.lang"), "en-US")
+  dark_label <- "document.querySelector('bslib-input-dark-mode').shadowRoot.querySelector('button').getAttribute('aria-label')"
+  expect_match(app$get_js(dark_label), "^Switch to (dark|light) mode$")
   # Formulas are typeset by KaTeX in the browser.
   expect_gt(app$get_js("document.querySelectorAll('.dl-math .katex').length"), 0)
 })
