@@ -72,7 +72,7 @@
 #' m$target   # the mean of Cauchy draws is the same Cauchy
 #' dl_transform(dl_dist("uniform"), "max", k = 4, n = 1000, seed = 6)$target
 dl_transform <- function(dist, op, k = 2, n = 5000, seed = NULL, a = 0, b = 1) {
-  check_dist(dist)
+  dist <- check_dist(dist)
   if (missing(op) || !is_string(op) || !op %in% .dl_transform_ops) {
     stop("`op` must be one of: ", paste(.dl_transform_ops, collapse = ", "), ".",
          call. = FALSE)

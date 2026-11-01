@@ -143,6 +143,14 @@ code_num <- function(x, exact = FALSE) {
   s
 }
 
+# The double that code_num(x, exact = TRUE) reads back as. R's parser is not
+# correctly rounded where long double is plain double (arm64 macOS), so engines
+# use this value wherever the same number is written into generated code.
+code_value <- function(x) {
+  if (!is.finite(x)) return(x)
+  as.numeric(code_num(x, exact = TRUE))
+}
+
 # Number inside TeX, with the decimal comma of pt-BR.
 tex_num <- function(x, lang) {
   if (is.infinite(x)) return(if (x > 0) "\\infty" else "-\\infty")

@@ -53,13 +53,18 @@ check_number <- function(x, name) {
   if (!is.numeric(x) || length(x) != 1L || !is.finite(x)) {
     stop(sprintf("`%s` must be a single finite number.", name), call. = FALSE)
   }
-  as.numeric(x)
+  # The value the generated code reads back, so both use the same double.
+  code_value(as.numeric(x))
 }
 
+# Checks `dist` and returns it with each parameter snapped to the value its
+# literal in the generated code reads back as (see code_value()).
 check_dist <- function(dist) {
   if (!inherits(dist, "dl_dist")) {
     stop("`dist` must be a dl_dist object; see dl_dist().", call. = FALSE)
   }
+  dist$params <- lapply(dist$params, code_value)
+  dist
 }
 
 # Error with a `key` the app translates through the dictionary entry
@@ -190,12 +195,13 @@ dl_mc_check <- function(dist, n = 10000, seed = NULL, level = 0.95) {
 # Monte Carlo check with the sample kept, for plots: list(table, sample,
 # seed, code).
 mc_check_run <- function(dist, n = 10000, seed = NULL, level = 0.95) {
-  check_dist(dist)
+  dist <- check_dist(dist)
   n <- check_whole(n, "n", 1, 1e7)
   if (!is.numeric(level) || length(level) != 1L || is.na(level) ||
       !(level > 0 && level < 1)) {
     stop("`level` must be a single number in (0, 1).", call. = FALSE)
   }
+  level <- code_value(level)
   seed <- sim_seed(seed)
   x <- with_seed(seed, dl_sample(dist, n))
   m <- dl_moments(dist)
@@ -295,7 +301,7 @@ mc_check_code <- function(dist, n, seed, level, has_skew, has_kurt, se_mean, se_
 #' # No mean: the running means of the Cauchy keep jumping.
 #' dl_lln(dl_dist("cauchy"), n = 500, seed = 3)$mean
 dl_lln <- function(dist, n = 1000, paths = 1, seed = NULL) {
-  check_dist(dist)
+  dist <- check_dist(dist)
   n <- check_whole(n, "n", 1, 1e7)
   paths <- check_whole(paths, "paths", 1, 100)
   if (n * paths > 1e7) {
@@ -359,7 +365,7 @@ dl_lln <- function(dist, n = 1000, paths = 1, seed = NULL) {
 #' clt$distance
 #' dl_clt(dl_dist("cauchy"), sizes = c(1, 30), reps = 200, seed = 4)$standardized
 dl_clt <- function(dist, sizes = c(1, 2, 5, 10, 30, 100), reps = 2000, seed = NULL) {
-  check_dist(dist)
+  dist <- check_dist(dist)
   ok <- is.numeric(sizes) && length(sizes) >= 1L && length(sizes) <= 50L &&
     all(is.finite(sizes)) && all(sizes == round(sizes)) && all(sizes >= 1) &&
     all(sizes <= 1e4) && !anyDuplicated(sizes)
@@ -373,8 +379,9 @@ dl_clt <- function(dist, sizes = c(1, 2, 5, 10, 30, 100), reps = 2000, seed = NU
   }
   seed <- sim_seed(seed)
   m <- dl_moments(dist)
-  mu <- m[["mean"]]
-  sigma <- m[["sd"]]
+  # Snapped to the literals written in the code, so it standardizes alike.
+  mu <- code_value(m[["mean"]])
+  sigma <- code_value(m[["sd"]])
   standardized <- is.finite(m[["variance"]]) && m[["variance"]] > 0
   means <- with_seed(seed, lapply(sizes, function(s) {
     colMeans(matrix(dl_sample(dist, s * reps), nrow = s))
@@ -451,7 +458,7 @@ dl_clt <- function(dist, sizes = c(1, 2, 5, 10, 30, 100), reps = 2000, seed = NU
 #' wb <- dl_memoryless(dl_dist("weibull", shape = 2, scale = 1), s = 1, n = 2000, seed = 5)
 #' wb$memoryless
 dl_memoryless <- function(dist, s, n = 10000, seed = NULL) {
-  check_dist(dist)
+  dist <- check_dist(dist)
   sup <- dl_support(dist)
   if (!(sup$lower == 0 && sup$upper == Inf)) {
     sim_stop("memoryless_support",
@@ -490,6 +497,7 @@ dl_memoryless <- function(dist, s, n = 10000, seed = NULL) {
     t <- 0:t_max
     t_code <- sprintf("0:%s", code_num(t_max))
   } else {
+    t_max <- code_value(t_max)
     t <- seq(0, t_max, length.out = 201)
     t_code <- sprintf("seq(0, %s, length.out = 201)", code_num(t_max, exact = TRUE))
   }

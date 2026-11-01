@@ -143,6 +143,21 @@ test_that("generated code reproduces every engine for every distribution", {
   }
 })
 
+test_that("engine numbers are the doubles their code literals read back as", {
+  # R's parser is not correctly rounded on every platform; engines use the
+  # parsed literal so generated code reproduces them bit for bit everywhere.
+  x <- 0.15971914124998499
+  lit <- distlab:::code_num(x, exact = TRUE)
+  expect_identical(distlab:::code_value(x), eval(parse(text = lit)))
+  expect_identical(distlab:::code_value(-x), eval(parse(text = distlab:::code_num(-x, exact = TRUE))))
+  expect_identical(distlab:::code_value(Inf), Inf)
+  expect_identical(distlab:::code_value(NA_real_), NA_real_)
+  d <- distlab:::check_dist(dl_dist("beta", shape1 = 2 / 3, shape2 = 5))
+  expect_identical(d$params$shape1,
+                   eval(parse(text = distlab:::code_num(2 / 3, exact = TRUE))))
+  expect_identical(d$params$shape2, 5)
+})
+
 test_that("dl_lln running means settle for the Normal, not for the Cauchy", {
   res <- dl_lln(dl_dist("normal", mean = 3, sd = 2), n = 5000, paths = 3, seed = 10)
   expect_identical(nrow(res$paths), 15000L)
