@@ -21,8 +21,9 @@ test_that("opening a fitted model expands its sliders and keeps useful precision
       session$flushReact()
       mean <- tail(input_messages(sess, "p_normal_mean"), 1)[[1]]$message
       expect_equal(as.numeric(mean$value), 70.8970588235)
+      # The window grows past the value by a tenth of its span, on the grid.
       ranges <- Filter(function(m) !is.null(m$message$max), input_messages(sess, "p_normal_mean"))
-      expect_equal(as.numeric(tail(ranges, 1)[[1]]$message$max), 70.8970588235)
+      expect_equal(as.numeric(tail(ranges, 1)[[1]]$message$max), 79)
       expect_equal(as.numeric(mean$step), .000001)
       request(list(tab = "explorer", id = "normal",
                    params = list(mean = 5.843333333, sd = .8253013)))
@@ -48,6 +49,47 @@ test_that("stale sliders from an earlier visit cannot overwrite a routed fit", {
       session$setInputs(p_normal_mean = 70.897059, p_normal_sd = 13.56996)
       session$setInputs(p_normal_mean = 72)
       expect_equal(dist()$params$mean, 72)
+    })
+})
+
+test_that("a routed value keeps its widened window while the student drags", {
+  request <- shiny::reactiveVal(NULL)
+  sess <- recording_session()
+  shiny::testServer(distlab:::mod_explore_server,
+    args = list(lang = "en-US", select = request), session = sess, {
+      session$setInputs(dist = "normal", p_normal_mean = 0, p_normal_sd = 1)
+      request(list(tab = "explorer", id = "normal",
+                   params = list(mean = 70.8970588235, sd = 13.56996)))
+      session$flushReact()
+      session$setInputs(p_normal_mean = 70.897059, p_normal_sd = 13.56996)
+      ranges <- function() {
+        Filter(function(m) !is.null(m$message$max), input_messages(sess, "p_normal_mean"))
+      }
+      sent <- length(ranges())
+      for (v in c(60, 40, 75, 0)) {
+        session$setInputs(p_normal_mean = v)
+        expect_equal(dist()$params$mean, v)
+      }
+      # No range update shrinks the window back to the dragged value.
+      expect_length(ranges(), sent)
+      expect_equal(as.numeric(tail(ranges(), 1)[[1]]$message$max), 79)
+      session$setInputs(dist = "gamma")
+      session$setInputs(dist = "normal")
+      expect_match(output$params$html, 'data-max="79"', fixed = TRUE)
+    })
+})
+
+test_that("linked sliders use the widened windows of imported values", {
+  request <- shiny::reactiveVal(NULL)
+  shiny::testServer(distlab:::mod_explore_server,
+    args = list(lang = "en-US", select = request), {
+      session$setInputs(dist = "uniform", p_uniform_min = 0, p_uniform_max = 1)
+      request(list(tab = "explorer", id = "uniform", params = list(min = 50, max = 52)))
+      session$flushReact()
+      session$setInputs(p_uniform_min = 50, p_uniform_max = 52)
+      session$setInputs(p_uniform_min = 55)
+      expect_equal(dist()$params$min, 55)
+      expect_equal(dist()$params$max, 55.1)
     })
 })
 
