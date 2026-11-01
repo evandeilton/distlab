@@ -179,3 +179,22 @@ test_that("inputs above the 5 MB limit are rejected", {
   writeLines(big, file)
   expect_error(fit_read_table(path = file), "5 MB")
 })
+
+test_that("the table structure decides how lone commas are read", {
+  expect_equal(fit_read_table(text = "1,3\n2,4\n5,6")$V1, c(1.3, 2.4, 5.6))
+  pairs <- fit_read_table(text = "1,3\n2,4\n5,6", kind = "frequency")
+  expect_identical(dim(pairs), c(3L, 2L))
+  expect_equal(pairs[[2]], c(3, 4, 6))
+  counts <- fit_read_table(text = "0,15\n1,32", kind = "frequency")
+  expect_equal(unname(unlist(counts[1, ])), c(0, 15))
+  classes <- fit_read_table(text = "0,10,5\n10,20,7", kind = "grouped")
+  expect_identical(dim(classes), c(2L, 3L))
+  expect_error(fit_read_table(text = "1", kind = "table"), "`kind`")
+  # A comma and a space separate decimal-comma values on one line.
+  expect_equal(fit_read_table(text = "1,5, 2,7, 3,1")$V1, c(1.5, 2.7, 3.1))
+  expect_equal(fit_read_table(text = "1, 2, 3")$V1, c(1, 2, 3))
+  # A word in a decimal-comma column is reported by value.
+  expect_error(fit_read_table(text = "x\n1,5\nabc\n2,5"), 'contains text: "abc"')
+  expect_error(fit_read_table(text = "1,5\nn/d\n2,5"), 'contains text: "n/d"')
+  expect_error(fit_read_table(text = "x\n1,5\n1,2,3"), "different numbers of fields")
+})

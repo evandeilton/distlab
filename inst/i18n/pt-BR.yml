@@ -6,6 +6,7 @@ fit.error_missing: "Não restam observações completas, ou não é possível re
 fit.error_finite: "As observações devem ser finitas. Remova Inf e -Inf dos valores individuais."
 fit.error_size: "A tabela excede o limite de entrada de 5 MB."
 fit.error_shape: "As linhas têm números diferentes de campos. Confira o separador, a marca decimal e os nomes das colunas."
+fit.error_text: "A coluna contém texto, como “{value}”. Só números e valores ausentes (NA ou vazio) podem ser ajustados."
 fit.error_upload: "Escolha um arquivo CSV ou TSV legível."
 fit.error_confidence: "Escolha um nível de confiança estritamente entre 0 e 1."
 fit.error_seed: "Escolha uma semente inteira entre 1 e 2.147.483.647."

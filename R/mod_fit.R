@@ -157,6 +157,7 @@ fit_message_text <- function(message, lang) {
     error_finite = "Observations must be finite",
     error_numeric = "nonempty numeric vectors",
     error_empty = "Paste a nonempty|No data rows",
+    error_text = "column contains text",
     error_shape = "different numbers of fields",
     error_size = "exceeds 5 MB",
     error_upload = "Upload path",
@@ -188,7 +189,9 @@ fit_message_text <- function(message, lang) {
   found <- names(patterns)[at > 0]
   if (!length(found)) return(tr("fit.failure_generic", lang))
   found <- found[order(at[found])]
-  paste(vapply(found, function(key) tr(paste0("fit.", key), lang), ""), collapse = " ")
+  # The text error quotes the offending entry.
+  value <- sub('^.*column contains text: "(.*)"\\..*$', "\\1", message)
+  paste(vapply(found, function(key) tr(paste0("fit.", key), lang, value = value), ""), collapse = " ")
 }
 
 mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
@@ -215,8 +218,10 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
       tryCatch({
         if (source == "upload") {
           shiny::req(input$file$datapath)
-          fit_read_table(path = input$file$datapath, decimal_mark = input$decimal %||% "auto")
-        } else fit_read_table(text = input$text %||% "", decimal_mark = input$decimal %||% "auto")
+          fit_read_table(path = input$file$datapath, decimal_mark = input$decimal %||% "auto",
+                         kind = input$kind %||% "raw")
+        } else fit_read_table(text = input$text %||% "", decimal_mark = input$decimal %||% "auto",
+                              kind = input$kind %||% "raw")
       }, error = function(e) e)
     })
     output$columns <- shiny::renderUI({
@@ -261,6 +266,12 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
             nm <- input[[id]] %||% names(tb)[min(at, ncol(tb))]
             if (!nm %in% names(tb)) stop(tr("fit.error_column", shiny::isolate(lang_r())))
             v <- tb[[nm]]
+            if (is.character(v)) {
+              # Name the first entry that is a number in neither decimal mark.
+              word <- vapply(v, function(t) is.null(fit_parse_numbers(t, ",")) &&
+                               is.null(fit_parse_numbers(t, ".")), logical(1), USE.NAMES = FALSE)
+              if (any(word)) fit_text_error(v[word][1])
+            }
             if (!is.numeric(v)) stop(tr("fit.error_numeric", shiny::isolate(lang_r())))
             v
           }

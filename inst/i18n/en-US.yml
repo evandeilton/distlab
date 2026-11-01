@@ -6,6 +6,7 @@ fit.error_missing: "No complete observations remain, or missing values cannot be
 fit.error_finite: "Observations must be finite. Remove Inf and -Inf from raw values."
 fit.error_size: "The table exceeds the 5 MB input limit."
 fit.error_shape: "Rows have different numbers of fields. Check the delimiter, the decimal mark and the column names."
+fit.error_text: "The column contains text, such as “{value}”. Only numbers and missing values (NA or empty) can be fitted."
 fit.error_upload: "Choose a readable CSV or TSV file."
 fit.error_confidence: "Choose a confidence level strictly between 0 and 1."
 fit.error_seed: "Choose a whole seed between 1 and 2,147,483,647."

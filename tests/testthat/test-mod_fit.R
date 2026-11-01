@@ -249,3 +249,29 @@ test_that("open classes are drawn inside the plotted range", {
   expect_true(all(is.finite(built$x$data[[1]]$x)))
   expect_equal(max(built$x$data[[1]]$y), 1)
 })
+
+test_that("ambiguous commas follow the table structure in both languages", {
+  for (lg in c("pt-BR", "en-US")) {
+    shiny::testServer(distlab:::mod_fit_server, args = list(lang = lg), {
+      session$setInputs(source = "paste", kind = "frequency", decimal = "auto",
+                        text = "0,15\n1,32\n2,27", load = 0)
+      session$setInputs(value_col = "V1", freq_col = "V2", load = 1)
+      expect_identical(loaded()$type, "frequency")
+      expect_equal(loaded()$x, c(0, 1, 2))
+      expect_equal(loaded()$n, 74)
+      session$setInputs(kind = "raw", text = "1,3\n2,4\n5,6", value_col = "V1", load = 2)
+      expect_equal(loaded()$x, c(1.3, 2.4, 5.6))
+      session$setInputs(text = "1,5, 2,7, 3,1", load = 3)
+      expect_equal(loaded()$x, c(1.5, 2.7, 3.1))
+      before <- loaded()
+      session$setInputs(text = "x\n1,5\nabc\n2,5", value_col = "x", load = 4)
+      expect_identical(loaded(), before)
+      expect_match(output$status$html, if (lg == "pt-BR") "A coluna contém texto, como “abc”" else
+        "The column contains text, such as “abc”", fixed = TRUE)
+      session$setInputs(kind = "frequency", text = "x;n\n1,5;3\nn/d;2", value_col = "x",
+                        freq_col = "n", load = 5)
+      expect_identical(loaded(), before)
+      expect_match(output$status$html, "“n/d”", fixed = TRUE)
+    })
+  }
+})

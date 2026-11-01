@@ -162,13 +162,18 @@ fit_input_limit <- 5 * 1024^2
 
 # Read uploaded CSV/TSV or pasted data. fread detects semicolon delimiters
 # together with decimal commas; explicit decimal_mark is useful for ambiguous
-# one-column text. No shell commands or remote URLs are accepted.
-fit_read_table <- function(text = NULL, path = NULL, decimal_mark = "auto") {
+# one-column text. `kind` is the table structure: frequency and grouped tables
+# need several columns, so there a lone comma per line separates fields. No
+# shell commands or remote URLs are accepted.
+fit_read_table <- function(text = NULL, path = NULL, decimal_mark = "auto", kind = "raw") {
   if (is.null(text) == is.null(path)) {
     stop("Supply exactly one of `text` or `path`.", call. = FALSE)
   }
   if (!is_string(decimal_mark) || !decimal_mark %in% c("auto", ".", ",")) {
     stop("`decimal_mark` must be 'auto', '.' or ','.", call. = FALSE)
+  }
+  if (!is_string(kind) || !kind %in% c("raw", "frequency", "grouped")) {
+    stop("`kind` must be 'raw', 'frequency' or 'grouped'.", call. = FALSE)
   }
   if (!is.null(path)) {
     if (!is_string(path) || !file.exists(path) || dir.exists(path)) {
@@ -186,12 +191,15 @@ fit_read_table <- function(text = NULL, path = NULL, decimal_mark = "auto") {
   lines <- trimws(strsplit(text, "\n", fixed = TRUE)[[1]])
   filled <- which(nzchar(lines))
   lines <- lines[min(filled):max(filled)]
-  marks <- if (decimal_mark == "auto") c(",", ".") else decimal_mark
-  single <- fit_single_column(lines, marks)
-  if (!is.null(single)) return(single)
-  if (length(lines) == 1L) {
-    across <- fit_one_line(lines, decimal_mark)
-    if (!is.null(across)) return(across)
+  # A single sample may come down one column or across one line.
+  if (kind == "raw") {
+    marks <- if (decimal_mark == "auto") c(",", ".") else decimal_mark
+    single <- fit_single_column(lines, marks)
+    if (!is.null(single)) return(single)
+    if (length(lines) == 1L) {
+      across <- fit_one_line(lines, decimal_mark)
+      if (!is.null(across)) return(across)
+    }
   }
   # fread recovers from ragged rows by inventing or dropping columns; here a
   # ragged table is an input error, never a silently different table. The
@@ -256,10 +264,11 @@ fit_parse_numbers <- function(tokens, mark) {
 
 # A newline-only column of decimal commas has no field delimiter, and fread
 # would take its commas for one. Read it directly, with an optional header.
+# Lines without commas that are not numbers make it a column with text.
 fit_single_column <- function(lines, marks) {
   if (any(grepl("[;\t]", lines)) || !any(grepl(",", lines, fixed = TRUE))) return(NULL)
-  header <- !grepl(",", lines[1], fixed = TRUE) &&
-    all(vapply(marks, function(m) is.null(fit_parse_numbers(lines[1], m)), logical(1)))
+  number <- function(v) !all(vapply(marks, function(m) is.null(fit_parse_numbers(v, m)), logical(1)))
+  header <- !grepl(",", lines[1], fixed = TRUE) && !number(lines[1])
   body <- if (header) lines[-1] else lines
   if (!length(body) || !any(grepl(",", body, fixed = TRUE))) return(NULL)
   for (mark in marks) {
@@ -269,14 +278,25 @@ fit_single_column <- function(lines, marks) {
       return(stats::setNames(data.frame(values), name))
     }
   }
+  numeric <- vapply(body, number, logical(1), USE.NAMES = FALSE)
+  text <- !numeric & !grepl(",", body, fixed = TRUE)
+  if (any(text) && all(numeric | text)) fit_text_error(body[text][1])
   NULL
 }
 
+# Input error naming the first entry of a column that is not a number.
+fit_text_error <- function(value) {
+  stop(sprintf("The column contains text: \"%s\".", substr(trimws(value), 1, 30)),
+       call. = FALSE)
+}
+
 # One line of numbers is a single sample written across rather than down.
-# Delimiters are tried in order; a comma never separates decimal-comma values.
+# Delimiters are tried in order; a bare comma never separates decimal-comma
+# values, but a comma followed by a space does ("1,5, 2,7").
 fit_one_line <- function(line, decimal_mark) {
-  for (sep in c(";", "\t", ",", " ")) {
+  for (sep in c(";", "\t", ", ", ",", " ")) {
     tokens <- if (sep == " ") strsplit(line, "[[:space:]]+")[[1]] else
+      if (sep == ", ") strsplit(line, ",[[:space:]]+")[[1]] else
       strsplit(line, sep, fixed = TRUE)[[1]]
     if (length(tokens) < 2L) next
     for (mark in setdiff(fit_mark_order(tokens, decimal_mark), if (sep == ",") ",")) {
