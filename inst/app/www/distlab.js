@@ -1,5 +1,5 @@
 /* distlab client script: KaTeX rendering, live language switch,
-   distribution buttons and the sortable, filterable tables. */
+   distribution buttons, copy buttons and the sortable, filterable tables. */
 (function () {
   "use strict";
 
@@ -193,8 +193,44 @@
       if (wrap) sortTable(wrap, sb.getAttribute("data-col"), dir);
       return;
     }
+    // Copy buttons copy the text of their target element.
+    var cb = ev.target.closest(".dl-copy");
+    if (cb) {
+      var src = document.getElementById(cb.getAttribute("data-target"));
+      if (src) copyText(src.textContent, cb);
+      return;
+    }
     if (ev.target.closest(".dl-print")) window.print();
   });
+
+  // Copy text to the clipboard and confirm on the button for a moment.
+  function copyText(text, btn) {
+    var label = btn.querySelector(".dl-copy-label");
+    var done = function () {
+      if (!label) return;
+      var old = label.textContent;
+      label.textContent = btn.getAttribute("data-done") || old;
+      btn.classList.add("dl-copied");
+      setTimeout(function () {
+        label.textContent = old;
+        btn.classList.remove("dl-copied");
+      }, 1500);
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(done, function () {});
+      return;
+    }
+    // Fallback for pages served without a secure context.
+    var area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.select();
+    try { if (document.execCommand("copy")) done(); } catch (e) { /* not available */ }
+    document.body.removeChild(area);
+  }
 
   document.addEventListener("DOMContentLoaded", function () {
     var t = document.getElementById("dl_lang");
@@ -238,6 +274,23 @@
     });
     window.Shiny.addCustomMessageHandler("dl-map-select", function (msg) {
       mapSelect(msg, 50);
+    });
+    // Show or hide elements by id (Compare slots and their buttons).
+    window.Shiny.addCustomMessageHandler("dl-show", function (msg) {
+      (msg.show || []).forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.hidden = false;
+      });
+      (msg.hide || []).forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.hidden = true;
+      });
+    });
+    // Mark the pressed button of a group (Compare presets).
+    window.Shiny.addCustomMessageHandler("dl-pressed", function (msg) {
+      document.querySelectorAll('.dl-goto[data-input="' + msg.group + '"]').forEach(function (b) {
+        b.setAttribute("aria-pressed", b.getAttribute("data-dist") === msg.value ? "true" : "false");
+      });
     });
   }
 

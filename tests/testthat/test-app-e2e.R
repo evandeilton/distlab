@@ -39,4 +39,13 @@ test_that("the language switch keeps tab, distribution and parameters", {
   app$run_js("document.querySelector('[data-value=\"relations\"]').click()")
   app$wait_for_idle()
   expect_gt(app$get_js("document.querySelectorAll('.dl-rel-table .katex').length"), 20)
+  # The Calculator typesets the event and shows the R code.
+  app$run_js("document.querySelector('.navbar [data-value=\"calculator\"]').click()")
+  app$wait_for_idle()
+  expect_gt(app$get_js("document.querySelectorAll('.dl-calc-event .katex').length"), 0)
+  expect_match(app$get_js("document.querySelector('.dl-code-block').textContent"), "^pnorm\\(")
+  # Compare starts with three overlaid distributions.
+  app$run_js("document.querySelector('.navbar [data-value=\"compare\"]').click()")
+  app$wait_for_idle()
+  expect_identical(app$get_js("document.querySelectorAll('.dl-slot:not([hidden])').length"), 3L)
 })

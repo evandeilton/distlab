@@ -428,6 +428,108 @@ th[aria-sort="ascending"], th[aria-sort="descending"] { color: var(--dl-ink); }
 .dl-dist-card-foot .dl-badges { margin: 0; }
 .dl-rel-count { font-size: 0.8rem; color: var(--dl-muted); display: inline-flex; align-items: center; gap: 0.3rem; }
 
+/* Sidebar actions (Explorer) */
+.dl-side-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+.dl-side-actions .btn { border-radius: 0.6rem; font-weight: 600; }
+.dl-side-actions .btn .fa, .dl-side-actions .btn svg { margin-right: 0.3rem; }
+
+/* Segmented radio groups (Calculator and Compare): each option is a pill. */
+.dl-segmented .shiny-options-group { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.dl-segmented .shiny-options-group > .radio-inline { position: relative; margin: 0; padding: 0 !important; }
+.dl-param-hidden { display: none; }
+.dl-segmented .radio-inline > input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.dl-segmented .radio-inline > span { display: inline-flex; align-items: center; min-height: 2.1rem;
+  padding: 0.3rem 0.85rem; border: 1px solid var(--dl-border); border-radius: 999px;
+  background: var(--dl-chip-bg); color: var(--dl-chip-text); font-weight: 600; font-size: 0.88rem;
+  cursor: pointer; transition: background-color 0.15s ease; }
+.dl-segmented .radio-inline > span:hover { background: var(--dl-chip-hover); }
+.dl-segmented .radio-inline > input:checked + span { background: var(--dl-indigo); border-color: var(--dl-indigo);
+  color: #FFFFFF; }
+.dl-segmented .radio-inline > input:checked + span .katex { color: #FFFFFF; }
+.dl-segmented .radio-inline > input:focus-visible + span { box-shadow: var(--dl-focus); }
+[data-bs-theme="dark"] .dl-segmented .radio-inline > input:checked + span { background: #A9ACF2;
+  border-color: #A9ACF2; color: #12132B; }
+[data-bs-theme="dark"] .dl-segmented .radio-inline > input:checked + span .katex { color: #12132B; }
+.dl-segmented .radio-inline .katex { font-size: 1.05em; }
+.dl-segmented .control-label { font-weight: 600; font-size: 0.88rem; margin-bottom: 0.4rem; }
+.dl-segmented .shiny-input-container { margin-bottom: 0.9rem; }
+
+/* Calculator */
+.dl-calc .card-body { overflow: visible; }
+.dl-calc-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 0.9rem; }
+.dl-calc-pair .shiny-input-container { width: 100%; }
+.dl-calc-question .form-control { font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums; border-color: var(--dl-border); }
+.dl-field-help { display: block; margin: -0.5rem 0 0.6rem; font-size: 0.8rem; }
+.dl-calc-decimal { margin: 0.25rem 0 0; display: flex; align-items: center; gap: 0.4rem; }
+.dl-calc-note { font-size: 0.85rem; color: var(--dl-muted); background: var(--dl-formula-bg);
+  border: 1px solid var(--dl-border); border-left: 3px solid var(--dl-amber); border-radius: 0.5rem;
+  padding: 0.45rem 0.7rem; margin: 0.25rem 0 0.5rem; line-height: 1.45; }
+.dl-calc-note .fa, .dl-calc-note svg { color: var(--dl-amber-text); margin-right: 0.35rem; }
+.dl-calc-out { display: flex; flex-direction: column; gap: 0.5rem; }
+.dl-calc-event { overflow-x: auto; overflow-y: hidden; }
+.dl-calc-event .katex-display { margin: 0; text-align: left; }
+.dl-calc-event .katex-display > .katex { text-align: left; font-size: 1.25em; }
+.dl-calc-value { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.75rem; }
+.dl-calc-big { font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 2.4rem;
+  line-height: 1.1; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; color: var(--dl-ink);
+  overflow-wrap: anywhere; }
+.dl-calc-pct { background: var(--dl-chip-amber); color: var(--dl-amber-text); font-weight: 700;
+  font-size: 0.95rem; border-radius: 999px; padding: 0.4em 0.8em; }
+.dl-calc-sentence { margin: 0; font-size: 1.02rem; line-height: 1.55; }
+.dl-calc-notes { margin: 0; padding-left: 1.1rem; color: var(--dl-muted); font-size: 0.88rem; line-height: 1.5; }
+.dl-code { border: 1px solid var(--dl-border); border-radius: 0.6rem; background: var(--dl-formula-bg);
+  margin-top: 0.25rem; overflow: hidden; }
+.dl-code-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+  padding: 0.3rem 0.4rem 0.3rem 0.75rem; border-bottom: 1px solid var(--dl-border); }
+.dl-code-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--dl-muted); display: inline-flex; align-items: center; gap: 0.4rem; }
+.dl-copy { display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 600; font-size: 0.8rem;
+  color: var(--dl-accent-text); background: transparent; border: 1px solid transparent; border-radius: 0.45rem; }
+.dl-copy:hover { background: var(--dl-chip-bg); color: var(--dl-accent-text); }
+.dl-copy.dl-copied { color: var(--dl-accent-text); border-color: var(--dl-border); }
+.dl-code-block { margin: 0; padding: 0.65rem 0.8rem; font-size: 0.84rem; line-height: 1.55;
+  font-variant-ligatures: none;
+  white-space: pre-wrap; word-break: break-word; color: var(--dl-ink); background: transparent; }
+
+/* Compare */
+.dl-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; background: var(--dl-surface);
+  border: 1px solid var(--dl-border); border-radius: 0.9rem; box-shadow: var(--dl-shadow);
+  padding: 0.8rem 1rem; margin-bottom: 1rem; }
+.dl-preset[aria-pressed="true"] { background: var(--dl-indigo); color: #FFFFFF; border-color: var(--dl-indigo); }
+[data-bs-theme="dark"] .dl-preset[aria-pressed="true"] { background: #A9ACF2; color: #12132B; border-color: #A9ACF2; }
+.dl-preset-hint { flex: 1 0 100%; margin: 0.15rem 0 0; color: var(--dl-muted); font-size: 0.9rem; line-height: 1.5; }
+.dl-compare-controls .card-body { gap: 0.25rem; }
+.dl-slots { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 0.75rem; }
+.dl-slot { border: 1px solid var(--dl-border); border-left: 4px solid var(--dl-series); border-radius: 0.7rem;
+  background: var(--dl-formula-bg); padding: 0.6rem 0.75rem 0.1rem; }
+.dl-slot[hidden] { display: none; }
+.dl-slot-head { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem; }
+.dl-slot-swatch { width: 0.8rem; height: 0.8rem; border-radius: 0.2rem; background: var(--dl-series); flex: none; }
+.dl-slot-title { font-weight: 700; font-size: 0.85rem; flex: 1 1 auto; }
+.dl-slot-remove { padding: 0.1rem 0.45rem; color: var(--dl-muted); border: 0; background: transparent; }
+.dl-slot-remove:hover { color: var(--dl-ink); background: var(--dl-chip-bg); }
+.dl-slot-remove[hidden], .dl-slot-add[hidden] { display: none; }
+.dl-slot .form-group, .dl-slot .shiny-input-container { margin-bottom: 0.5rem; }
+.dl-slot-add { border-radius: 0.6rem; font-weight: 600; }
+.dl-slot-add .fa, .dl-slot-add svg { margin-right: 0.3rem; }
+.dl-compare .dl-stack > .bslib-grid { margin-bottom: 0; }
+.dl-compare-table tbody th.dl-series-name { font-weight: 600; white-space: nowrap; text-transform: none; letter-spacing: 0;
+  font-size: 0.9rem; color: var(--dl-ink); background: transparent !important; }
+.dl-series-key { display: inline-block; width: 1.6rem; height: 0; margin-right: 0.55rem; vertical-align: middle;
+  border-top: 3px solid var(--dl-series); }
+.dl-series-key[data-dash="dash"] { border-top-style: dashed; }
+.dl-series-key[data-dash="dot"] { border-top-style: dotted; }
+.dl-series-key[data-dash="dashdot"], .dl-series-key[data-dash="longdash"] { border-top-style: dashed; }
+.dl-series-key[data-kind="bar"] { width: 0.9rem; height: 0.9rem; border: 0; border-radius: 0.15rem;
+  background: var(--dl-series); }
+.dl-compare-table td { white-space: nowrap; }
+.dl-stack > .shiny-html-output:empty { display: none; }
+.dl-compare-table td.dl-cell-undefined { color: var(--dl-amber-text); font-weight: 600; }
+.dl-cell-support { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dl-compare-table th { white-space: normal; }
+.dl-compare-table tbody th { text-transform: none; }
+
 /* Dark mode details */
 [data-bs-theme="dark"] .selectize-input, [data-bs-theme="dark"] .selectize-dropdown {
   background: var(--dl-bg); color: var(--dl-ink); border-color: var(--dl-border); }
@@ -450,7 +552,7 @@ th[aria-sort="ascending"], th[aria-sort="descending"] { color: var(--dl-ink); }
   .dl-comp-search { max-width: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .dl-chip, .dl-dist-card { transition: none; }
+  .dl-chip, .dl-dist-card, .dl-segmented .radio-inline > span { transition: none; }
 }
 @media print {
   .navbar, .dl-comp-toolbar, .dl-compendium .nav-underline, .dl-print, .dl-cell-action,

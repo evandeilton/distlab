@@ -49,3 +49,19 @@
 * Registry entries may set a map position (`graph`), a short map label per
   relationship (`label`) and extra groups for cross-listing (`also_in`).
 * 'visNetwork' is now imported for the relationship map.
+* New `dl_prob()` computes the probability of an interval with open or closed
+  ends, taking upper tails with `lower.tail = FALSE` and staying accurate on
+  the log scale for tails beyond the double range. New `dl_interval()` gives
+  the central interval for a probability, with its exact coverage for
+  discrete distributions.
+* New Calculator page: P(X ≤ x), P(X > x), P(a < X ≤ b) with a choice of
+  `<` or `≤` for discrete distributions, quantiles and central intervals.
+  The region is shaded on the density and marked on the CDF, and the result
+  comes as a sentence, a percentage and the R code that reproduces it, with a
+  copy button. Fields accept a decimal comma.
+* New Compare page: two to four distributions overlaid, or one parameter
+  swept over several values, with density and CDF plots in colorblind-safe
+  colors and line types, a table of moments, median and support, and presets
+  such as Binomial vs Poisson and t vs Normal.
+* The Explorer and the Compendium open the Calculator and Compare with the
+  chosen distribution.

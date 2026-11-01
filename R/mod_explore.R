@@ -17,7 +17,16 @@ mod_explore_ui <- function(id, lang) {
                          choices = dist_choices(lang), selected = "normal"),
       shiny::tags$h2(class = "dl-sidebar-heading",
                      i18n_span("explorer.parameters", lang)),
-      shiny::uiOutput(ns("params"))
+      shiny::uiOutput(ns("params")),
+      shiny::tags$div(
+        class = "dl-side-actions",
+        shiny::actionButton(ns("to_calc"), i18n_span("explorer.to_calc", lang),
+                            icon = shiny::icon("calculator", `aria-hidden` = "true"),
+                            class = "btn-sm btn-outline-primary"),
+        shiny::actionButton(ns("to_compare"), i18n_span("explorer.to_compare", lang),
+                            icon = shiny::icon("layer-group", `aria-hidden` = "true"),
+                            class = "btn-sm btn-outline-primary")
+      )
     ),
     shiny::uiOutput(ns("header")),
     bslib::layout_columns(
@@ -89,19 +98,16 @@ dist_choices <- function(lang) {
 # `lang` may be a fixed language or a reactive; `dark` a reactive logical.
 # `select` is a reactive navigation request from other pages (Home, Compendium):
 # list(tab, id); requests for the Explorer open distribution `id`.
-# Returns the reactives of the current entry, parameter values and distribution.
+# Returns the reactives of the current entry, parameter values and
+# distribution, and `route`, a request to open the Calculator or Compare.
 mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
                                select = shiny::reactive(NULL)) {
   lang_r <- if (shiny::is.reactive(lang)) lang else shiny::reactive(lang)
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
     entry <- shiny::reactive(dl_entry(shiny::req(input$dist)))
-    # Last values used per distribution, restored when the student comes back.
-    memory <- new.env(parent = emptyenv())
-    # Resolved parameter values of the current entry: list(id, vals).
-    pars <- shiny::reactiveVal(NULL)
-    # Slider ranges already sent to the client, per input id.
-    sent_limits <- new.env(parent = emptyenv())
+    sliders <- param_sliders(input, output, session, entry, "params")
+    pars <- sliders$pars
 
     # Choices are relabeled in the new language, keeping the selection.
     shiny::observeEvent(lang_r(), {
@@ -121,75 +127,25 @@ mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
     })
     shiny::observeEvent(input$goto, open_dist(input$goto))
 
-    # One slider per parameter, rebuilt when the distribution changes. Ids carry
-    # the distribution id so stale values from another distribution are never read.
-    output$params <- shiny::renderUI({
-      e <- entry()
-      vals <- shiny::isolate(memory[[e$id]]) %||%
-        stats::setNames(lapply(e$parameters, `[[`, "default"),
-                        vapply(e$parameters, `[[`, "", "name"))
-      lim <- slider_limits(e, vals)
-      lapply(e$parameters, function(par) {
-        input_id <- param_input_id(e$id, par$name)
-        sent_limits[[input_id]] <- lim[[par$name]]
-        # Integer parameters have whole min, max and step, so their sliders
-        # only produce whole numbers.
-        shiny::sliderInput(
-          ns(input_id),
-          label = param_label(par),
-          min = lim[[par$name]][1], max = lim[[par$name]][2],
-          value = vals[[par$name]], step = par$slider$step, ticks = FALSE
-        )
-      })
-    })
-
-    # Sliders must render even while the sidebar is collapsed (the default on
-    # narrow screens); otherwise no parameter ever reaches the server.
-    shiny::outputOptions(output, "params", suspendWhenHidden = FALSE)
-
-    # Raw slider values; waits until every slider of this entry exists.
-    raw <- shiny::reactive({
-      e <- entry()
-      par_names <- vapply(e$parameters, `[[`, "", "name")
-      vals <- lapply(param_input_id(e$id, par_names), function(k) input[[k]])
-      shiny::req(all(!vapply(vals, is.null, logical(1))))
-      names(vals) <- par_names
-      list(id = e$id, vals = vals)
-    })
-
-    # Keep registry constraints true by moving the other slider (min < max)
-    # or clamping a value and its range (k <= m + n), instead of erroring.
-    shiny::observe({
-      r <- raw()
-      e <- dl_entry(r$id)
-      prev <- shiny::isolate(pars())
-      prev_vals <- if (!is.null(prev) && identical(prev$id, r$id)) prev$vals
-      fixed <- resolve_constraints(e, r$vals, prev_vals)
-      lim <- slider_limits(e, fixed)
-      for (nm in names(fixed)) {
-        input_id <- param_input_id(e$id, nm)
-        new_lim <- if (!same_value(sent_limits[[input_id]], lim[[nm]])) lim[[nm]]
-        if (!same_value(fixed[[nm]], r$vals[[nm]]) || !is.null(new_lim)) {
-          sent_limits[[input_id]] <- lim[[nm]]
-          shiny::updateSliderInput(session, input_id, value = fixed[[nm]],
-                                   min = new_lim[1], max = new_lim[2])
-        }
-      }
-      memory[[r$id]] <- fixed
-      pars(list(id = r$id, vals = fixed))
-    })
+    # Links to the Calculator and Compare carry the open distribution and
+    # its parameter values.
+    route <- shiny::reactiveVal(NULL)
+    count <- 0L
+    send_to <- function(tab) {
+      p <- pars()
+      shiny::req(p, identical(p$id, entry()$id))
+      count <<- count + 1L
+      route(list(tab = tab, id = p$id, params = p$vals, n = count))
+    }
+    shiny::observeEvent(input$to_calc, send_to("calculator"))
+    shiny::observeEvent(input$to_compare, send_to("compare"))
 
     # Current distribution, built from the resolved values.
     dist <- shiny::reactive({
       e <- entry()
       p <- pars()
       shiny::req(p, identical(p$id, e$id))
-      res <- tryCatch(do.call(dl_dist, c(list(e$id), p$vals)),
-                      error = function(err) conditionMessage(err))
-      if (!inherits(res, "dl_dist")) {
-        shiny::validate(tr("error.invalid_params", lang_r(), message = res))
-      }
-      res
+      dist_from_pars(p, lang_r())
     })
     # Slider drags fire many events; recompute only after a short pause.
     dist_d <- shiny::debounce(dist, 150)
@@ -269,18 +225,9 @@ mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
       related_list_tag(entry()$id, lang_r(), ns("goto"))
     )
 
-    list(entry = entry, params = shiny::reactive(pars()), dist = dist, dist_now = dist_now)
+    list(entry = entry, params = pars, dist = dist, dist_now = dist_now,
+         route = route)
   })
-}
-
-# Input id of a parameter slider, unique per distribution.
-param_input_id <- function(dist_id, par_name) paste0("p_", dist_id, "_", par_name)
-
-# Slider label: the math symbol of the parameter and its R argument name.
-param_label <- function(par) {
-  shiny::tags$span(class = "dl-param-label",
-                   math_tag(par$latex, class = "dl-param-symbol"),
-                   shiny::tags$code(par$name))
 }
 
 # Title of the open distribution with its type and data-type group.
@@ -323,12 +270,12 @@ moment_boxes <- function(m, lang) {
 # Plot colors for the light or dark color mode.
 plot_theme <- function(dark = FALSE) {
   if (isTRUE(dark)) {
-    list(text = "#E6E7F5", muted = "#A3A6CC", grid = "rgba(230, 231, 245, 0.10)",
+    list(dark = TRUE, text = "#E6E7F5", muted = "#A3A6CC", grid = "rgba(230, 231, 245, 0.10)",
          zero = "rgba(230, 231, 245, 0.28)", line = "#3CC9C5",
          fill = "rgba(60, 201, 197, 0.22)", fill_solid = "#3CC9C5",
          line2 = "#A9ACF2", accent = "#F2A33A", hover_bg = "#1D1F40")
   } else {
-    list(text = "#1B1C3A", muted = "#5B5E8A", grid = "rgba(27, 28, 58, 0.08)",
+    list(dark = FALSE, text = "#1B1C3A", muted = "#5B5E8A", grid = "rgba(27, 28, 58, 0.08)",
          zero = "rgba(27, 28, 58, 0.25)", line = "#0E7C7A",
          fill = "rgba(20, 163, 160, 0.20)", fill_solid = "#14A3A0",
          line2 = "#2B2D6E", accent = "#C77A12", hover_bg = "#FFFFFF")

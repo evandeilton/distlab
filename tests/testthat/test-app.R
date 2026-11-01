@@ -49,7 +49,8 @@ test_that("switching language keeps distribution and parameter values", {
     custom <- Filter(function(m) identical(m$type, "dl-lang"), attr(sess, "log")$custom)
     expect_length(custom, 1L)
     expect_identical(custom[[1]]$message$dict[["nav.home"]], "Home")
-    sel <- input_messages(sess, "dist")
+    # Other pages relabel their own (unset) selectors too; keep the Explorer's.
+    sel <- Filter(function(m) !is.null(m$message$value), input_messages(sess, "dist"))
     expect_identical(sel[[length(sel)]]$message$value, "gamma")
     expect_false(any(vapply(attr(sess, "log")$input, function(m) identical(m$id, "nav"),
                             logical(1))))
@@ -130,5 +131,60 @@ test_that("Home group links open that group in the Compendium", {
     g <- input_messages(sess, "groups")
     expect_identical(g[[length(g)]]$message$value, "positive")
     expect_length(input_messages(sess, "dist"), 0L)
+  })
+})
+
+test_that("the Explorer opens the Calculator and Compare with its values", {
+  sess <- recording_session()
+  shiny::testServer(app_for_test("en-US"), session = sess, {
+    session$setInputs(`explore-dist` = "gamma", `explore-p_gamma_shape` = 3.5,
+                      `explore-p_gamma_rate` = 2, nav = "explorer")
+    session$setInputs(`explore-to_calc` = 1)
+    nav <- input_messages(sess, "nav")
+    expect_identical(nav[[length(nav)]]$message$value, "calculator")
+    sel <- input_messages(sess, "dist")
+    expect_identical(sel[[length(sel)]]$message$value, "gamma")
+    session$setInputs(`calc-dist` = "gamma")
+    expect_match(output$`calc-params`$html, 'data-from="3.5"', fixed = TRUE)
+    session$setInputs(`explore-to_compare` = 1)
+    nav <- input_messages(sess, "nav")
+    expect_identical(nav[[length(nav)]]$message$value, "compare")
+    s1 <- input_messages(sess, "s1_dist")
+    expect_identical(s1[[length(s1)]]$message$value, "gamma")
+  })
+})
+
+test_that("the Compendium opens the Calculator and Compare", {
+  sess <- recording_session()
+  shiny::testServer(app_for_test("en-US"), session = sess, {
+    session$setInputs(nav = "compendium", `compendium-calc` = "poisson")
+    nav <- input_messages(sess, "nav")
+    expect_identical(nav[[length(nav)]]$message$value, "calculator")
+    sel <- input_messages(sess, "dist")
+    expect_identical(sel[[length(sel)]]$message$value, "poisson")
+    session$setInputs(`compendium-compare` = "binomial")
+    nav <- input_messages(sess, "nav")
+    expect_identical(nav[[length(nav)]]$message$value, "compare")
+    s1 <- input_messages(sess, "s1_dist")
+    expect_identical(s1[[length(s1)]]$message$value, "binomial")
+  })
+})
+
+test_that("switching language keeps the Calculator and Compare state", {
+  shiny::testServer(app_for_test("pt-BR"), {
+    session$setInputs(`calc-dist` = "gamma", `calc-p_gamma_shape` = 2, `calc-p_gamma_rate` = 1,
+                      `calc-mode` = "between", `calc-a` = "1,2", `calc-b` = "3,4",
+                      `compare-mode` = "sweep", `compare-sw_dist` = "poisson",
+                      `compare-sw_param` = "lambda", `compare-sw_values` = "1; 4; 10",
+                      `compare-sw_p_poisson_lambda` = 3, nav = "calculator")
+    session$elapse(200)
+    expect_match(output$`calc-result`$html, "0,5158")
+    session$setInputs(lang = "en-US")
+    session$elapse(200)
+    expect_match(output$`calc-result`$html, "0.5158", fixed = TRUE)
+    expect_equal(exp(calc$result()$log_p), pgamma(3.4, 2) - pgamma(1.2, 2))
+    expect_identical(compare$mode(), "sweep")
+    expect_length(compare$series(), 3L)
+    expect_match(output$`compare-summary`$html, "Variance")
   })
 })

@@ -32,6 +32,8 @@ dl_density(g, 1)
 Other engine:
 \code{\link[=dl_curve]{dl_curve()}},
 \code{\link[=dl_density]{dl_density()}},
-\code{\link[=dl_moments]{dl_moments()}}
+\code{\link[=dl_interval]{dl_interval()}},
+\code{\link[=dl_moments]{dl_moments()}},
+\code{\link[=dl_prob]{dl_prob()}}
 }
 \concept{engine}

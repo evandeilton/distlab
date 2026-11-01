@@ -174,3 +174,109 @@ compendium.table.no_match: No distribution matches this text.
 compendium.stat_dists: distributions
 compendium.stat_relations: relations
 compendium.filtered: Filtered view
+explorer.to_calc: Calculate probabilities
+explorer.to_compare: Compare
+compendium.calc: Calculate probabilities
+compendium.calc_label: "Calculate probabilities for {name}"
+compendium.compare: Compare with…
+compendium.compare_label: "Compare {name} with other distributions"
+calc.question: Question
+calc.mode: What do you want to compute?
+calc.mode.quantile: Quantile
+calc.mode.central: Central interval
+calc.prob_label: Probability of the interval
+calc.help.p: >-
+  Probability p between 0 and 1; the result is the x with P(X ≤ x) = p, or
+  the first x past p when X is discrete.
+calc.help.prob: Probability between 0 and 1, split equally between the two tails.
+calc.help.decimal: >-
+  Use a decimal point (1.5). A comma followed by groups of three digits
+  separates thousands (1,234 is 1234). Inf and -Inf are accepted.
+calc.result: Result
+calc.lower_end: Left end
+calc.upper_end: Right end
+calc.note.continuous_ends: >-
+  For a continuous distribution P(X = a) = 0, so < and ≤ give the same
+  probability.
+calc.note.discrete_ends: >-
+  For a discrete distribution the ends matter: ≤ counts the probability at
+  that value, < leaves it out.
+calc.note.quantile_discrete: >-
+  A discrete CDF jumps at whole numbers, so usually no x has F(x) = p
+  exactly. The quantile is the smallest x with F(x) ≥ p, the rule used by R.
+calc.note.tiny: >-
+  Tail probabilities are computed directly on the upper or lower tail and on
+  the log scale, so they keep their precision.
+calc.note.outside: >-
+  A value lies outside the support of X, where the distribution puts no
+  probability.
+calc.complement: "Complement: 1 − P = {p}"
+calc.coverage: "covers {p}"
+calc.code: R code
+calc.copy: Copy
+calc.copied: Copied
+calc.error.number: Enter a number in each field.
+calc.error.range: The number is too large to compute (beyond about 1.8e308).
+calc.note.thousands: "{text} was read as {value} (thousands separator)."
+calc.error.order: The left end a must not be greater than b.
+calc.error.p: The probability must be strictly between 0 and 1.
+calc.sentence.le: "The probability that X is less than or equal to {x} is {p} ({pct})."
+calc.sentence.gt: "The probability that X is greater than {x} is {p} ({pct})."
+calc.sentence.between: "The probability that X is between {a} and {b} is {p} ({pct})."
+calc.sentence.between_discrete: "The probability that X is between {a} and {b} ({event}) is {p} ({pct})."
+calc.sentence.quantile: "The quantile of order {p} is {x}: P(X ≤ {x}) = {p}."
+calc.sentence.quantile_discrete: "The smallest x with F(x) ≥ {p} is {x}; P(X ≤ {x}) = {fx}."
+calc.sentence.central: >-
+  An interval holding {prob} of the probability in the center is [{a}, {b}],
+  leaving {tail} in each tail.
+calc.sentence.central_discrete: >-
+  The central interval for {prob} is [{a}, {b}]; with whole numbers it holds
+  {cov}, at least {prob}.
+compare.subtitle: >-
+  Overlay distributions, or vary one parameter, to see how shapes, centers
+  and tails differ.
+compare.presets: Presets
+compare.preset.binom_pois: Binomial(n, p) vs Poisson(np)
+compare.preset.t_normal: t(ν) vs Normal
+compare.preset.gamma_shape: Gamma shape sweep
+compare.preset.beta_shapes: Beta shapes
+compare.preset.exp_weibull: Exponential vs Weibull
+compare.preset.poisson_lambda: Poisson λ sweep
+compare.preset.binom_pois.hint: >-
+  With many trials and a small success probability, Binomial(50, 0.06) is
+  close to Poisson(3), with the same mean np = 3.
+compare.preset.t_normal.hint: >-
+  Student's t has heavier tails than the Normal; as ν grows it approaches the
+  Normal. With ν = 1 it is the Cauchy, with no mean.
+compare.preset.gamma_shape.hint: >-
+  The shape α changes the form of the Gamma: below 1 the density is
+  unbounded at 0, at 1 it is the Exponential, and it grows more symmetric as
+  α increases.
+compare.preset.beta_shapes.hint: >-
+  The two shapes of the Beta move mass across (0, 1): U-shaped, skewed to
+  either side or symmetric.
+compare.preset.exp_weibull.hint: >-
+  The Weibull with shape 1 is the Exponential (the curves coincide); shape 2
+  gives a hump and a lighter tail.
+compare.preset.poisson_lambda.hint: >-
+  As λ grows the Poisson moves right, spreads out (variance λ) and becomes
+  more symmetric.
+compare.preset_none: Choose a preset or set up your own comparison.
+compare.mode: Mode
+compare.mode.overlay: Overlay
+compare.mode.sweep: Parameter sweep
+compare.slot: "Distribution {n}"
+compare.remove: Remove this distribution
+compare.add: Add a distribution
+compare.sweep_param: Parameter to vary
+compare.sweep_values: Values
+compare.sweep_help: Two to five values separated by semicolons, such as 0.5; 1; 2.
+compare.sweep_fixed: Other parameters
+compare.density: Density or probability function
+compare.summary: Summary
+compare.col.dist: Distribution
+compare.error.values: Enter two to five numbers separated by semicolons.
+compare.error.value: "The value {value} is outside the domain of the parameter."
+compare.note.mixed: >-
+  Bars are probabilities P(X = x) of discrete distributions; curves are
+  densities f(x) of continuous ones.

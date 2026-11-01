@@ -27,8 +27,8 @@ run_app <- function(lang = "pt-BR", ...) {
   list(value = "home", icon = "house"),
   list(value = "compendium", icon = "book-open"),
   list(value = "explorer", icon = "magnifying-glass-chart"),
-  list(value = "calculator", icon = "calculator", upcoming = TRUE),
-  list(value = "compare", icon = "layer-group", upcoming = TRUE),
+  list(value = "calculator", icon = "calculator"),
+  list(value = "compare", icon = "layer-group"),
   list(value = "simulation", icon = "shuffle", upcoming = TRUE),
   list(value = "fit", icon = "chart-line", upcoming = TRUE),
   list(value = "about", icon = "circle-info")
@@ -46,6 +46,8 @@ app_ui <- function(lang) {
            home = mod_home_ui("home", lang),
            compendium = mod_compendium_ui("compendium", lang),
            explorer = mod_explore_ui("explore", lang),
+           calculator = mod_calc_ui("calc", lang),
+           compare = mod_compare_ui("compare", lang),
            about = about_panel(lang),
            upcoming_panel(s, lang))
   }
@@ -166,8 +168,11 @@ app_server <- function(lang) {
     home <- mod_home_server("home", lang_r)
     compendium <- mod_compendium_server("compendium", lang_r, dark = dark, request = route)
     explore <- mod_explore_server("explore", lang_r, dark = dark, select = route)
+    calc <- mod_calc_server("calc", lang_r, dark = dark, select = route)
+    compare <- mod_compare_server("compare", lang_r, dark = dark, select = route)
     shiny::observeEvent(home(), route(c(home(), from = "home")))
     shiny::observeEvent(compendium(), route(c(compendium(), from = "compendium")))
+    shiny::observeEvent(explore$route(), route(c(explore$route(), from = "explorer")))
 
     # Static texts are re-translated in the browser from the dictionary.
     shiny::observeEvent(lang_r(), {
@@ -175,8 +180,8 @@ app_server <- function(lang) {
                                                 dict = dl_dictionary(lang_r())))
     }, ignoreInit = TRUE)
 
-    # Navigation requested by Home (search, chips, quick start) or by the
-    # Compendium (open in the Explorer).
+    # Navigation requested by Home (search, chips, quick start), by the
+    # Compendium or by the Explorer (open the Calculator or Compare).
     shiny::observeEvent(route(), {
       bslib::nav_select("nav", route()$tab, session = session)
     })
