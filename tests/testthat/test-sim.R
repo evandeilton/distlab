@@ -365,3 +365,68 @@ test_that("plotting ranges cut heavy tails and keep support ends", {
   x <- c(rnorm(1000), 1e6)
   expect_lt(diff(distlab:::sample_range(x)), 10)
 })
+
+test_that("special cases of the Exponential and Geometric are memoryless", {
+  yes <- list(dl_dist("exponential", rate = 3), dl_dist("geometric", prob = 0.2),
+              dl_dist("gamma", shape = 1, rate = 2), dl_dist("weibull", shape = 1, scale = 2),
+              dl_dist("chisq", df = 2), dl_dist("negbinomial", size = 1, prob = 0.4))
+  for (d in yes) {
+    s <- if (d$entry$type == "discrete") 2 else 0.5
+    r <- dl_memoryless(d, s = s, n = 2000, seed = 1)
+    expect_true(r$memoryless, info = d$id)
+    expect_equal(r$exact$residual, r$exact$survival, tolerance = 1e-10, info = d$id)
+  }
+  no <- list(dl_dist("gamma", shape = 1.0001, rate = 2), dl_dist("weibull", shape = 2),
+             dl_dist("chisq", df = 3), dl_dist("negbinomial", size = 2, prob = 0.4),
+             dl_dist("lognormal"))
+  for (d in no) expect_false(distlab:::is_memoryless(d), info = d$id)
+})
+
+test_that("the survival grid stays readable for heavy tails and small scales", {
+  for (d in list(dl_dist("f", df1 = 0.5, df2 = 0.5), dl_dist("weibull", shape = 0.2, scale = 1))) {
+    qq <- dl_quantile(d, c(0.25, 0.5, 0.75))
+    r <- dl_memoryless(d, s = qq[2], n = 5000, seed = 1)
+    t_max <- max(r$exact$t)
+    expect_lte(t_max, qq[2] + 15 * (qq[3] - qq[1]) + 1e-9)
+    expect_gt(t_max, qq[2])
+    # The curve drops well inside the grid instead of hugging the y axis.
+    expect_lt(min(r$exact$survival), 0.25)
+    expect_gt(mean(r$exact$survival < 0.9), 0.5)
+    expect_identical(run_sim_code(r$code)$t, r$exact$t)
+  }
+  # No floor at t = 1: a fast Exponential gets a short grid.
+  r <- dl_memoryless(dl_dist("exponential", rate = 100), s = 0.01, n = 2000, seed = 1)
+  expect_lt(max(r$exact$t), 0.1)
+  expect_equal(max(r$exact$t), qexp(0.05, 100, lower.tail = FALSE))
+})
+
+test_that("lattices are found in the draws and binned on their points", {
+  expect_identical(distlab:::lattice_step(c(0, 3, 9, 3, 12)), 3)
+  expect_equal(distlab:::lattice_step(c(1, 4, 5, 2) / 3), 1 / 3)
+  expect_true(is.na(distlab:::lattice_step(c(0, 1, 2.5))))
+  expect_true(is.na(distlab:::lattice_step(c(2, 2))))
+  set.seed(1)
+  expect_true(is.na(distlab:::lattice_step(rnorm(100))))
+  b <- distlab:::sim_bins(c(0.5, 1, 1, 2.5), range = c(0, 3), step = 0.5, total = 4)
+  # Lattice points of the range, from the origin at the smallest draw.
+  expect_equal(b$mid, seq(0, 3, by = 0.5))
+  expect_identical(b$count, c(0L, 1L, 2L, 0L, 0L, 1L, 0L))
+  expect_equal(sum(b$density * 0.5), 1)
+  # Too many lattice points, or a lattice finer than continuous bins: NA.
+  expect_true(is.na(distlab:::bin_step((0:3000)^2, c(0, 9e6), "law")))
+  y <- rpois(5000, 50) / 7
+  expect_true(is.na(distlab:::bin_step(y, range(y), "auto")))
+  expect_identical(distlab:::bin_step(c(0, 2, 4), c(0, 4), "law", unit = TRUE), 1)
+  expect_true(is.na(distlab:::bin_step(c(0, 2, 4), c(0, 4), "none")))
+})
+
+test_that("a discrete law wider than 5000 values takes its range from the draws", {
+  nb <- dl_dist("negbinomial", size = 1500, prob = 0.05)
+  expect_error(distlab:::curve_range(nb), "5000")
+  x <- dl_sample(nb, 1000)
+  r <- distlab:::sim_range(nb, x)
+  expect_identical(r, c(min(x), max(x)) + 0)
+  cv <- distlab:::law_curve(nb, r)
+  expect_lte(nrow(cv), 2001L)
+  expect_true(all(cv$x == round(cv$x)))
+})

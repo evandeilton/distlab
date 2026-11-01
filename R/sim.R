@@ -69,8 +69,9 @@ sim_stop <- function(key, message) {
                  list(message = message, call = NULL, key = key)))
 }
 
-# Kolmogorov-Smirnov distance sup|F_n - F| between a sample and a CDF. It is
-# also right with ties, where the empirical CDF jumps by several steps.
+# Kolmogorov-Smirnov distance sup|F_n - F| between a sample and a CDF, exact
+# for a continuous CDF: the supremum is reached at a draw, on one side of the
+# jump of F_n there. With ties F_n jumps by several steps at one point.
 ks_dist <- function(v, cdf) {
   v <- sort(v)
   u <- cdf(v)
@@ -414,9 +415,15 @@ dl_clt <- function(dist, sizes = c(1, 2, 5, 10, 30, 100), reps = 2000, seed = NU
 #' ones the residual is \eqn{X - s} given \eqn{X \ge s}, with
 #' \eqn{P(X \ge s + t \mid X \ge s)}, so the Geometric (failures counted from
 #' 0) satisfies \eqn{P(X \ge s + t \mid X \ge s) = P(X \ge t)}. Only the
-#' Exponential and the Geometric are memoryless: the two curves coincide for
-#' every \eqn{s}. Survival ratios are taken on the log scale with
+#' Exponential and the Geometric are memoryless, with their special cases
+#' Gamma(1, \eqn{\beta}), Weibull with shape 1, Chi-square with 2 degrees of
+#' freedom and Negative binomial with size 1: the two curves coincide for every
+#' \eqn{s}. Survival ratios are taken on the log scale with
 #' `lower.tail = FALSE`, so they keep their precision far in the tail.
+#'
+#' The exact curves are drawn for \eqn{t} from 0 to the 95% point of both
+#' \eqn{X} and the residual, but at most 15 interquartile ranges of \eqn{X}
+#' above its median, so heavy tails stay readable.
 #'
 #' @inheritParams dl_mc_check
 #' @param s Threshold, a finite number \eqn{\ge 0} (a whole number for
@@ -428,7 +435,8 @@ dl_clt <- function(dist, sizes = c(1, 2, 5, 10, 30, 100), reps = 2000, seed = NU
 #'     otherwise an error asks for a smaller `s` or more draws);
 #'   * `exact`: data frame with columns `t`, `survival` (\eqn{S(t)}) and
 #'     `residual` (the conditional survival of the residual);
-#'   * `memoryless`: `TRUE` for the Exponential and the Geometric;
+#'   * `memoryless`: `TRUE` for the Exponential, the Geometric and the
+#'     parameter values that make another law one of them;
 #'   * `s`, `seed`, `code` (R code that reproduces the residuals, both
 #'     survival curves and their largest gap exactly when a seed is given).
 #'
@@ -469,12 +477,16 @@ dl_memoryless <- function(dist, s, n = 10000, seed = NULL) {
   log_surv <- function(v) {
     dl_cdf(dist, if (discrete) v - 1 else v, lower.tail = FALSE, log.p = TRUE)
   }
-  # Grid up to the 99% point of both X and the residual.
-  hi_x <- dl_quantile(dist, 0.01, lower.tail = FALSE)
-  hi_r <- dl_quantile(dist, log(0.01) + log_surv(s), lower.tail = FALSE, log.p = TRUE) - s
-  t_max <- max(c(hi_x, hi_r)[is.finite(c(hi_x, hi_r))], 1)
+  # Grid up to the 95% point of both X and the residual, capped at the median
+  # of X plus 15 interquartile ranges so heavy tails stay readable.
+  hi <- c(dl_quantile(dist, 0.05, lower.tail = FALSE),
+          dl_quantile(dist, log(0.05) + log_surv(s), lower.tail = FALSE, log.p = TRUE) - s)
+  qq <- dl_quantile(dist, c(0.25, 0.5, 0.75))
+  t_max <- min(max(hi[is.finite(hi)], -Inf), qq[2] + 15 * (qq[3] - qq[1]))
+  # Degenerate quantiles fall back to the largest residual.
+  if (!is.finite(t_max) || t_max <= 0) t_max <- max(residual)
   if (discrete) {
-    t_max <- min(ceiling(t_max), 5000)
+    t_max <- min(max(ceiling(t_max), 1), 5000)
     t <- 0:t_max
     t_code <- sprintf("0:%s", code_num(t_max))
   } else {
@@ -498,20 +510,48 @@ dl_memoryless <- function(dist, s, n = 10000, seed = NULL) {
   ), collapse = "\n")
   list(residual = residual, kept = length(residual),
        exact = data.frame(t = t, survival = survival, residual = conditional),
-       memoryless = dist$id %in% c("exponential", "geometric"),
+       memoryless = is_memoryless(dist),
        s = s, seed = seed, code = code)
 }
 
+# TRUE for the memoryless laws: the Exponential, the Geometric, and the
+# parameter values that turn another entry into one of them.
+is_memoryless <- function(dist) {
+  p <- dist$params
+  switch(dist$id,
+         exponential = TRUE, geometric = TRUE,
+         gamma = p$shape == 1, weibull = p$shape == 1, chisq = p$df == 2,
+         negbinomial = p$size == 1,
+         FALSE)
+}
+
 # Tidy histogram data: integer bins centered on whole numbers for discrete
-# samples, or the bins of `breaks` (an automatic grid on `range` when NULL)
-# for continuous ones. Shares are taken over `total` draws, so bins inside a
-# clipped range still estimate the density of the whole law. Columns: left,
-# right, mid, count, proportion and density.
-sim_bins <- function(x, discrete = FALSE, breaks = NULL, range = NULL, total = length(x)) {
+# samples, bars of width `step` centered on the lattice the draws sit on
+# (origin at the smallest draw), or the bins of `breaks` (an automatic grid on
+# `range` when NULL) for continuous ones. Shares are taken over `total`
+# draws, so bins inside a clipped range still estimate the density of the
+# whole law; the density of a lattice bar is its share over `step`. Columns:
+# left, right, mid, count, proportion and density.
+sim_bins <- function(x, discrete = FALSE, breaks = NULL, range = NULL, total = length(x),
+                     step = NULL) {
   x <- x[is.finite(x)]
   empty <- data.frame(left = numeric(0), right = numeric(0), mid = numeric(0),
                       count = integer(0), proportion = numeric(0), density = numeric(0))
   if (!length(x) || total <= 0) return(empty)
+  if (!is.null(step) && !discrete) {
+    x0 <- min(x)
+    r <- if (is.null(range)) base::range(x) else range
+    # Lattice indices of the range ends and of each draw inside it.
+    j_lo <- ceiling((r[1] - x0) / step - 1e-9)
+    j_hi <- floor((r[2] - x0) / step + 1e-9)
+    if (j_hi < j_lo) return(empty)
+    j <- round((x - x0) / step)
+    j <- j[j >= j_lo & j <= j_hi]
+    counts <- tabulate(j - j_lo + 1, nbins = j_hi - j_lo + 1)
+    mid <- x0 + seq(j_lo, j_hi) * step
+    return(data.frame(left = mid - step / 2, right = mid + step / 2, mid = mid, count = counts,
+                      proportion = counts / total, density = counts / (total * step)))
+  }
   if (discrete) {
     lo <- ceiling(if (is.null(range)) min(x) else range[1])
     hi <- floor(if (is.null(range)) max(x) else range[2])
@@ -531,6 +571,37 @@ sim_bins <- function(x, discrete = FALSE, breaks = NULL, range = NULL, total = l
   right <- breaks[-1L]
   data.frame(left = left, right = right, mid = (left + right) / 2, count = counts,
              proportion = counts / total, density = counts / (total * (right - left)))
+}
+
+# Spacing of the lattice the finite draws sit on: the smallest gap between
+# distinct values when every gap is a whole multiple of it (up to rounding),
+# else NA (no lattice, or a single value).
+lattice_step <- function(x, tol = 1e-6) {
+  u <- sort(unique(x[is.finite(x)]))
+  if (length(u) < 2L) return(NA_real_)
+  d <- diff(u)
+  h <- min(d)
+  r <- d / h
+  if (h > 0 && all(abs(r - round(r)) <= tol * pmax(1, r))) h else NA_real_
+}
+
+# Lattice step for a histogram of `x` on `range`, or NA for continuous bins.
+# "law": draws of a discrete law or a whole-number transform (unit step when
+# drawn against a mass function); "auto": a lattice found in the data, used
+# only when it is coarser than the continuous bins; "none": continuous bins.
+# A lattice that would need more than `max_bins` bars gives NA. `width` is the
+# continuous bin width to compare with (the automatic one when NULL).
+bin_step <- function(x, range, mode = c("auto", "law", "none"), unit = FALSE,
+                     max_bins = 2000, width = NULL) {
+  mode <- match.arg(mode)
+  if (mode == "none") return(NA_real_)
+  x <- x[is.finite(x)]
+  whole <- length(x) > 0 && all(x == round(x))
+  h <- if (mode == "law" && unit && whole) 1 else lattice_step(x)
+  if (is.na(h) && mode == "law" && whole) h <- 1
+  if (is.na(h) || (range[2] - range[1]) / h + 1 > max_bins) return(NA_real_)
+  if (mode == "auto" && h < (width %||% diff(sim_breaks(x, range))[1])) return(NA_real_)
+  h
 }
 
 # Even breaks on `range` (the sample range when NULL), with a bin width from
@@ -559,7 +630,7 @@ heavy_tailed <- function(dist) {
 }
 
 # Plotting range for draws `x` shown against `dist`. Discrete laws cover every
-# draw and the central mass. Heavy-tailed continuous laws are cut at their
+# draw and the central mass (only the draws when the law is very wide). Heavy-tailed continuous laws are cut at their
 # 0.5% and 99.5% quantiles, and at most 15 interquartile ranges from the
 # median so the body stays visible (finite support ends are used as they
 # are); other continuous laws cover every draw and the usual curve range.
@@ -567,7 +638,9 @@ sim_range <- function(dist, x) {
   x <- x[is.finite(x)]
   s <- dl_support(dist)
   if (identical(dist$entry$type, "discrete")) {
-    r <- curve_range(dist)
+    # A law spread over more than 5000 values has no curve range; the draws
+    # then set the range.
+    r <- tryCatch(curve_range(dist), error = function(err) range(x))
     lo <- min(r[1], x)
     hi <- max(r[2], x)
     return(c(floor(lo), ceiling(hi)) + 0)

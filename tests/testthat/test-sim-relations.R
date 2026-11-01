@@ -126,3 +126,31 @@ test_that("dl_relation_demo checks its arguments", {
   expect_identical(.Random.seed, before)
   expect_identical(dl_relation_demo("normal", "chisq", n = 100)$seed, NA_integer_)
 })
+
+test_that("discrete demos give the expected TV noise level as their band", {
+  d <- dl_relation_demo("binomial", "bernoulli", n = 3000, seed = 1)
+  p <- dbinom(0:1, 1, 0.3)
+  expect_equal(d$distance$band, vapply(d$frames$value, function(m) {
+    0.5 * sum(sqrt(2 * p * (1 - p) / (pi * m)))
+  }, numeric(1)))
+  env <- run_sim_code(d$code)
+  expect_identical(env$band, d$distance$band)
+  s <- dl_relation_demo("geometric", "negbinomial", n = 2000, seed = 1)
+  pj <- dnbinom(0:1000, size = 20, prob = 0.3)
+  # The support is cut where the upper tail is below 1e-12.
+  expect_equal(s$distance$band[6], 0.5 * sum(sqrt(2 * pj * (1 - pj) / (pi * 2000))),
+               tolerance = 1e-5)
+  expect_identical(run_sim_code(s$code)$band, s$distance$band)
+  # The observed distances are of the size of the band.
+  expect_true(all(s$distance$value < 3 * s$distance$band))
+  expect_true(all(is.na(dl_relation_demo("binomial", "poisson")$distance$band)))
+})
+
+test_that("recipe parameters are written in R notation", {
+  for (id in names(distlab:::.dl_sim_recipes)) {
+    txt <- distlab:::.dl_sim_recipes[[id]]$params
+    expect_no_match(txt, "\\band\\b", info = id)
+  }
+  expect_match(distlab:::.dl_sim_recipes$uniform__exponential__transformation$params, "rate = 2")
+  expect_no_match(distlab:::.dl_sim_recipes$uniform__exponential__transformation$params, "lambda")
+})
