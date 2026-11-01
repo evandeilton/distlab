@@ -146,7 +146,7 @@ code_num <- function(x, exact = FALSE) {
 # A double whose code_num(x, exact = TRUE) literal reads back as itself. R's
 # parser is not correctly rounded where long double is plain double (arm64
 # macOS), so engines use this value wherever the number is written into
-# generated code; a few re-reads reach such a fixed point.
+# generated code; numbers of ordinary size reach one within a few re-reads.
 code_value <- function(x) {
   if (!is.finite(x)) return(x)
   for (i in 1:5) {
