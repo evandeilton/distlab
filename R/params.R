@@ -17,6 +17,13 @@ param_sliders <- function(input, output, session, entry, output_id, prefix = "",
   pars <- shiny::reactiveVal(NULL)
   # Slider ranges already sent to the client, per input id.
   sent_limits <- new.env(parent = emptyenv())
+  # Imported fitted values need a finer control grid than the initial
+  # teaching step. Keep it for that parameter throughout the session.
+  precision <- new.env(parent = emptyenv())
+  # A navigation request can arrive while the destination still reports
+  # sliders from an earlier visit. Hold its values until the client echoes
+  # the update; stale inputs must not replace a newly fitted model.
+  pending <- shiny::reactiveVal(list())
   slider_id <- function(did, nm) paste0(prefix, param_input_id(did, nm))
 
   # One slider per parameter, rebuilt when the distribution changes. Ids carry
@@ -34,7 +41,8 @@ param_sliders <- function(input, output, session, entry, output_id, prefix = "",
         ns(input_id),
         label = param_label(par),
         min = lim[[par$name]][1], max = lim[[par$name]][2],
-        value = vals[[par$name]], step = par$slider$step, ticks = FALSE
+        value = vals[[par$name]], step = precision[[input_id]] %||% par$slider$step,
+        ticks = FALSE
       )
       if (par$name %in% skip()) shiny::tags$div(class = "dl-param-hidden", slider) else slider
     })
@@ -64,7 +72,8 @@ param_sliders <- function(input, output, session, entry, output_id, prefix = "",
       if (!same_value(fixed[[nm]], current[[nm]]) || !is.null(new_lim)) {
         sent_limits[[input_id]] <- lim[[nm]]
         shiny::updateSliderInput(session, input_id, value = fixed[[nm]],
-                                 min = new_lim[1], max = new_lim[2])
+                                 min = new_lim[1], max = new_lim[2],
+                                 step = precision[[input_id]])
       }
     }
   }
@@ -74,6 +83,23 @@ param_sliders <- function(input, output, session, entry, output_id, prefix = "",
   shiny::observe({
     r <- raw()
     e <- dl_entry(r$id)
+    queued <- pending()
+    wanted <- queued[[r$id]]
+    if (!is.null(wanted)) {
+      ready <- vapply(e$parameters, function(par) {
+        value <- r$vals[[par$name]]
+        target <- wanted[[par$name]]
+        step <- precision[[slider_id(r$id, par$name)]] %||% par$slider$step
+        is.finite(value) && abs(value - target) <= max(step * .51, abs(target) * 1e-12)
+      }, logical(1))
+      if (!all(ready)) {
+        push(e, wanted, r$vals)
+        pars(list(id = r$id, vals = wanted))
+        return()
+      }
+      queued[[r$id]] <- NULL
+      pending(queued)
+    }
     prev <- shiny::isolate(pars())
     prev_vals <- if (!is.null(prev) && identical(prev$id, r$id)) prev$vals
     fixed <- resolve_constraints(e, r$vals, prev_vals)
@@ -87,7 +113,18 @@ param_sliders <- function(input, output, session, entry, output_id, prefix = "",
     keep <- intersect(names(vals), names(default_params(e)))
     full <- utils::modifyList(memory[[did]] %||% default_params(e), vals[keep])
     full <- resolve_constraints(e, full)
+    for (par in e$parameters) {
+      v <- full[[par$name]]
+      step <- par$slider$step
+      grid <- par$slider$min + round((v - par$slider$min) / step) * step
+      if (!isTRUE(par$integer) && in_domain(v, par) && !same_value(v, grid)) {
+        precision[[slider_id(did, par$name)]] <- min(step, 0.000001)
+      }
+    }
     memory[[did]] <- full
+    queued <- shiny::isolate(pending())
+    queued[[did]] <- full
+    pending(queued)
     current <- tryCatch(shiny::isolate(entry()$id), error = function(err) NULL)
     if (identical(current, did)) push(e, full, list())
     invisible(full)

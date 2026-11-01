@@ -26,3 +26,16 @@ dl_cdf(g, 1)
 
 run_app(lang = "pt-BR")
 ```
+
+Fit catalog distributions to observations or a frequency table:
+
+``` r
+data <- dl_fit_data(c(0, 1, 2, 3, 4), frequency = c(8, 18, 14, 7, 3))
+fit <- dl_fit(data, c("poisson", "geometric"))
+fit$ranking
+dl_fit_diagnostics(fit, "poisson")$gof
+```
+
+Goodness-of-fit p-values are descriptive when parameters are estimated from
+the same data. The Fit page also accepts grouped intervals and exports the
+tables and R code needed to reproduce a study.

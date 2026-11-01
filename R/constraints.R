@@ -132,6 +132,15 @@ slider_limits <- function(entry, vals) {
   par_names <- vapply(entry$parameters, `[[`, "", "name")
   lim <- lapply(entry$parameters, function(par) c(par$slider$min, par$slider$max))
   names(lim) <- par_names
+  # Teaching ranges are initial UI windows, not parameter domains. A fitted
+  # model may legitimately lie outside them; include its valid values before
+  # applying constraints such as k <= m + n.
+  for (par in entry$parameters) {
+    v <- vals[[par$name]]
+    if (!in_domain(v, par)) next
+    if (v < lim[[par$name]][1]) lim[[par$name]][1] <- v
+    if (v > lim[[par$name]][2]) lim[[par$name]][2] <- v
+  }
   env <- list2env(vals, parent = baseenv())
   for (cond in entry$constraints) {
     con <- parse_constraint(cond)
