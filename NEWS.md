@@ -65,3 +65,17 @@
   such as Binomial vs Poisson and t vs Normal.
 * The Explorer and the Compendium open the Calculator and Compare with the
   chosen distribution.
+* New Simulation page, where every number comes from a seeded simulation and
+  each tab shows the R code that repeats it exactly: a sample checked against
+  the exact law (histogram, empirical CDF and a Monte Carlo table of moments
+  and quartile probabilities with standard errors and 95% intervals), the law
+  of large numbers (running means, also for the Cauchy), the central limit
+  theorem (animated, with the distance to N(0, 1)), sums, extremes and
+  transformations with their exact law or a Normal approximation, an animated
+  demo of every relation of the map, and memorylessness.
+* New `dl_mc_check()`, `dl_lln()`, `dl_clt()`, `dl_transform()`,
+  `dl_memoryless()` and `dl_relation_demo()` run these simulations outside
+  the app. With a `seed` they restore the caller's random number stream and
+  return R code that reproduces their numbers exactly.
+* The Explorer and the Compendium open the Simulation with the chosen
+  distribution, and the Compendium simulates a selected relation.
