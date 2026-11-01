@@ -297,6 +297,9 @@ bslib-input-dark-mode { --text-1: #FFFFFF; --text-2: rgba(255, 255, 255, 0.80); 
 .dl-filter-menu .checkbox label { display: flex; align-items: center; gap: 0.5rem; }
 .dl-opt { display: inline-flex; align-items: center; gap: 0.5rem; }
 .dl-reset { border-radius: 999px; font-weight: 600; }
+.dl-filter-note { background: var(--dl-chip-amber); color: var(--dl-amber-text); font-weight: 600;
+  font-size: 0.78rem; border-radius: 999px; padding: 0.4em 0.75em; }
+.dl-filter-note .fa, .dl-filter-note svg { margin-right: 0.3rem; }
 .dl-reset .fa, .dl-reset svg { margin-right: 0.3rem; }
 .dl-compendium .nav-underline { margin-bottom: 1rem; }
 

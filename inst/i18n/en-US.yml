@@ -173,3 +173,4 @@ compendium.table.filter_placeholder: Filter by name, group, family or function
 compendium.table.no_match: No distribution matches this text.
 compendium.stat_dists: distributions
 compendium.stat_relations: relations
+compendium.filtered: Filtered view

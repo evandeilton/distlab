@@ -46,11 +46,16 @@ test_that("search, list buttons and reset drive the map", {
                     session = sess, {
     session$setInputs(search = "poisson")
     expect_identical(sel(), list(kind = "node", id = "poisson"))
-    expect_length(vis_messages(sess, "visShinyFocus"), 1L)
-    expect_identical(unlist(vis_messages(sess, "visShinySelectNodes")[[1]]$message$selid), "poisson")
+    m <- vis_messages(sess, "dl-map-select")
+    expect_length(m, 1L)
+    expect_identical(m[[1]]$message[c("kind", "id")], list(kind = "node", id = "poisson"))
+    v <- input_messages(sess, "view")
+    expect_identical(v[[length(v)]]$message$value, "graph")
     session$setInputs(pick_edge = "gamma__beta__transformation")
     expect_identical(sel()$id, "gamma__beta__transformation")
-    expect_length(vis_messages(sess, "visShinySelectEdges"), 1L)
+    m <- vis_messages(sess, "dl-map-select")
+    expect_identical(m[[2]]$message$kind, "edge")
+    expect_identical(unlist(m[[2]]$message$ends), c("gamma", "beta"))
     session$setInputs(groups = "counts", types = c("discrete", "continuous"))
     expect_identical(filters()$groups, "counts")
     upd <- vis_messages(sess, "visShinyUpdateNodes")
@@ -73,8 +78,12 @@ test_that("filters apply to every view", {
     expect_no_match(output$bytype$html, "Poisson")
     expect_match(output$table$html, "Bernoulli")
     expect_no_match(output$table$html, ">Normal<")
+    # Bernoulli -> Binomial needs both ends active.
+    expect_match(output$relations$html, "No distribution matches the filters")
+    session$setInputs(groups = c("binary", "counts"))
     rel <- output$relations$html
     expect_match(rel, "Sum")
+    expect_match(rel, 'data-dist="bernoulli__binomial__sum"', fixed = TRUE)
     expect_no_match(rel, "Special case")
     # Nothing checked means nothing shown, not everything.
     session$setInputs(groups = NULL)
@@ -151,4 +160,68 @@ test_that("the catalog table is sortable and searchable", {
   expect_match(html, 'aria-sort="ascending"', fixed = TRUE)
   expect_match(html, "stats::dgamma", fixed = TRUE)
   expect_match(html, "Família gama")
+})
+
+test_that("selecting an edge of a hidden type switches that type back on", {
+  sess <- recording_session()
+  shiny::testServer(distlab:::mod_compendium_server, args = list(lang = "en-US"),
+                    session = sess, {
+    session$setInputs(rel_types = "sum")
+    session$setInputs(pick_edge = "binomial__poisson__limit")
+    r <- input_messages(sess, "rel_types")
+    expect_setequal(r[[length(r)]]$message$value, c("sum", "limit"))
+    expect_identical(sel()$id, "binomial__poisson__limit")
+  })
+})
+
+test_that("a note shows while any filter is narrowed", {
+  lang <- shiny::reactiveVal("en-US")
+  shiny::testServer(distlab:::mod_compendium_server, args = list(lang = lang), {
+    expect_null(output$filter_note)
+    session$setInputs(groups = "counts")
+    expect_match(output$filter_note$html, "Filtered view")
+    lang("pt-BR")
+    session$flushReact()
+    expect_match(output$filter_note$html, "Visão filtrada")
+    session$setInputs(groups = distlab:::registry_groups(), rel_types = "limit")
+    expect_match(output$filter_note$html, "Visão filtrada")
+    session$setInputs(rel_types = c("special_case", "transformation", "limit", "sum"))
+    expect_null(output$filter_note)
+  })
+})
+
+test_that("the list of relations and the map use the same edge rule", {
+  reg <- dl_registry()
+  for (g in distlab:::registry_groups()) {
+    e <- distlab:::graph_edges("en-US", groups = g)
+    html <- as.character(distlab:::relations_table("en-US", "o", "p", groups = g))
+    ids <- e$id[e$dl_active]
+    n <- lengths(regmatches(html, gregexpr('data-input="p"', html)))
+    expect_identical(n, length(ids), info = g)
+    for (i in ids) expect_match(html, sprintf('data-dist="%s"', i), fixed = TRUE, info = i)
+  }
+})
+
+test_that("cross-listed entries pass group filters in every view", {
+  reg <- dl_registry()
+  reg$beta$also_in <- "positive"
+  act <- distlab:::node_active(reg, "positive", c("discrete", "continuous"))
+  expect_true(act[["beta"]])
+  expect_false(act[["uniform"]])
+  expect_identical(names(act)[act],
+                   distlab:::group_members("positive", reg))
+  n <- distlab:::graph_nodes("en-US", groups = "positive", reg = reg)
+  expect_identical(n$opacity[n$id == "beta"], 1)
+  html <- as.character(distlab:::catalog_table("en-US", "o", groups = "positive", reg = reg))
+  expect_match(html, 'data-dist="beta"', fixed = TRUE)
+  html <- as.character(distlab:::bytype_tag("en-US", "o", groups = "positive", reg = reg))
+  expect_match(html, 'data-dist="beta"', fixed = TRUE)
+  e <- distlab:::graph_edges("en-US", groups = c("positive"), reg = reg)
+  expect_true(e$dl_active[e$from == "gamma" & e$to == "beta"])
+})
+
+test_that("the Support column is not sortable", {
+  html <- as.character(distlab:::catalog_table("en-US", "o"))
+  expect_no_match(html, 'data-col="4"', fixed = TRUE)
+  expect_match(html, "<th scope=\"col\">Support</th>")
 })

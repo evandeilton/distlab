@@ -139,7 +139,8 @@ compendium_toolbar <- function(ns, lang, reg) {
       )),
       shiny::actionButton(ns("reset"), i18n_span("compendium.reset", lang),
                           icon = shiny::icon("rotate-left", `aria-hidden` = "true"),
-                          class = "btn-sm btn-outline-primary dl-reset")
+                          class = "btn-sm btn-outline-primary dl-reset"),
+      shiny::uiOutput(ns("filter_note"), inline = TRUE)
     )
   )
 }
@@ -229,17 +230,28 @@ mod_compendium_server <- function(id, lang, dark = shiny::reactive(FALSE),
     valid_edge <- function(x) is_string(x) && x %in% rel$id
 
     # Selection made outside the map is mirrored on it.
-    select_node <- function(did, focus = TRUE) {
-      sel(list(kind = "node", id = did))
+    # The map tab may be hidden or not drawn yet, so distlab.js waits for a
+    # visible map before selecting and focusing.
+    map_select <- function(kind, target, ends) {
       bslib::nav_select("view", "graph", session = session)
-      visNetwork::visSelectNodes(proxy, id = did, clickEvent = FALSE)
-      if (focus) visNetwork::visFocus(proxy, did, scale = 1.1,
-                                      animation = list(duration = 500))
+      session$sendCustomMessage("dl-map-select", list(
+        map = ns("graph"), kind = kind, id = target, ends = as.list(ends)
+      ))
+    }
+    select_node <- function(did) {
+      sel(list(kind = "node", id = did))
+      map_select("node", did, did)
     }
     select_edge <- function(eid) {
+      r <- rel[rel$id == eid, ]
+      # A hidden relation type is switched back on so the edge can be seen.
+      f <- filters()
+      if (!r$type %in% f$relations) {
+        shiny::updateCheckboxGroupInput(session, "rel_types",
+                                        selected = union(f$relations, r$type))
+      }
       sel(list(kind = "edge", id = eid))
-      bslib::nav_select("view", "graph", session = session)
-      visNetwork::visSelectEdges(proxy, id = eid)
+      map_select("edge", eid, unique(c(r$from, r$to)))
     }
 
     shiny::observeEvent(input$click, {
@@ -297,6 +309,17 @@ mod_compendium_server <- function(id, lang, dark = shiny::reactive(FALSE),
         options = list(placeholder = tr("compendium.search_placeholder", lang_r()))
       )
     }, ignoreInit = TRUE)
+
+    # Note shown while any filter hides part of the catalog.
+    output$filter_note <- shiny::renderUI({
+      f <- filters()
+      narrowed <- !setequal(f$groups, groups_all) || !setequal(f$types, .dl_types) ||
+        !setequal(f$relations, .dl_relation_types)
+      if (!narrowed) return(NULL)
+      shiny::tags$span(class = "badge dl-filter-note", role = "status",
+                       shiny::icon("filter", `aria-hidden` = "true"),
+                       tr("compendium.filtered", lang_r()))
+    })
 
     output$panel <- shiny::renderUI({
       s <- sel()
@@ -452,9 +475,9 @@ relations_table <- function(lang, open_id, edge_id, groups = .dl_groups,
                             reg = dl_registry()) {
   rel <- relations_frame(reg)
   rel$id <- edge_ids(rel)
-  cat <- catalog_frame(reg)
-  active <- stats::setNames(node_active(cat, groups, types), cat$id)
-  keep <- (active[rel$from] | active[rel$to]) & rel$type %in% relations
+  # Same rule as the map: an edge counts when both ends are active.
+  active <- node_active(reg, groups, types)
+  keep <- active[rel$from] & active[rel$to] & rel$type %in% relations
   rel <- rel[keep, , drop = FALSE]
   if (!nrow(rel)) return(shiny::tags$p(class = "dl-empty", tr("compendium.empty", lang)))
   name <- function(i) entry_text(reg[[i]], "names", lang)
@@ -590,11 +613,12 @@ functions_tag <- function(entry) {
 catalog_table <- function(lang, open_id, groups = .dl_groups, types = .dl_types,
                           reg = dl_registry()) {
   cat <- catalog_frame(reg)
-  cat <- cat[cat$group %in% groups & cat$type %in% types, , drop = FALSE]
+  cat <- cat[node_active(reg, groups, types)[cat$id], , drop = FALSE]
   if (!nrow(cat)) return(shiny::tags$p(class = "dl-empty", tr("compendium.empty", lang)))
   name <- vapply(cat$id, function(i) entry_text(reg[[i]], "names", lang), "")
   cat <- cat[order(name, method = "radix"), , drop = FALSE]
   name <- vapply(cat$id, function(i) entry_text(reg[[i]], "names", lang), "")
+  plain_th <- function(key) shiny::tags$th(scope = "col", tr(key, lang))
   sort_th <- function(key, col, numeric = FALSE) {
     shiny::tags$th(
       scope = "col", `aria-sort` = if (col == 0L) "ascending" else "none",
@@ -636,7 +660,7 @@ catalog_table <- function(lang, open_id, groups = .dl_groups, types = .dl_types,
       shiny::tags$thead(shiny::tags$tr(
         sort_th("compendium.col.name", 0L), sort_th("compendium.col.group", 1L),
         sort_th("compendium.col.family", 2L), sort_th("compendium.col.type", 3L),
-        sort_th("compendium.col.support", 4L), sort_th("compendium.col.parameters", 5L, TRUE),
+        plain_th("compendium.col.support"), sort_th("compendium.col.parameters", 5L, TRUE),
         sort_th("compendium.col.functions", 6L), sort_th("compendium.col.relations", 7L, TRUE)
       )),
       shiny::tags$tbody(rows)

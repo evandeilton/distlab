@@ -75,10 +75,12 @@ edge_ids <- function(rel) {
   make.unique(paste(rel$from, rel$to, rel$type, sep = "__"), sep = "__")
 }
 
-# Is a node active under the filters? Inactive nodes are dimmed, not removed,
-# so the layout never changes.
-node_active <- function(cat, groups, types) {
-  cat$group %in% groups & cat$type %in% types
+# Is each entry active under the filters? An entry matches a group through
+# its own group or any `also_in` group. Inactive nodes are dimmed, not
+# removed, so the layout never changes. Named by id.
+node_active <- function(reg, groups, types) {
+  vapply(reg, function(e) any(entry_groups(e) %in% groups) && e$type %in% types,
+         logical(1))
 }
 
 # Node table. `groups` and `types` are the active filters.
@@ -91,7 +93,7 @@ graph_nodes <- function(lang, dark = FALSE, groups = .dl_groups, types = .dl_typ
   line <- unname(pal$group[cat$group])
   fill <- mix_hex(line, pal$surface, if (isTRUE(dark)) 0.30 else 0.14)
   fill_hi <- mix_hex(line, pal$surface, if (isTRUE(dark)) 0.50 else 0.30)
-  active <- node_active(cat, groups, types)
+  active <- unname(node_active(reg, groups, types))
   esc <- htmltools::htmlEscape
   title <- sprintf("<strong>%s</strong><br>%s \u00b7 %s", esc(name),
                    esc(vapply(cat$group, function(g) tr(paste0("group.", g), lang), "")),
@@ -121,8 +123,7 @@ graph_edges <- function(lang, dark = FALSE, groups = .dl_groups, types = .dl_typ
   pal <- graph_palette(dark)
   rel <- relations_frame(reg)
   if (!nrow(rel)) return(data.frame())
-  cat <- catalog_frame(reg)
-  active <- stats::setNames(node_active(cat, groups, types), cat$id)
+  active <- node_active(reg, groups, types)
   on <- active[rel$from] & active[rel$to]
   name <- vapply(reg, function(e) entry_text(e, "names", lang), "")
   cond <- if (lang == "pt-BR") rel$condition_pt else rel$condition_en

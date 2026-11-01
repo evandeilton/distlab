@@ -174,3 +174,4 @@ compendium.table.filter_placeholder: Filtre por nome, grupo, família ou funçã
 compendium.table.no_match: Nenhuma distribuição corresponde a este texto.
 compendium.stat_dists: distribuições
 compendium.stat_relations: relações
+compendium.filtered: Visão filtrada

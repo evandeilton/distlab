@@ -212,15 +212,38 @@
     }
   });
 
-  if (window.Shiny) {
+  // Select a node or edge on the relationship map once the map is drawn
+  // and visible (its tab may still be opening); retries for a few seconds.
+  function mapSelect(msg, tries) {
+    var el = document.getElementById("graph" + msg.map);
+    var ready = el && el.chart && el.offsetParent !== null && el.clientWidth > 0;
+    if (!ready) {
+      if (tries > 0) setTimeout(function () { mapSelect(msg, tries - 1); }, 100);
+      return;
+    }
+    var net = el.chart;
+    var anim = { duration: 500, easingFunction: "easeInOutQuad" };
+    if (msg.kind === "node") {
+      net.selectNodes([msg.id]);
+      net.focus(msg.id, { scale: 1.1, animation: anim });
+    } else {
+      net.selectEdges([msg.id]);
+      net.fit({ nodes: msg.ends, maxZoomLevel: 1.1, animation: anim });
+    }
+  }
+
+  function addHandlers() {
     window.Shiny.addCustomMessageHandler("dl-lang", function (msg) {
       applyLanguage(msg.lang, msg.dict);
     });
-  } else {
-    document.addEventListener("shiny:connected", function () {
-      window.Shiny.addCustomMessageHandler("dl-lang", function (msg) {
-        applyLanguage(msg.lang, msg.dict);
-      });
+    window.Shiny.addCustomMessageHandler("dl-map-select", function (msg) {
+      mapSelect(msg, 50);
     });
+  }
+
+  if (window.Shiny) {
+    addHandlers();
+  } else {
+    document.addEventListener("shiny:connected", addHandlers);
   }
 })();
