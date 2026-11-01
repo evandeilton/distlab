@@ -48,4 +48,15 @@ test_that("the language switch keeps tab, distribution and parameters", {
   app$run_js("document.querySelector('.navbar [data-value=\"compare\"]').click()")
   app$wait_for_idle()
   expect_identical(app$get_js("document.querySelectorAll('.dl-slot:not([hidden])').length"), 3L)
+  # The Simulation draws the sample check with its seeded code, then a
+  # relation with its formula typeset.
+  app$run_js("document.querySelector('.navbar [data-value=\"simulation\"]').click()")
+  app$wait_for_idle()
+  expect_identical(app$get_js("document.querySelectorAll('.dl-mc-table tbody tr').length"), 8L)
+  expect_match(app$get_js("document.querySelector('.dl-sim .dl-code-block').textContent"),
+               "^set\\.seed\\(2026\\)")
+  app$run_js("document.querySelector('.dl-sim [data-value=\"relations\"]').click()")
+  app$wait_for_idle()
+  expect_gt(app$get_js("document.querySelectorAll('.dl-sim-rel-head .katex').length"), 0)
+  expect_gt(app$get_js("document.querySelectorAll('.dl-sim .js-plotly-plot').length"), 0)
 })

@@ -281,3 +281,160 @@ compare.error.value: "O valor {value} está fora do domínio do parâmetro."
 compare.note.mixed: >-
   Barras são probabilidades P(X = x) de distribuições discretas; curvas são
   densidades f(x) das contínuas.
+explorer.to_sim: Simular
+compendium.simulate: Simular
+compendium.simulate_label: "Simular {name}"
+compendium.simulate_relation: Simular esta relação
+compendium.simulate_relation_label: "Simular a relação {name}"
+sim.relation: Relação
+sim.settings: Configurações da simulação
+sim.seed: Semente
+sim.new_seed: Nova semente aleatória
+sim.draws: Número de sorteios
+sim.seed_help: >-
+  Mesma semente, mesmos números: o código R de cada aba os repete
+  exatamente.
+sim.tab.sample: Amostra
+sim.tab.lln: Lei dos Grandes Números
+sim.tab.clt: Teorema Central do Limite
+sim.tab.transform: Somas e transformações
+sim.tab.relations: Relações
+sim.tab.memoryless: Falta de memória
+sim.simulated: Simulado
+sim.exact: Exato
+sim.approx: Aproximação Normal
+sim.play: Reproduzir
+sim.hist.density: Histograma e densidade exata
+sim.hist.pmf: Frequências relativas e probabilidades exatas
+sim.ecdf: Função de distribuição empírica e exata
+sim.ecdf.empirical: Empírica
+sim.note.outside: "{pct} dos sorteios ficam fora da faixa do gráfico (caudas pesadas)."
+sim.sample.intro: >-
+  Uma amostra sorteada com a semente, comparada com a lei exata. Cada
+  intervalo de 95% deve conter o valor exato em cerca de 95 de 100 sementes.
+sim.sample.check: Verificação de Monte Carlo
+sim.col.quantity: Quantidade
+sim.col.exact: Exato
+sim.col.estimate: Estimativa
+sim.col.se: Erro-padrão
+sim.col.interval: Intervalo de 95%
+sim.col.covered: Contém o valor exato
+sim.covered.yes: sim
+sim.covered.no: não
+sim.covered.na: sem intervalo
+sim.lln.intro: >-
+  A média dos k primeiros sorteios, para k = 1, 2, …, n, em trajetórias
+  independentes. Quando a média existe, toda trajetória se estabiliza nela.
+sim.lln.paths: Número de trajetórias
+sim.lln.log: Eixo k logarítmico
+sim.lln.xlab: Número de sorteios k
+sim.lln.ylab: Média dos k primeiros sorteios
+sim.lln.path: "Trajetória {n}"
+sim.lln.note.band: >-
+  As médias acumuladas se estabilizam na média μ = {mu}; cerca de 95% delas
+  ficam na faixa μ ± 2σ/√k, que se estreita à medida que k cresce.
+sim.lln.note.no_mean: >-
+  Esta distribuição não tem média, então as médias acumuladas nunca se
+  estabilizam: um único sorteio extremo pode deslocá-las a qualquer momento,
+  por maior que seja k.
+sim.lln.note.infinite_mean: >-
+  A média é infinita, então as médias acumuladas continuam subindo sem se
+  estabilizar.
+sim.lln.note.infinite_var: >-
+  A média μ = {mu} existe, mas a variância é infinita: as médias acumuladas
+  ainda convergem, devagar, e não há faixa μ ± 2σ/√k.
+sim.clt.intro: >-
+  Médias de amostras de tamanho n, padronizadas como (X̄ − μ)/(σ/√n). Clique
+  em Reproduzir para ver o histograma se aproximar da Normal padrão quando n
+  cresce.
+sim.clt.reps: Amostras por tamanho
+sim.clt.xlab: (X̄ − μ) / (σ/√n)
+sim.clt.xlab_raw: Média amostral X̄
+sim.clt.col.size: Tamanho da amostra n
+sim.clt.col.ks: Distância à N(0, 1)
+sim.metric.clt: "Distância de Kolmogorov sup|F̂ − Φ| entre as médias padronizadas e a N(0, 1)"
+sim.clt.note: >-
+  Cada quadro mostra as médias padronizadas das amostras de tamanho n. A
+  distância à N(0, 1) diminui quando n cresce, como diz o Teorema Central do
+  Limite.
+sim.clt.note.discrete: >-
+  Os sorteios são números inteiros, então as médias caem numa grade e a
+  distância diminui mais devagar para n pequeno.
+sim.clt.note.raw: >-
+  A variância não é finita, então as médias não podem ser padronizadas e o
+  Teorema Central do Limite não se aplica: o histograma das médias não se
+  estreita quando n cresce. A média de n sorteios de uma Cauchy é de novo
+  Cauchy.
+sim.transform.intro: >-
+  Y é calculado a partir de sorteios independentes de X; quando Y segue uma
+  distribuição do catálogo, sua lei exata aparece sobre o histograma.
+sim.transform.op: Operação
+sim.transform.k: Número de cópias k
+sim.transform.title: Valores simulados de Y
+sim.op.sum: Soma de k cópias
+sim.op.mean: Média de k cópias
+sim.op.min: Mínimo de k cópias
+sim.op.max: Máximo de k cópias
+sim.op.affine: a + bX
+sim.op.square: X²
+sim.op.exp: exp(X)
+sim.op.log: log(X)
+sim.transform.exact: "Lei exata de Y: {law}"
+sim.transform.approx: "Sem lei exata no catálogo; aproximação Normal: {law}"
+sim.transform.none: >-
+  Nenhuma distribuição do catálogo é conhecida para Y; o histograma mostra
+  apenas os valores simulados.
+sim.transform.dropped: "{n} valores não finitos (estouro ou log 0) foram deixados de fora."
+sim.transform.note.cauchy_mean: >-
+  A média de k sorteios de uma Cauchy tem a mesma lei Cauchy de um único
+  sorteio: tirar a média não a concentra.
+sim.rel.params: "Receita:"
+sim.rel.series.approx: Lei aproximante
+sim.rel.series.target: Lei limite
+sim.rel.col.frame: Etapa
+sim.rel.col.distance: Distância
+sim.rel.col.band: Nível de ruído de 95%
+sim.rel.note.draws: >-
+  O histograma se forma à medida que os sorteios se acumulam. Uma distância
+  abaixo do nível de ruído de 95%, 1,36/√n, está de acordo com a lei exata.
+sim.rel.note.sum: >-
+  Cada quadro acrescenta parcelas à soma, e a lei exata da soma muda com o
+  número de parcelas k.
+sim.rel.note.limit: >-
+  Sem sorteios: a lei aproximante é calculada exatamente, e a distância à lei
+  limite diminui ao longo dos quadros.
+sim.metric.ks: Distância de Kolmogorov–Smirnov sup|F̂ − F| à lei exata
+sim.metric.tv: Distância de variação total à lei exata
+sim.metric.kolmogorov: Distância de Kolmogorov sup|F − G| entre as duas leis
+sim.mem.intro: >-
+  Depois de esperar até s sem o evento, a espera restante X − s é como
+  começar de novo? Só para a Exponencial e, entre as contagens, a Geométrica.
+sim.mem.s: Limiar s
+sim.mem.survival: Sobrevivência de X e do resíduo
+sim.mem.hist: Resíduos X − s e a lei de X
+sim.mem.law_x: Lei de X
+sim.mem.ylab: Probabilidade de sobrevivência
+sim.mem.verdict.yes: >-
+  Sem memória: o resíduo X − s tem a mesma lei de X, qualquer que seja s.
+sim.mem.verdict.no: >-
+  Com memória: o resíduo X − s tem uma lei diferente da de X.
+sim.mem.kept: "{kept} de {n} sorteios passaram de s."
+sim.mem.gap: "Maior diferença entre as duas curvas de sobrevivência: {gap}."
+sim.mem.note.discrete: >-
+  Para contagens, o resíduo é X − s dado X ≥ s; a Geométrica conta os
+  fracassos antes do primeiro sucesso, a partir de 0.
+sim.mem.unsupported: >-
+  A falta de memória diz respeito a tempos de espera: distribuições com
+  suporte [0, ∞).
+sim.mem.to_exp: Mudar para a Exponencial
+sim.error.seed: A semente deve ser um número inteiro de 1 a 2147483647.
+sim.error.ab: Digite um número para a e para b.
+sim.error.log_support: >-
+  log(X) exige X > 0: escolha uma distribuição com suporte contido em (0, ∞).
+sim.error.affine_b: A inclinação b não pode ser 0, pois a + 0·X é uma constante.
+sim.error.memoryless_support: >-
+  A falta de memória diz respeito a tempos de espera: distribuições com
+  suporte [0, ∞).
+sim.error.memoryless_few: >-
+  Menos de 30 sorteios passaram de s; escolha um s menor ou mais sorteios.
+sim.error.engine: "Não foi possível rodar a simulação: {message}"

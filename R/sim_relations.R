@@ -31,7 +31,7 @@
     from = list(shape1 = 1, shape2 = 1), to = list(min = 0, max = 1)),
   betabinomial__binomial__limit = list(
     kind = "limit", metric = "tv", params = "size = 10, prob = 0.3, alpha = c * prob, beta = c * (1 - prob)",
-    symbol = "α + β", values = c(1, 3, 10, 30, 100, 1000),
+    symbol = "\u03b1 + \u03b2", values = c(1, 3, 10, 30, 100, 1000),
     code = c(
       "size <- 10",
       "prob <- 0.3",
@@ -184,7 +184,7 @@
     from = list(mean = 0, sd = 1), to = list(location = 0, scale = 1)),
   poisson__normal__limit = list(
     kind = "limit", metric = "kolmogorov", params = "lambda",
-    symbol = "λ", values = c(1, 3, 10, 30, 100, 1000),
+    symbol = "\u03bb", values = c(1, 3, 10, 30, 100, 1000),
     code = c(
       "lambda <- {values}",
       "kolmogorov <- sapply(lambda, function(l) {",
@@ -205,14 +205,14 @@
     from = list(df = 1), to = list(location = 0, scale = 1)),
   student_t__normal__limit = list(
     kind = "limit", metric = "kolmogorov", params = "df",
-    symbol = "ν", values = c(1, 2, 5, 10, 30, 100),
+    symbol = "\u03bd", values = c(1, 2, 5, 10, 30, 100),
     code = c(
       "df <- {values}",
       "kolmogorov <- sapply(df, function(v) {",
       "  optimize(function(x) pnorm(x) - pt(x, df = v), c(0, 6), maximum = TRUE)$objective",
       "})"),
     curves = function(v) {
-      x <- seq(-5, 5, length.out = 401)
+      x <- seq(-5, 5, length.out = 201)
       rbind(data.frame(series = "approx", x = x, density = stats::dt(x, df = v),
                        cdf = stats::pt(x, df = v)),
             data.frame(series = "target", x = x, density = stats::dnorm(x),
@@ -257,7 +257,7 @@ limit_std_curves <- function(dist, k) {
   m <- dl_moments(dist)
   z <- (k - m[["mean"]]) / m[["sd"]]
   keep <- abs(z) <= 4.5
-  grid <- seq(-4.5, 4.5, length.out = 401)
+  grid <- seq(-4.5, 4.5, length.out = 201)
   rbind(data.frame(series = "approx", x = z[keep],
                    density = m[["sd"]] * dl_density(dist, k[keep]),
                    cdf = dl_cdf(dist, k[keep])),
@@ -373,14 +373,15 @@ run_code <- function(code, seed) {
   env
 }
 
-# Even grid for continuous laws or whole numbers for discrete ones on `range`.
-law_curve <- function(dist, range) {
+# Even grid of `n` points for continuous laws or whole numbers for discrete
+# ones on `range`.
+law_curve <- function(dist, range, n = 401L) {
   if (identical(dist$entry$type, "discrete")) {
     s <- dl_support(dist)
     x <- seq(max(range[1], s$lower), min(range[2], s$upper))
     return(data.frame(x = x, density = dl_density(dist, x), cdf = dl_cdf(dist, x)))
   }
-  curve_grid(dist, range[1], range[2], n = 401L)
+  curve_grid(dist, range[1], range[2], n = n)
 }
 
 # Frame labels such as "n = 1000".
@@ -410,7 +411,7 @@ demo_draws <- function(recipe, n, seed) {
   env <- run_code(code, seed)
   x <- env$x
   rng <- sim_range(target, x)
-  curve <- law_curve(target, rng)
+  curve <- law_curve(target, rng, n = 201L)
   nf <- length(sizes)
   outside <- vapply(sizes, function(m) mean(x[seq_len(m)] < rng[1] | x[seq_len(m)] > rng[2]),
                     numeric(1))
@@ -448,7 +449,7 @@ demo_sum <- function(recipe, n, seed) {
   rng <- c(min(ranges[1, ]), max(ranges[2, ]))
   nf <- length(terms)
   curves <- do.call(rbind, lapply(seq_len(nf), function(i) {
-    data.frame(frame = i, series = "target", law_curve(targets[[i]], rng))
+    data.frame(frame = i, series = "target", law_curve(targets[[i]], rng, n = 201L))
   }))
   list(
     frames = data.frame(frame = seq_len(nf), value = terms, label = frame_labels("k", terms),

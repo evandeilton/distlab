@@ -453,20 +453,25 @@ calc_result_tag <- function(res, dist, lang, code_id, read = list()) {
     if (length(notes)) {
       shiny::tags$ul(class = "dl-calc-notes", lapply(notes, shiny::tags$li))
     },
+    code_tag(code, code_id, lang)
+  )
+}
+
+# R code card with a copy button; distlab.js copies the text of `code_id`.
+code_tag <- function(code, code_id, lang) {
+  shiny::tags$div(
+    class = "dl-code",
     shiny::tags$div(
-      class = "dl-code",
-      shiny::tags$div(
-        class = "dl-code-head",
-        shiny::tags$span(class = "dl-code-title", shiny::icon("code", `aria-hidden` = "true"),
-                         tr("calc.code", lang)),
-        shiny::tags$button(type = "button", class = "btn btn-sm dl-copy", `data-target` = code_id,
-                           `data-done` = tr("calc.copied", lang),
-                           shiny::icon("copy", `aria-hidden` = "true"),
-                           shiny::tags$span(class = "dl-copy-label", tr("calc.copy", lang)))
-      ),
-      shiny::tags$pre(class = "dl-code-block", .noWS = "inside",
-                      shiny::tags$code(id = code_id, .noWS = c("inside", "outside"), code))
-    )
+      class = "dl-code-head",
+      shiny::tags$span(class = "dl-code-title", shiny::icon("code", `aria-hidden` = "true"),
+                       tr("calc.code", lang)),
+      shiny::tags$button(type = "button", class = "btn btn-sm dl-copy", `data-target` = code_id,
+                         `data-done` = tr("calc.copied", lang),
+                         shiny::icon("copy", `aria-hidden` = "true"),
+                         shiny::tags$span(class = "dl-copy-label", tr("calc.copy", lang)))
+    ),
+    shiny::tags$pre(class = "dl-code-block", .noWS = "inside",
+                    shiny::tags$code(id = code_id, .noWS = c("inside", "outside"), code))
   )
 }
 
