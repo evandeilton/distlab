@@ -146,10 +146,10 @@ test_that("generated code reproduces every engine for every distribution", {
 test_that("engine numbers are the doubles their code literals read back as", {
   # R's parser is not correctly rounded on every platform; engines use the
   # parsed literal so generated code reproduces them bit for bit everywhere.
-  x <- 0.15971914124998499
-  lit <- distlab:::code_num(x, exact = TRUE)
-  expect_identical(distlab:::code_value(x), eval(parse(text = lit)))
-  expect_identical(distlab:::code_value(-x), eval(parse(text = distlab:::code_num(-x, exact = TRUE))))
+  reads_back <- function(y) identical(eval(parse(text = distlab:::code_num(y, exact = TRUE))), y)
+  for (x in c(0.15971914124998499, -0.15971914124998499, 0.92861519963480532, 1 / 3, 1e-300, 5e300)) {
+    expect_true(reads_back(distlab:::code_value(x)), info = format(x, digits = 17))
+  }
   expect_identical(distlab:::code_value(Inf), Inf)
   expect_identical(distlab:::code_value(NA_real_), NA_real_)
   d <- distlab:::check_dist(dl_dist("beta", shape1 = 2 / 3, shape2 = 5))

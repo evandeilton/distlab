@@ -361,7 +361,8 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
     })
     lln_val <- shiny::reactive(sim_value(lln(), lang_r()))
     output$lln_plot <- plotly::renderPlotly({
-      lln_plot(lln_val(), isTRUE(input$lln_log), lang_r(), plot_theme(dark()))
+      lln_plot(lln_val(), isTRUE(input$lln_log), lang_r(), plot_theme(dark()),
+               lower = dl_support(dist_now())$lower)
     })
     output$lln_note <- shiny::renderUI(lln_note(lln_val(), lang_r()))
     output$lln_code <- shiny::renderUI(code_tag(lln_val()$code, ns("lln-code"), lang_r()))
@@ -752,7 +753,7 @@ mc_table_tag <- function(tab, lang) {
 
 # Running means of each path, thinned to about 2000 log-spaced points, with
 # the exact mean and the band mu +/- 2 sigma / sqrt(k) when they exist.
-lln_plot <- function(res, log_x, lang, th) {
+lln_plot <- function(res, log_x, lang, th, lower = -Inf) {
   d <- res$paths
   n <- max(d$k)
   idx <- unique(c(round(exp(seq(0, log(n), length.out = 2000))), n))
@@ -783,7 +784,7 @@ lln_plot <- function(res, log_x, lang, th) {
     type = "line", xref = "paper", yref = "y", x0 = 0, x1 = 1, y0 = mu, y1 = mu,
     line = list(color = th$accent, width = 1.5, dash = "dash")))
   all_m <- d$mean[d$k %in% idx]
-  ylim <- lln_ylim(all_m, d$mean[d$k >= max(1, n %/% 20)], mu, sigma)
+  ylim <- lln_ylim(all_m, d$mean[d$k >= max(1, n %/% 20)], mu, sigma, lower)
   p <- plot_layout(p, tr("sim.lln.xlab", lang), tr("sim.lln.ylab", lang), th, lang, ylim = ylim)
   p <- plotly::layout(p, shapes = shapes, xaxis = list(type = if (log_x) "log" else "linear"))
   compare_legend(p, th)
@@ -793,11 +794,15 @@ lln_plot <- function(res, log_x, lang, th) {
 # (mu +/- 2.2 sigma) and every path are shown. Without it, early running
 # means can be huge, so the range follows the late ones (k >= n/20) unless
 # the paths stay close to them anyway.
-lln_ylim <- function(all_m, late, mu, sigma) {
+lln_ylim <- function(all_m, late, mu, sigma, lower = -Inf) {
   all_m <- all_m[is.finite(all_m)]
   if (!length(all_m)) return(NULL)
   if (is.finite(mu) && is.finite(sigma)) {
-    return(c(min(mu - 2.2 * sigma, all_m), max(mu + 2.2 * sigma, all_m)))
+    # Centered on the mean, as wide as the farthest path (at most the band at
+    # k = 1, mu +/- 2.2 sigma), and never below the support.
+    half <- min(max(abs(range(all_m) - mu)), 2.2 * sigma)
+    half <- 1.04 * max(half, 1e-8)
+    return(c(max(mu - half, lower), mu + half))
   }
   if (!length(late) || !all(is.finite(late))) return(NULL)
   lo <- min(late, if (is.finite(mu)) mu)
@@ -885,9 +890,15 @@ clt_bins <- function(res, dist) {
   discrete <- identical(dist$entry$type, "discrete")
   bins <- do.call(rbind, lapply(seq_along(sizes), function(i) {
     v <- m$value[m$size == sizes[i]]
-    step <- if (discrete) bin_step(v, rng, "auto", width = width) else NA_real_
-    b <- if (is.na(step)) sim_bins(v, breaks = breaks, total = length(v)) else
-      sim_bins(v, range = rng, total = length(v), step = step)
+    # Discrete means sit on a lattice; bars group whole lattice points into
+    # about the continuous width, so no bar is a gap or a spike.
+    step <- if (discrete) lattice_step(v) else NA_real_
+    b <- if (is.na(step) || (rng[2] - rng[1]) / step > 1e6) {
+      sim_bins(v, breaks = breaks, total = length(v))
+    } else {
+      sim_bins(v, range = rng, total = length(v), step = step,
+               group = max(1, round(width / step)))
+    }
     data.frame(frame = i, b, width = b$right - b$left)
   }))
   attr(bins, "breaks") <- breaks

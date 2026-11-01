@@ -104,9 +104,11 @@ dl_transform <- function(dist, op, k = 2, n = 5000, seed = NULL, a = 0, b = 1) {
   })
   dropped <- sum(!is.finite(y))
   y <- y[is.finite(y)]
+  # Snapped like `dist`, since their parameters are written into the code.
   target <- transform_target(dist, op, k, a, b)
+  if (!is.null(target)) target <- snap_dist(target)
   approx <- if (is.null(target) && op %in% c("sum", "mean") && k >= 2) {
-    transform_approx(dist, op, k)
+    snap_dist(transform_approx(dist, op, k))
   }
   list(sample = y, dropped = dropped, target = target, approx = approx, op = op,
        k = k, a = a, b = b, seed = seed,

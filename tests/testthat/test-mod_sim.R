@@ -294,6 +294,18 @@ test_that("means of discrete draws sit on their lattice", {
   expect_equal(last$width[1], 1 / (0.5 * sqrt(30)), tolerance = 1e-9)
   ratio <- max(last$density) / dnorm(0)
   expect_true(ratio > 1 / 1.3 && ratio < 1.3)
+  # Spacings at or just under 0.2, and finer ones, group whole lattice points:
+  # no empty bars in the body and no spikes.
+  for (cs in list(list("binomial", list(size = 10, prob = 0.5), 10),
+                  list("poisson", list(lambda = 3), 10),
+                  list("bernoulli", list(prob = 0.5), 100),
+                  list("poisson", list(lambda = 1), 400))) {
+    d <- do.call(dl_dist, c(list(cs[[1]]), cs[[2]]))
+    bins <- distlab:::clt_bins(dl_clt(d, sizes = cs[[3]], reps = 2000, seed = 1), d)
+    body <- bins[abs(bins$mid) < 1.5, ]
+    expect_true(all(body$count > 0), info = cs[[1]])
+    expect_lt(max(bins$density) / dnorm(0), 1.3)
+  }
   # Continuous laws keep the fixed 0.2-wide bins.
   cn <- distlab:::clt_bins(dl_clt(dl_dist("exponential"), sizes = 5, reps = 200, seed = 1),
                            dl_dist("exponential"))
@@ -342,9 +354,17 @@ test_that("the threshold slider starts above 0", {
 test_that("the LLN plot shows the band from k = 1 unless the variance is infinite", {
   r <- dl_lln(dl_dist("normal"), n = 1000, paths = 3, seed = 1)
   y <- distlab:::lln_ylim(r$paths$mean, r$paths$mean[r$paths$k >= 50], 0, 1)
-  expect_lte(y[1], -2.2)
-  expect_gte(y[2], 2.2)
+  # Centered on the mean, covering every path, at most the band at k = 1.
+  expect_equal(y[1], -y[2])
   expect_lte(y[1], min(r$paths$mean))
+  expect_gte(y[2], max(r$paths$mean))
+  expect_lte(y[2], 2.2 * 1.04 + 1e-12)
+  # A skewed positive law stays near its paths and above the support.
+  ln <- dl_lln(dl_dist("lognormal", meanlog = 0, sdlog = 2), n = 5000, paths = 3, seed = 1)
+  y <- distlab:::lln_ylim(ln$paths$mean, NULL, ln$mean, ln$sd, lower = 0)
+  expect_gte(y[1], 0)
+  expect_gte(y[2], max(ln$paths$mean))
+  expect_lt(diff(y), 4 * diff(range(ln$paths$mean)))
   # Heavy tails keep the late running means in view.
   cy <- dl_lln(dl_dist("cauchy"), n = 2000, seed = 3)
   late <- cy$paths$mean[cy$paths$k >= 100]

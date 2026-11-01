@@ -57,14 +57,20 @@ check_number <- function(x, name) {
   code_value(as.numeric(x))
 }
 
-# Checks `dist` and returns it with each parameter snapped to the value its
-# literal in the generated code reads back as (see code_value()).
+# Checks `dist` and returns it with its parameters snapped (see snap_dist()).
 check_dist <- function(dist) {
   if (!inherits(dist, "dl_dist")) {
     stop("`dist` must be a dl_dist object; see dl_dist().", call. = FALSE)
   }
-  dist$params <- lapply(dist$params, code_value)
-  dist
+  snap_dist(dist)
+}
+
+# `dist` with each parameter snapped to the value its literal in generated code
+# reads back as (see code_value()); unchanged if snapping leaves the domain.
+snap_dist <- function(dist) {
+  snapped <- lapply(dist$params, code_value)
+  if (identical(snapped, dist$params)) return(dist)
+  tryCatch(do.call(dl_dist, c(list(dist$id), snapped)), error = function(err) dist)
 }
 
 # Error with a `key` the app translates through the dictionary entry
@@ -541,7 +547,7 @@ is_memoryless <- function(dist) {
 # whole law; the density of a lattice bar is its share over `step`. Columns:
 # left, right, mid, count, proportion and density.
 sim_bins <- function(x, discrete = FALSE, breaks = NULL, range = NULL, total = length(x),
-                     step = NULL) {
+                     step = NULL, group = 1L) {
   x <- x[is.finite(x)]
   empty <- data.frame(left = numeric(0), right = numeric(0), mid = numeric(0),
                       count = integer(0), proportion = numeric(0), density = numeric(0))
@@ -555,10 +561,15 @@ sim_bins <- function(x, discrete = FALSE, breaks = NULL, range = NULL, total = l
     if (j_hi < j_lo) return(empty)
     j <- round((x - x0) / step)
     j <- j[j >= j_lo & j <= j_hi]
-    counts <- tabulate(j - j_lo + 1, nbins = j_hi - j_lo + 1)
-    mid <- x0 + seq(j_lo, j_hi) * step
-    return(data.frame(left = mid - step / 2, right = mid + step / 2, mid = mid, count = counts,
-                      proportion = counts / total, density = counts / (total * step)))
+    # Each bar holds `group` consecutive lattice points; its edges fall halfway
+    # between points, so no draw sits on an edge.
+    g_lo <- floor(j_lo / group)
+    g_hi <- floor(j_hi / group)
+    counts <- tabulate(floor(j / group) - g_lo + 1, nbins = g_hi - g_lo + 1)
+    left <- x0 + (seq(g_lo, g_hi) * group - 0.5) * step
+    width <- group * step
+    return(data.frame(left = left, right = left + width, mid = left + width / 2, count = counts,
+                      proportion = counts / total, density = counts / (total * width)))
   }
   if (discrete) {
     lo <- ceiling(if (is.null(range)) min(x) else range[1])

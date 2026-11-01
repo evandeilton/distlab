@@ -143,12 +143,18 @@ code_num <- function(x, exact = FALSE) {
   s
 }
 
-# The double that code_num(x, exact = TRUE) reads back as. R's parser is not
-# correctly rounded where long double is plain double (arm64 macOS), so engines
-# use this value wherever the same number is written into generated code.
+# A double whose code_num(x, exact = TRUE) literal reads back as itself. R's
+# parser is not correctly rounded where long double is plain double (arm64
+# macOS), so engines use this value wherever the number is written into
+# generated code; a few re-reads reach such a fixed point.
 code_value <- function(x) {
   if (!is.finite(x)) return(x)
-  as.numeric(code_num(x, exact = TRUE))
+  for (i in 1:5) {
+    y <- as.numeric(code_num(x, exact = TRUE))
+    if (identical(y, x)) break
+    x <- y
+  }
+  x
 }
 
 # Number inside TeX, with the decimal comma of pt-BR.
