@@ -1,0 +1,88 @@
+app_for_test <- function(lang = "pt-BR") {
+  shiny::shinyApp(distlab:::app_ui(lang), distlab:::app_server(lang))
+}
+
+test_that("the navbar has every section, with icons and translated labels", {
+  html <- as.character(distlab:::app_ui("pt-BR"))
+  for (s in c("home", "compendium", "explorer", "calculator", "compare",
+              "simulation", "fit", "about")) {
+    expect_match(html, sprintf('data-value="%s"', s), info = s)
+    expect_match(html, sprintf('data-i18n="nav.%s"', s), info = s)
+  }
+  expect_match(html, "Compêndio")
+  expect_match(html, 'aria-label="Idioma da interface"', fixed = TRUE)
+  expect_match(html, "dl_lang")
+  expect_match(html, "favicon.svg")
+  expect_match(distlab:::upcoming_panel(list(value = "fit", icon = "chart-line"), "en-US") |>
+                 as.character(), "upcoming release")
+})
+
+test_that("every translatable key in the UI exists in both dictionaries", {
+  for (lang in dl_languages()) {
+    html <- as.character(distlab:::app_ui(lang))
+    keys <- unique(sub('^data-i18n(-[a-z-]+)?="([^"]+)"$', "\\2",
+                       regmatches(html, gregexpr('data-i18n(-(title|aria-label|placeholder))?="[^"]+"',
+                                                 html))[[1]]))
+    expect_gt(length(keys), 20)
+    for (l in dl_languages()) {
+      expect_true(all(keys %in% names(distlab:::dl_dictionary(l))), info = l)
+    }
+  }
+})
+
+test_that("switching language keeps distribution and parameter values", {
+  sess <- recording_session()
+  shiny::testServer(app_for_test("pt-BR"), session = sess, {
+    session$setInputs(`explore-dist` = "gamma", `explore-p_gamma_shape` = 3.5,
+                      `explore-p_gamma_rate` = 2, nav = "explorer")
+    session$elapse(200)
+    expect_match(output$`explore-moments`$html, "1,75")
+    session$setInputs(lang = "en-US")
+    session$elapse(200)
+    expect_identical(explore$dist()$id, "gamma")
+    expect_equal(explore$dist()$params$shape, 3.5)
+    expect_match(output$`explore-moments`$html, "1.75", fixed = TRUE)
+    expect_match(output$`explore-story`, "Events arrive")
+    expect_match(output$`explore-formulas_moments`$html, "Variance")
+    expect_match(output$`explore-related`$html, "Special case")
+    # The client gets the new dictionary; the selection is kept, not reset.
+    custom <- attr(sess, "log")$custom
+    expect_identical(custom[[length(custom)]]$type, "dl-lang")
+    expect_identical(custom[[length(custom)]]$message$dict[["nav.home"]], "Home")
+    sel <- input_messages(sess, "dist")
+    expect_identical(sel[[length(sel)]]$message$value, "gamma")
+    expect_false(any(vapply(attr(sess, "log")$input, function(m) identical(m$id, "nav"),
+                            logical(1))))
+  })
+})
+
+test_that("Home navigation opens the Explorer with the chosen distribution", {
+  sess <- recording_session()
+  shiny::testServer(app_for_test("en-US"), session = sess, {
+    session$setInputs(`home-pick` = "cauchy")
+    nav <- input_messages(sess, "nav")
+    expect_identical(nav[[length(nav)]]$message$value, "explorer")
+    sel <- input_messages(sess, "dist")
+    expect_identical(sel[[length(sel)]]$message$value, "cauchy")
+    session$setInputs(`home-go_fit` = 1)
+    nav <- input_messages(sess, "nav")
+    expect_identical(nav[[length(nav)]]$message$value, "fit")
+  })
+})
+
+test_that("run_app sets the initial language", {
+  app <- run_app(lang = "en-US")
+  expect_s3_class(app, "shiny.appobj")
+  expect_error(run_app(lang = "fr-FR"), "must be one of")
+  expect_identical(distlab:::coerce_lang(NULL, "pt-BR"), "pt-BR")
+  expect_identical(distlab:::coerce_lang("xx", "en-US"), "en-US")
+  expect_identical(distlab:::coerce_lang("en-US", "pt-BR"), "en-US")
+})
+
+test_that("the theme and palette come from the brand file", {
+  expect_identical(distlab:::brand_color("primary"), "#2B2D6E")
+  expect_identical(distlab:::brand_color("secondary"), "#14A3A0")
+  expect_length(distlab:::dl_palette(10), 10)
+  expect_true(bslib::is_bs_theme(distlab:::dl_theme()))
+  expect_identical(bslib::bs_get_variables(distlab:::dl_theme(), "primary")[[1]], "#2B2D6E")
+})

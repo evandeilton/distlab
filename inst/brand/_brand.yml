@@ -1,0 +1,62 @@
+# distlab brand ("Curva"), in the brand.yml format.
+meta:
+  name: distlab
+  link:
+    home: https://github.com/evandeilton/distlab
+logo:
+  images:
+    mark: ../app/www/logo-mark.svg
+    icon: ../app/www/favicon.svg
+  small: icon
+  medium: mark
+color:
+  palette:
+    indigo: "#2B2D6E"
+    teal: "#14A3A0"
+    amber: "#F2A33A"
+    mist: "#F7F8FC"
+    ink: "#1B1C3A"
+    night: "#12132B"
+    abyss: "#0B0C1F"
+    dusk: "#1D1F40"
+  primary: indigo
+  secondary: teal
+  warning: amber
+  background: mist
+  foreground: ink
+typography:
+  fonts:
+    - family: Space Grotesk
+      source: file
+      files:
+        - path: ../app/www/fonts/space-grotesk-500.woff2
+          weight: 500
+        - path: ../app/www/fonts/space-grotesk-700.woff2
+          weight: 700
+    - family: Inter
+      source: file
+      files:
+        - path: ../app/www/fonts/inter-400.woff2
+          weight: 400
+        - path: ../app/www/fonts/inter-600.woff2
+          weight: 600
+    - family: JetBrains Mono
+      source: file
+      files:
+        - path: ../app/www/fonts/jetbrains-mono-400.woff2
+          weight: 400
+  base: Inter
+  headings:
+    family: Space Grotesk
+    weight: 700
+  monospace: JetBrains Mono
+defaults:
+  distlab:
+    # Dark color mode (Bootstrap 5.3 data-bs-theme="dark").
+    dark:
+      background: night
+      navbar: abyss
+      card: dusk
+    # Colorblind-safe categorical palette (Okabe-Ito hues, brand teal and
+    # amber first) for plots with several series.
+    categorical: ["#14A3A0", "#F2A33A", "#0072B2", "#D55E00", "#CC79A7", "#56B4E9", "#7A7DA8"]

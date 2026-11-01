@@ -24,3 +24,16 @@
   moments appear on narrow screens.
 * 'extraDistr' is now imported for the Beta-binomial, Discrete uniform and
   Laplace distributions.
+* New brand and app shell: logo, colors and vendored fonts (Space Grotesk,
+  Inter, JetBrains Mono), light and dark modes, and a navigation bar with
+  Home, Compendium, Explorer, Calculator, Compare, Simulation, Fit and About.
+* Home page with a distribution search, quick-start actions and one card per
+  data type.
+* The interface language can be switched at any time between Portuguese and
+  English without losing the open page, distribution or parameter values.
+* The Explorer shows a formula sheet rendered with KaTeX (density, CDF,
+  quantile, moments, generating functions, median, mode and entropy, with
+  their conditions), a "Related distributions" card that opens the related
+  entry, and moment tiles and plots in the brand colors.
+* Linked sliders keep parameter constraints (Uniform `min < max`,
+  Hypergeometric `k <= m + n`) by moving values and ranges.

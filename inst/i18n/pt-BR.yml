@@ -1,13 +1,77 @@
 app.title: distlab
+app.tagline: >-
+  Um laboratório interativo de distribuições de probabilidade: histórias,
+  fórmulas, gráficos e momentos exatos.
+nav.home: Início
+nav.compendium: Compêndio
 nav.explorer: Explorador
+nav.calculator: Calculadora
+nav.compare: Comparar
+nav.simulation: Simulação
+nav.fit: Ajuste
 nav.about: Sobre
+nav.main: Navegação principal
+nav.language: Idioma da interface
+nav.lang_pt: Português (Brasil)
+nav.lang_en: English (US)
+upcoming.note: Esta seção faz parte de uma próxima versão.
+home.search_label: Encontre uma distribuição
+home.search_placeholder: Digite um nome, como Normal ou Poisson
+home.quick_start: Para começar
+home.explore_normal: Explorar a Normal
+home.fit_data: Ajustar meus dados
+home.browse: Navegue por tipo de dado
+home.count: "{n} distribuições"
+home.count_one: "1 distribuição"
+group.binary: Binárias
+group.binary.desc: Resultados com dois valores, como sucesso e fracasso.
+group.counts: Contagens
+group.counts.desc: Números inteiros de eventos, sucessos ou tentativas.
+group.bounded: Limitadas
+group.bounded.desc: Valores em um intervalo finito, como proporções.
+group.positive: Positivas
+group.positive.desc: Valores positivos, como tempos de espera, durações e tamanhos.
+group.real_line: Reta real
+group.real_line.desc: Valores em toda a reta real, como erros e diferenças.
+type.discrete: Discreta
+type.continuous: Contínua
 explorer.distribution: Distribuição
 explorer.parameters: Parâmetros
 explorer.density: Função densidade
 explorer.pmf: Função de probabilidade
 explorer.cdf: Função de distribuição acumulada
 explorer.story: História
-explorer.formulas: Fórmulas
+explorer.formulas: Formulário
+formula.tab.functions: Funções
+formula.tab.moments: Momentos
+formula.tab.generating: Funções geradoras
+formula.tab.summaries: Outras medidas
+formula.pdf: Densidade
+formula.pmf: Função de probabilidade
+formula.cdf: Função de distribuição
+formula.quantile: Função quantil
+formula.mean: Média
+formula.variance: Variância
+formula.skewness: Assimetria
+formula.excess_kurtosis: Excesso de curtose
+formula.raw_moment: Momento de ordem j
+formula.mgf: Função geradora de momentos
+formula.cf: Função característica
+formula.pgf: Função geradora de probabilidades
+formula.median: Mediana
+formula.mode: Moda
+formula.entropy: Entropia
+formula.if: se
+formula.undefined: não existe
+formula.no_closed_form: sem forma fechada
+related.title: Distribuições relacionadas
+related.none: Não há relações registradas para esta distribuição.
+related.to: leva a
+related.open: "Abrir {name} no Explorador"
+related.type.special_case: Caso particular
+related.type.transformation: Transformação
+related.type.limit: Limite
+related.type.sum: Soma
 moments.mean: Média
 moments.variance: Variância
 moments.sd: Desvio-padrão
@@ -18,7 +82,13 @@ plot.x: x
 plot.density: f(x)
 plot.probability: P(X = x)
 plot.cdf: F(x)
+plot.mean: Média
 error.invalid_params: "Valores de parâmetros fora do domínio: {message}"
 about.text: >-
   O distlab é um laboratório interativo para estudar distribuições de
   probabilidade.
+about.details: >-
+  Todo número na tela vem de fórmulas fechadas ou de integração numérica
+  controlada, e as fórmulas seguem a notação dos livros-texto de referência.
+about.version: "Versão {version}"
+about.license: Código distribuído sob a licença MIT.

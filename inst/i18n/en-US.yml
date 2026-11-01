@@ -1,13 +1,77 @@
 app.title: distlab
+app.tagline: >-
+  An interactive laboratory for probability distributions: stories,
+  formulas, plots and exact moments.
+nav.home: Home
+nav.compendium: Compendium
 nav.explorer: Explorer
+nav.calculator: Calculator
+nav.compare: Compare
+nav.simulation: Simulation
+nav.fit: Fit
 nav.about: About
+nav.main: Main navigation
+nav.language: Interface language
+nav.lang_pt: Português (Brasil)
+nav.lang_en: English (US)
+upcoming.note: This section is part of an upcoming release.
+home.search_label: Find a distribution
+home.search_placeholder: Type a name, such as Normal or Poisson
+home.quick_start: Quick start
+home.explore_normal: Explore the Normal
+home.fit_data: Fit my data
+home.browse: Browse by data type
+home.count: "{n} distributions"
+home.count_one: "1 distribution"
+group.binary: Binary
+group.binary.desc: Outcomes with two values, such as success and failure.
+group.counts: Counts
+group.counts.desc: Whole numbers of events, successes or trials.
+group.bounded: Bounded
+group.bounded.desc: Values on a finite interval, such as proportions.
+group.positive: Positive
+group.positive.desc: Positive values such as waiting times, lifetimes and sizes.
+group.real_line: Real line
+group.real_line.desc: Values anywhere on the real line, such as errors and differences.
+type.discrete: Discrete
+type.continuous: Continuous
 explorer.distribution: Distribution
 explorer.parameters: Parameters
 explorer.density: Density function
 explorer.pmf: Probability mass function
 explorer.cdf: Cumulative distribution function
 explorer.story: Story
-explorer.formulas: Formulas
+explorer.formulas: Formula sheet
+formula.tab.functions: Functions
+formula.tab.moments: Moments
+formula.tab.generating: Generating functions
+formula.tab.summaries: Other measures
+formula.pdf: Density
+formula.pmf: Probability mass function
+formula.cdf: Distribution function
+formula.quantile: Quantile function
+formula.mean: Mean
+formula.variance: Variance
+formula.skewness: Skewness
+formula.excess_kurtosis: Excess kurtosis
+formula.raw_moment: Raw moment of order j
+formula.mgf: Moment generating function
+formula.cf: Characteristic function
+formula.pgf: Probability generating function
+formula.median: Median
+formula.mode: Mode
+formula.entropy: Entropy
+formula.if: if
+formula.undefined: does not exist
+formula.no_closed_form: no closed form
+related.title: Related distributions
+related.none: No relationships are recorded for this distribution.
+related.to: leads to
+related.open: "Open {name} in the Explorer"
+related.type.special_case: Special case
+related.type.transformation: Transformation
+related.type.limit: Limit
+related.type.sum: Sum
 moments.mean: Mean
 moments.variance: Variance
 moments.sd: Std. deviation
@@ -18,7 +82,14 @@ plot.x: x
 plot.density: f(x)
 plot.probability: P(X = x)
 plot.cdf: F(x)
+plot.mean: Mean
 error.invalid_params: "These parameter values are outside the domain: {message}"
 about.text: >-
   distlab is an interactive laboratory for studying probability
   distributions.
+about.details: >-
+  Every number on screen comes from closed forms or controlled numerical
+  integration, and the formulas follow the notation of the standard
+  textbooks.
+about.version: "Version {version}"
+about.license: Code released under the MIT license.
