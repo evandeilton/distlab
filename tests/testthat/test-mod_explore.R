@@ -87,11 +87,80 @@ test_that("integer parameters get whole-number sliders", {
   })
 })
 
-test_that("parameter combinations that break a constraint give a message", {
+test_that("linked sliders keep min < max by pushing the other value", {
   shiny::testServer(distlab:::mod_explore_server, args = list(lang = "en-US"), {
-    session$setInputs(dist = "uniform", p_uniform_min = 3, p_uniform_max = 1)
-    err <- tryCatch(dist(), error = function(e) e)
+    session$setInputs(dist = "uniform", p_uniform_min = 0, p_uniform_max = 1)
+    session$setInputs(p_uniform_min = 3)
+    expect_equal(dist()$params$min, 3)
+    expect_equal(dist()$params$max, 3.1)
+    session$setInputs(p_uniform_max = -2)
+    expect_equal(dist()$params$min, -2.1)
+    expect_equal(dist()$params$max, -2)
+  })
+})
+
+test_that("linked sliders clamp k to m + n in the Hypergeometric", {
+  shiny::testServer(distlab:::mod_explore_server, args = list(lang = "en-US"), {
+    session$setInputs(dist = "hypergeometric", p_hypergeometric_m = 10,
+                      p_hypergeometric_n = 15, p_hypergeometric_k = 8)
+    session$setInputs(p_hypergeometric_m = 2, p_hypergeometric_n = 3)
+    expect_equal(dist()$params$k, 5)
+    session$setInputs(p_hypergeometric_k = 40)
+    expect_equal(dist()$params$k, 5)
+  })
+})
+
+test_that("the module follows a reactive language", {
+  lang <- shiny::reactiveVal("pt-BR")
+  shiny::testServer(distlab:::mod_explore_server, args = list(lang = lang), {
+    session$setInputs(dist = "gamma", p_gamma_shape = 2.5, p_gamma_rate = 1)
+    session$elapse(200)
+    expect_match(output$moments$html, "2,5")
+    expect_match(output$story, "Eventos")
+    lang("en-US")
+    session$elapse(200)
+    expect_match(output$moments$html, "2.5", fixed = TRUE)
+    expect_match(output$story, "Events")
+    expect_equal(dist()$params$shape, 2.5)
+  })
+})
+
+test_that("formula tabs and the related card render for every entry", {
+  for (did in dl_ids()) {
+    shiny::testServer(distlab:::mod_explore_server, args = list(lang = "en-US"), {
+      session$setInputs(dist = did)
+      for (tab in c("functions", "moments", "generating", "summaries")) {
+        expect_match(output[[paste0("formulas_", tab)]]$html, "dl-formula", info = did)
+      }
+      expect_type(output$related$html, "character")
+    })
+  }
+})
+
+test_that("clicking a related distribution opens it", {
+  sess <- recording_session()
+  shiny::testServer(distlab:::mod_explore_server, args = list(lang = "en-US"),
+                    session = sess, {
+    session$setInputs(dist = "gamma")
+    expect_match(output$related$html, 'data-dist="exponential"')
+    session$setInputs(goto = "exponential")
+    msgs <- input_messages(sess, "dist")
+    expect_identical(msgs[[length(msgs)]]$message$value, "exponential")
+  })
+})
+
+test_that("plots and moments wait for the debounced distribution to catch up", {
+  shiny::testServer(distlab:::mod_explore_server, args = list(lang = "en-US"), {
+    session$setInputs(dist = "gamma", p_gamma_shape = 3, p_gamma_rate = 2)
+    session$elapse(200)
+    expect_identical(dist_now()$id, "gamma")
+    session$setInputs(dist = "poisson", p_poisson_lambda = 4)
+    # Inside the debounce window the old Gamma must not reach the outputs.
+    err <- tryCatch(dist_now(), error = function(e) e)
     expect_s3_class(err, "shiny.silent.error")
-    expect_match(conditionMessage(err), "min < max")
+    expect_error(output$moments)
+    session$elapse(200)
+    expect_identical(dist_now()$id, "poisson")
+    expect_match(output$moments$html, ">4<")
   })
 })

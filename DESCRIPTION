@@ -5,7 +5,15 @@ Authors@R: c(person(given = "José Evandeilton",
                     family = "Lopes",
                     role = c("aut", "cre", "cph"),
                     email = "evandeilton@gmail.com",
-                    comment = c(ORCID = "0009-0007-5887-4084")))
+                    comment = c(ORCID = "0009-0007-5887-4084")),
+             person(given = "Khan Academy and other contributors",
+                    role = "cph", comment = "KaTeX library"),
+             person(given = "The Inter Project Authors", role = "cph",
+                    comment = "Inter font"),
+             person(given = "The Space Grotesk Project Authors", role = "cph",
+                    comment = "Space Grotesk font"),
+             person(given = "The JetBrains Mono Project Authors", role = "cph",
+                    comment = "JetBrains Mono font"))
 Description: A 'shiny' dashboard and a distribution engine for teaching
     probability distributions. Each distribution is described by a registry
     entry (support, parameters, formulas and story) and can be explored
@@ -13,6 +21,8 @@ Description: A 'shiny' dashboard and a distribution engine for teaching
     generation functions and exact moments. The interface is available in
     Brazilian Portuguese and English.
 License: MIT + file LICENSE
+Copyright: See file inst/COPYRIGHTS for the bundled KaTeX library and
+    fonts.
 URL: https://github.com/evandeilton/distlab
 BugReports: https://github.com/evandeilton/distlab/issues
 Depends:
@@ -20,12 +30,16 @@ Depends:
 Imports:
     bslib (>= 0.9.0),
     extraDistr,
+    htmltools,
     plotly,
     shiny (>= 1.8.0),
     stats,
+    utils,
     yaml
 Suggests:
+    chromote,
     distributions3,
+    shinytest2,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 Encoding: UTF-8

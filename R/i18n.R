@@ -60,3 +60,14 @@ format_moment <- function(x, lang) {
   if (is.infinite(x)) return(if (x > 0) "\u221e" else "-\u221e")
   format_num(x, lang)
 }
+
+# Text element that the client re-translates on a language switch: the
+# span carries its dictionary key, and distlab.js replaces its text.
+i18n_span <- function(key, lang, ...) {
+  shiny::tags$span(`data-i18n` = key, tr(key, lang), ...)
+}
+
+# Language from a client input, falling back to `default` when unset or unknown.
+coerce_lang <- function(x, default) {
+  if (is_string(x) && x %in% .dl_langs) x else default
+}

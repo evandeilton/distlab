@@ -7,7 +7,7 @@
 run_app(lang = "pt-BR", ...)
 }
 \arguments{
-\item{lang}{Interface language, one of \code{\link[=dl_languages]{dl_languages()}}.}
+\item{lang}{Initial interface language, one of \code{\link[=dl_languages]{dl_languages()}}.}
 
 \item{...}{Further arguments passed to \code{\link[shiny:shinyApp]{shiny::shinyApp()}}, such as
 \code{options = list(port = 8080)}.}
@@ -16,7 +16,9 @@ run_app(lang = "pt-BR", ...)
 A \code{shiny.appobj}; printing it (as the console does) starts the app.
 }
 \description{
-Launches the 'shiny' dashboard.
+Launches the 'shiny' dashboard. The language can also be switched at any
+time from the navigation bar, keeping the open page, distribution and
+parameter values.
 }
 \examples{
 if (interactive()) {

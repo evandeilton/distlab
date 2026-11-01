@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 132" role="img" aria-label="distlab">
+  <rect width="132" height="132" rx="30" fill="#2B2D6E"/>
+  <path d="M18 98 C 44 98, 48 34, 66 34 C 84 34, 88 98, 114 98" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round"/>
+  <path d="M78 46 C 86 62, 90 98, 114 98 L 78 98 Z" fill="#F2A33A"/>
+  <line x1="18" y1="106" x2="114" y2="106" stroke="#FFFFFF" stroke-opacity="0.5" stroke-width="3" stroke-linecap="round"/>
+</svg>

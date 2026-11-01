@@ -1,0 +1,23 @@
+distlab bundles the following third-party components in inst/app/www.
+
+KaTeX 0.16.47 (inst/app/www/katex)
+  Copyright (c) 2013-2020 Khan Academy and other contributors
+  License: MIT (inst/app/www/katex/LICENSE)
+  https://katex.org
+
+Inter (inst/app/www/fonts/inter-*.woff2)
+  Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter)
+  License: SIL Open Font License 1.1 (inst/app/www/fonts/OFL-Inter.txt)
+
+Space Grotesk (inst/app/www/fonts/space-grotesk-*.woff2)
+  Copyright 2020 The Space Grotesk Project Authors
+  (https://github.com/floriankarsten/space-grotesk)
+  License: SIL Open Font License 1.1 (inst/app/www/fonts/OFL-SpaceGrotesk.txt)
+
+JetBrains Mono (inst/app/www/fonts/jetbrains-mono-*.woff2)
+  Copyright 2020 The JetBrains Mono Project Authors
+  (https://github.com/JetBrains/JetBrainsMono)
+  License: SIL Open Font License 1.1 (inst/app/www/fonts/OFL-JetBrainsMono.txt)
+
+The font files are the Latin subsets distributed by Fontsource
+(https://fontsource.org), unmodified.

@@ -1,49 +1,140 @@
 # Explorer: one distribution at a time, with parameter sliders, density and
-# CDF plots, moments and the distribution story.
+# CDF plots, moments, formula sheet, story and related distributions.
 
 mod_explore_ui <- function(id, lang) {
   ns <- shiny::NS(id)
-  ids <- dl_ids()
-  choices <- stats::setNames(
-    ids, vapply(ids, function(i) entry_text(dl_entry(i), "names", lang), "")
-  )
+  tab_panel <- function(tab) {
+    bslib::nav_panel(
+      title = i18n_span(paste0("formula.tab.", tab), lang), value = tab,
+      shiny::uiOutput(ns(paste0("formulas_", tab)))
+    )
+  }
   bslib::layout_sidebar(
+    class = "dl-explorer",
     sidebar = bslib::sidebar(
-      shiny::selectInput(ns("dist"), tr("explorer.distribution", lang),
-                         choices = choices, selected = "normal"),
-      shiny::h6(tr("explorer.parameters", lang)),
+      width = 300,
+      shiny::selectInput(ns("dist"), i18n_span("explorer.distribution", lang),
+                         choices = dist_choices(lang), selected = "normal"),
+      shiny::tags$h2(class = "dl-sidebar-heading",
+                     i18n_span("explorer.parameters", lang)),
       shiny::uiOutput(ns("params"))
     ),
+    shiny::uiOutput(ns("header")),
     bslib::layout_columns(
-      col_widths = c(6, 6),
-      bslib::card(bslib::card_header(shiny::textOutput(ns("density_title"))),
-                  plotly::plotlyOutput(ns("density"), height = "320px")),
-      bslib::card(bslib::card_header(tr("explorer.cdf", lang)),
-                  plotly::plotlyOutput(ns("cdf"), height = "320px"))
+      col_widths = c(6, 6), fill = FALSE,
+      bslib::card(
+        class = "dl-plot-card",
+        bslib::card_header(shiny::textOutput(ns("density_title"), inline = TRUE)),
+        plotly::plotlyOutput(ns("density"), height = "300px")
+      ),
+      bslib::card(
+        class = "dl-plot-card",
+        bslib::card_header(i18n_span("explorer.cdf", lang)),
+        plotly::plotlyOutput(ns("cdf"), height = "300px")
+      )
     ),
     shiny::uiOutput(ns("moments")),
-    bslib::card(bslib::card_header(tr("explorer.story", lang)),
-                bslib::card_body(shiny::textOutput(ns("story"))))
+    bslib::layout_columns(
+      col_widths = c(7, 5), fill = FALSE,
+      bslib::card(
+        class = "dl-formula-card", full_screen = TRUE,
+        bslib::card_header(shiny::tags$span(
+          class = "dl-card-title",
+          shiny::icon("square-root-variable", `aria-hidden` = "true"),
+          i18n_span("explorer.formulas", lang))),
+        bslib::card_body(
+          do.call(bslib::navset_underline, c(
+            list(id = ns("formula_tab")),
+            lapply(names(formula_tabs("discrete")), tab_panel)
+          ))
+        )
+      ),
+      shiny::tags$div(
+        class = "dl-stack",
+        bslib::card(
+          bslib::card_header(shiny::tags$span(
+            class = "dl-card-title",
+            shiny::icon("book-open", `aria-hidden` = "true"),
+            i18n_span("explorer.story", lang))),
+          bslib::card_body(shiny::tags$p(
+            class = "dl-story", shiny::textOutput(ns("story"), inline = TRUE)))
+        ),
+        bslib::card(
+          class = "dl-related-card",
+          bslib::card_header(shiny::tags$span(
+            class = "dl-card-title",
+            shiny::icon("diagram-project", `aria-hidden` = "true"),
+            i18n_span("related.title", lang))),
+          bslib::card_body(shiny::uiOutput(ns("related")))
+        )
+      )
+    )
   )
 }
 
-mod_explore_server <- function(id, lang) {
+# Distribution choices grouped by data type, labeled in `lang`.
+dist_choices <- function(lang) {
+  reg <- dl_registry()
+  groups <- intersect(.dl_groups, unique(vapply(reg, `[[`, "", "group")))
+  out <- lapply(groups, function(g) {
+    ids <- dl_ids(group = g)
+    labels <- vapply(ids, function(i) entry_text(reg[[i]], "names", lang), "")
+    o <- order(labels, method = "radix")
+    stats::setNames(ids[o], labels[o])
+  })
+  names(out) <- vapply(groups, function(g) tr(paste0("group.", g), lang), "")
+  out
+}
+
+# `lang` may be a fixed language or a reactive; `dark` a reactive logical.
+# `select` is a reactive with a distribution id requested from outside (Home).
+# Returns the reactives of the current entry, parameter values and distribution.
+mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
+                               select = shiny::reactive(NULL)) {
+  lang_r <- if (shiny::is.reactive(lang)) lang else shiny::reactive(lang)
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
     entry <- shiny::reactive(dl_entry(shiny::req(input$dist)))
+    # Last values used per distribution, restored when the student comes back.
+    memory <- new.env(parent = emptyenv())
+    # Resolved parameter values of the current entry: list(id, vals).
+    pars <- shiny::reactiveVal(NULL)
+    # Slider ranges already sent to the client, per input id.
+    sent_limits <- new.env(parent = emptyenv())
+
+    # Choices are relabeled in the new language, keeping the selection.
+    shiny::observeEvent(lang_r(), {
+      shiny::updateSelectInput(session, "dist", choices = dist_choices(lang_r()),
+                               selected = shiny::isolate(input$dist))
+    }, ignoreInit = TRUE)
+
+    # Requests from other pages (Home search, chips) and related-card clicks.
+    open_dist <- function(did) {
+      if (is_string(did) && did %in% dl_ids()) {
+        shiny::updateSelectInput(session, "dist", selected = did)
+      }
+    }
+    shiny::observeEvent(select(), open_dist(select()$id))
+    shiny::observeEvent(input$goto, open_dist(input$goto))
 
     # One slider per parameter, rebuilt when the distribution changes. Ids carry
     # the distribution id so stale values from another distribution are never read.
     output$params <- shiny::renderUI({
       e <- entry()
+      vals <- shiny::isolate(memory[[e$id]]) %||%
+        stats::setNames(lapply(e$parameters, `[[`, "default"),
+                        vapply(e$parameters, `[[`, "", "name"))
+      lim <- slider_limits(e, vals)
       lapply(e$parameters, function(par) {
+        input_id <- param_input_id(e$id, par$name)
+        sent_limits[[input_id]] <- lim[[par$name]]
         # Integer parameters have whole min, max and step, so their sliders
         # only produce whole numbers.
         shiny::sliderInput(
-          ns(param_input_id(e$id, par$name)),
-          label = shiny::code(par$name),
-          min = par$slider$min, max = par$slider$max,
-          value = par$default, step = par$slider$step
+          ns(input_id),
+          label = param_label(par),
+          min = lim[[par$name]][1], max = lim[[par$name]][2],
+          value = vals[[par$name]], step = par$slider$step, ticks = FALSE
         )
       })
     })
@@ -52,79 +143,207 @@ mod_explore_server <- function(id, lang) {
     # narrow screens); otherwise no parameter ever reaches the server.
     shiny::outputOptions(output, "params", suspendWhenHidden = FALSE)
 
-    # Current distribution; waits until every slider of this entry exists.
-    dist <- shiny::reactive({
+    # Raw slider values; waits until every slider of this entry exists.
+    raw <- shiny::reactive({
       e <- entry()
       par_names <- vapply(e$parameters, `[[`, "", "name")
       vals <- lapply(param_input_id(e$id, par_names), function(k) input[[k]])
       shiny::req(all(!vapply(vals, is.null, logical(1))))
       names(vals) <- par_names
-      res <- tryCatch(do.call(dl_dist, c(list(e$id), vals)),
+      list(id = e$id, vals = vals)
+    })
+
+    # Keep registry constraints true by moving the other slider (min < max)
+    # or clamping a value and its range (k <= m + n), instead of erroring.
+    shiny::observe({
+      r <- raw()
+      e <- dl_entry(r$id)
+      prev <- shiny::isolate(pars())
+      prev_vals <- if (!is.null(prev) && identical(prev$id, r$id)) prev$vals
+      fixed <- resolve_constraints(e, r$vals, prev_vals)
+      lim <- slider_limits(e, fixed)
+      for (nm in names(fixed)) {
+        input_id <- param_input_id(e$id, nm)
+        new_lim <- if (!same_value(sent_limits[[input_id]], lim[[nm]])) lim[[nm]]
+        if (!same_value(fixed[[nm]], r$vals[[nm]]) || !is.null(new_lim)) {
+          sent_limits[[input_id]] <- lim[[nm]]
+          shiny::updateSliderInput(session, input_id, value = fixed[[nm]],
+                                   min = new_lim[1], max = new_lim[2])
+        }
+      }
+      memory[[r$id]] <- fixed
+      pars(list(id = r$id, vals = fixed))
+    })
+
+    # Current distribution, built from the resolved values.
+    dist <- shiny::reactive({
+      e <- entry()
+      p <- pars()
+      shiny::req(p, identical(p$id, e$id))
+      res <- tryCatch(do.call(dl_dist, c(list(e$id), p$vals)),
                       error = function(err) conditionMessage(err))
       if (!inherits(res, "dl_dist")) {
-        shiny::validate(tr("error.invalid_params", lang, message = res))
+        shiny::validate(tr("error.invalid_params", lang_r(), message = res))
       }
       res
     })
     # Slider drags fire many events; recompute only after a short pause.
     dist_d <- shiny::debounce(dist, 150)
+    # The debounced value lags a distribution switch; wait until it matches
+    # the selected entry so plots and moments never mix two distributions.
+    dist_now <- shiny::reactive({
+      d <- dist_d()
+      shiny::req(identical(d$id, entry()$id))
+      d
+    })
 
     # Engine errors (e.g. no finite plotting range) become messages, not crashes.
     curve <- shiny::reactive({
-      res <- tryCatch(dl_curve(dist_d()), error = function(err) conditionMessage(err))
+      res <- tryCatch(dl_curve(dist_now()), error = function(err) conditionMessage(err))
       shiny::validate(shiny::need(is.data.frame(res), res))
       res
     })
     is_discrete <- shiny::reactive(identical(entry()$type, "discrete"))
 
+    output$header <- shiny::renderUI(explore_header(entry(), lang_r()))
+
     output$density_title <- shiny::renderText({
-      tr(if (is_discrete()) "explorer.pmf" else "explorer.density", lang)
+      tr(if (is_discrete()) "explorer.pmf" else "explorer.density", lang_r())
     })
 
     output$density <- plotly::renderPlotly({
       d <- curve()
+      lg <- lang_r()
+      th <- plot_theme(dark())
       if (is_discrete()) {
         p <- plotly::plot_ly(d, x = ~x, y = ~density, type = "bar",
-                             marker = list(color = "#1f6f8b"))
-        ylab <- tr("plot.probability", lang)
+                             marker = list(color = th$fill_solid),
+                             hovertemplate = "x = %{x}<br>P = %{y:.4f}<extra></extra>")
+        ylab <- tr("plot.probability", lg)
       } else {
         p <- plotly::plot_ly(d, x = ~x, y = ~density, type = "scatter",
                              mode = "lines", fill = "tozeroy",
-                             line = list(color = "#1f6f8b"))
-        ylab <- tr("plot.density", lang)
+                             fillcolor = th$fill, line = list(color = th$line, width = 2.5),
+                             hovertemplate = "x = %{x:.4f}<br>f(x) = %{y:.4f}<extra></extra>")
+        ylab <- tr("plot.density", lg)
       }
-      plot_layout(p, tr("plot.x", lang), ylab, ylim = density_ylim(d))
+      p <- mean_marker(p, dist_now(), th, lg)
+      plot_layout(p, tr("plot.x", lg), ylab, th, lg, ylim = density_ylim(d))
     })
 
     output$cdf <- plotly::renderPlotly({
       d <- curve()
+      lg <- lang_r()
+      th <- plot_theme(dark())
       # Discrete CDFs are right-continuous step functions.
       shape <- if (is_discrete()) "hv" else "linear"
       p <- plotly::plot_ly(d, x = ~x, y = ~cdf, type = "scatter", mode = "lines",
-                           line = list(color = "#1f6f8b", shape = shape))
-      plot_layout(p, tr("plot.x", lang), tr("plot.cdf", lang))
+                           line = list(color = th$line2, shape = shape, width = 2.5),
+                           hovertemplate = "x = %{x:.4f}<br>F(x) = %{y:.4f}<extra></extra>")
+      plot_layout(p, tr("plot.x", lg), tr("plot.cdf", lg), th, lg, ylim = c(0, 1.02))
     })
 
     output$moments <- shiny::renderUI({
-      keys <- c("mean", "variance", "sd", "skewness", "excess_kurtosis")
       # Read the reactive outside tryCatch so req()/validate() still propagate.
-      d <- dist_d()
+      d <- dist_now()
+      lg <- lang_r()
       # An engine error shows a dash; NA from the engine means "does not exist".
       m <- tryCatch(dl_moments(d), error = function(err) NULL)
-      boxes <- lapply(keys, function(k) {
-        value <- if (is.null(m)) "\u2014" else format_moment(m[[k]], lang)
-        bslib::value_box(title = tr(paste0("moments.", k), lang), value = value)
-      })
-      do.call(bslib::layout_column_wrap,
-              c(list(width = "170px", fill = FALSE), boxes))
+      moment_boxes(m, lg)
     })
 
-    output$story <- shiny::renderText(entry_text(entry(), "story", lang))
+    for (tab in names(formula_tabs("discrete"))) local({
+      tb <- tab
+      output[[paste0("formulas_", tb)]] <- shiny::renderUI(
+        formula_tab_content(entry(), tb, lang_r())
+      )
+    })
+
+    output$story <- shiny::renderText(entry_text(entry(), "story", lang_r()))
+
+    output$related <- shiny::renderUI(
+      related_list_tag(entry()$id, lang_r(), ns("goto"))
+    )
+
+    list(entry = entry, params = shiny::reactive(pars()), dist = dist, dist_now = dist_now)
   })
 }
 
 # Input id of a parameter slider, unique per distribution.
 param_input_id <- function(dist_id, par_name) paste0("p_", dist_id, "_", par_name)
+
+# Slider label: the math symbol of the parameter and its R argument name.
+param_label <- function(par) {
+  shiny::tags$span(class = "dl-param-label",
+                   math_tag(par$latex, class = "dl-param-symbol"),
+                   shiny::tags$code(par$name))
+}
+
+# Title of the open distribution with its type and data-type group.
+explore_header <- function(entry, lang) {
+  shiny::tags$div(
+    class = "dl-dist-header",
+    shiny::tags$h1(class = "dl-dist-name", entry_text(entry, "names", lang)),
+    shiny::tags$span(class = "badge dl-badge-type", tr(paste0("type.", entry$type), lang)),
+    shiny::tags$span(class = paste0("badge dl-badge-group dl-group-", entry$group),
+                     tr(paste0("group.", entry$group), lang))
+  )
+}
+
+# Moment tiles, each with an icon chip in a brand color.
+moment_boxes <- function(m, lang) {
+  spec <- list(
+    mean = c("crosshairs", "indigo"),
+    variance = c("arrows-left-right", "teal"),
+    sd = c("ruler-horizontal", "amber"),
+    skewness = c("scale-unbalanced", "indigo"),
+    excess_kurtosis = c("mountain", "teal")
+  )
+  tiles <- lapply(names(spec), function(k) {
+    value <- if (is.null(m)) "\u2014" else format_moment(m[[k]], lang)
+    shiny::tags$div(
+      class = paste0("dl-stat dl-stat-", spec[[k]][2]),
+      shiny::tags$span(class = "dl-icon-chip",
+                       shiny::icon(spec[[k]][1], `aria-hidden` = "true")),
+      shiny::tags$div(
+        shiny::tags$p(class = "dl-stat-title", tr(paste0("moments.", k), lang)),
+        shiny::tags$p(class = paste("dl-stat-value",
+                                    if (!is.null(m) && is.na(m[[k]])) "dl-stat-text"),
+                      value)
+      )
+    )
+  })
+  shiny::tags$div(class = "dl-moments", role = "group", tiles)
+}
+
+# Plot colors for the light or dark color mode.
+plot_theme <- function(dark = FALSE) {
+  if (isTRUE(dark)) {
+    list(text = "#E6E7F5", muted = "#A3A6CC", grid = "rgba(230, 231, 245, 0.10)",
+         zero = "rgba(230, 231, 245, 0.28)", line = "#3CC9C5",
+         fill = "rgba(60, 201, 197, 0.22)", fill_solid = "#3CC9C5",
+         line2 = "#A9ACF2", accent = "#F2A33A", hover_bg = "#1D1F40")
+  } else {
+    list(text = "#1B1C3A", muted = "#5B5E8A", grid = "rgba(27, 28, 58, 0.08)",
+         zero = "rgba(27, 28, 58, 0.25)", line = "#0E7C7A",
+         fill = "rgba(20, 163, 160, 0.20)", fill_solid = "#14A3A0",
+         line2 = "#2B2D6E", accent = "#C77A12", hover_bg = "#FFFFFF")
+  }
+}
+
+# Dashed vertical line at the mean, when it exists and is finite.
+mean_marker <- function(p, d, th, lang) {
+  mu <- tryCatch(dl_moments(d)[["mean"]], error = function(err) NA_real_)
+  if (!is.finite(mu)) return(p)
+  plotly::layout(p, shapes = list(list(
+    type = "line", xref = "x", yref = "paper", x0 = mu, x1 = mu, y0 = 0, y1 = 1,
+    line = list(color = th$accent, width = 1.5, dash = "dash")
+  )), annotations = list(list(
+    x = mu, y = 1, xref = "x", yref = "paper", yanchor = "bottom", xanchor = "left",
+    text = tr("plot.mean", lang), showarrow = FALSE,
+    font = list(color = th$accent, size = 11)
+  )))
+}
 
 # Y-axis limits that keep an unbounded density spike (e.g. Gamma with shape < 1)
 # from flattening the plot; NULL when no cap is needed.
@@ -135,13 +354,29 @@ density_ylim <- function(d) {
   if (max(d$density) > 2 * cap) c(0, cap) else NULL
 }
 
-# Shared plotly layout: axis titles, no legend, compact margins.
-plot_layout <- function(p, xlab, ylab, ylim = NULL) {
-  yaxis <- list(title = ylab)
+# Shared plotly layout: transparent background, brand fonts, axis colors for
+# the color mode, decimal mark of the language, no legend.
+plot_layout <- function(p, xlab, ylab, th = plot_theme(), lang = "en-US", ylim = NULL) {
+  axis <- function(title) {
+    list(title = list(text = title, font = list(color = th$muted)),
+         color = th$muted, gridcolor = th$grid, zerolinecolor = th$zero,
+         linecolor = th$zero, tickfont = list(color = th$muted))
+  }
+  yaxis <- axis(ylab)
   if (!is.null(ylim)) yaxis$range <- ylim
   plotly::config(
-    plotly::layout(p, xaxis = list(title = xlab), yaxis = yaxis,
-                   showlegend = FALSE, margin = list(l = 50, r = 10, t = 10, b = 40)),
-    displaylogo = FALSE
+    plotly::layout(
+      p, xaxis = axis(xlab), yaxis = yaxis, showlegend = FALSE,
+      paper_bgcolor = "rgba(0,0,0,0)", plot_bgcolor = "rgba(0,0,0,0)",
+      font = list(family = "Inter, system-ui, sans-serif", color = th$text, size = 12),
+      separators = if (match_lang(lang) == "pt-BR") ",." else ".,",
+      hoverlabel = list(bgcolor = th$hover_bg, font = list(color = th$text)),
+      margin = list(l = 56, r = 12, t = 24, b = 44),
+      modebar = list(bgcolor = "rgba(0,0,0,0)", color = th$muted, activecolor = th$line)
+    ),
+    displaylogo = FALSE,
+    modeBarButtonsToRemove = c("lasso2d", "select2d", "autoScale2d", "pan2d",
+                               "zoomIn2d", "zoomOut2d", "hoverClosestCartesian",
+                               "hoverCompareCartesian", "toggleSpikelines")
   )
 }
