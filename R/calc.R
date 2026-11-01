@@ -128,10 +128,19 @@ format_pct <- function(lp, lang) {
   paste0(formatC(100 * p, format = "f", digits = 2, decimal.mark = mark), "%")
 }
 
-# Number as R source: up to 15 significant digits, Inf as is.
-code_num <- function(x) {
+# Number as R source: up to 15 significant digits, Inf as is. With `exact`,
+# 16 or 17 digits when 15 do not read back as the same double, so generated
+# code reproduces results bit for bit.
+code_num <- function(x, exact = FALSE) {
   if (is.infinite(x)) return(if (x > 0) "Inf" else "-Inf")
-  trimws(formatC(x, digits = 15, format = "g"))
+  s <- trimws(formatC(x, digits = 15, format = "g"))
+  if (exact && is.finite(x)) {
+    for (d in 16:17) {
+      if (as.numeric(s) == x) break
+      s <- trimws(formatC(x, digits = d, format = "g"))
+    }
+  }
+  s
 }
 
 # Number inside TeX, with the decimal comma of pt-BR.
@@ -140,10 +149,11 @@ tex_num <- function(x, lang) {
   tex_decimal(format_num(x, "en-US", digits = 6), lang)
 }
 
-# Name and arguments of the R function of kind "p" or "q" for code shown to
-# the student: base or 'extraDistr' functions as they are; the Bernoulli as
-# a Binomial with one trial; NULL for functions internal to distlab.
-code_call <- function(dist, kind) {
+# Name and arguments of the R function of kind "d", "p", "q" or "r" for code
+# shown to the student: base or 'extraDistr' functions as they are; the
+# Bernoulli as a Binomial with one trial; NULL for functions internal to
+# distlab. `exact` writes the parameters with code_num(exact = TRUE).
+code_call <- function(dist, kind, exact = FALSE) {
   fun <- dist$entry$functions[[kind]]
   args <- dist$params
   if (identical(dist$id, "bernoulli")) {
@@ -153,7 +163,7 @@ code_call <- function(dist, kind) {
     return(NULL)
   }
   fun <- sub("^stats::", "", fun)
-  arg_text <- paste(names(args), vapply(args, code_num, ""), sep = " = ",
+  arg_text <- paste(names(args), vapply(args, code_num, "", exact = exact), sep = " = ",
                     collapse = ", ")
   list(fun = fun, args = arg_text)
 }
@@ -165,9 +175,9 @@ code_expr <- function(cc, v, upper = FALSE, log_p = FALSE) {
 }
 
 # The distribution as engine code, for entries without a public R function.
-code_dist <- function(dist) {
+code_dist <- function(dist, exact = FALSE) {
   args <- dist$params
-  arg_text <- paste(names(args), vapply(args, code_num, ""), sep = " = ",
+  arg_text <- paste(names(args), vapply(args, code_num, "", exact = exact), sep = " = ",
                     collapse = ", ")
   sprintf("d <- distlab::dl_dist(\"%s\", %s)", dist$id, arg_text)
 }
