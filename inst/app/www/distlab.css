@@ -530,6 +530,50 @@ th[aria-sort="ascending"], th[aria-sort="descending"] { color: var(--dl-ink); }
 .dl-compare-table th { white-space: normal; }
 .dl-compare-table tbody th { text-transform: none; }
 
+/* Simulation */
+.dl-sim .card-body { overflow: visible; }
+/* A wide table or code block would stretch the tab past its card on phones;
+   cap the panes at the card width and let those blocks scroll inside. */
+.dl-sim.main, .dl-sim .card-body, .dl-sim .tab-content, .dl-sim .tab-content > .tab-pane,
+.dl-sim .bslib-grid > *, .dl-sim .shiny-html-output { min-width: 0; }
+.dl-sim .tab-content > .tab-pane { max-width: 100%; }
+.dl-sim .table-responsive { max-width: 100%; }
+.dl-sim .dl-code-block { max-width: 100%; overflow-x: auto; }
+.dl-sim .bslib-navs-card-title, .dl-sim .card-header .nav-underline { flex-wrap: wrap; row-gap: 0.25rem; }
+.dl-sim-intro { color: var(--dl-muted); margin: 0 0 0.75rem; line-height: 1.55; max-width: 60rem; }
+.dl-sim-heading { font-size: 0.95rem; font-weight: 700; margin: 0.25rem 0 0.5rem; }
+.dl-sim-block { min-width: 0; }
+.dl-sim-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0 1.5rem; margin-bottom: 0.25rem; }
+.dl-sim-controls > .shiny-input-container, .dl-sim-controls > .form-group,
+.dl-sim-controls > .shiny-panel-conditional { min-width: 12rem; flex: 0 1 16rem; }
+.dl-sim-controls .bslib-input-switch { margin-bottom: 1.1rem; }
+.dl-seed-row { display: flex; align-items: flex-end; gap: 0.5rem; }
+.dl-seed-row .shiny-input-container { flex: 1 1 auto; width: auto; }
+.dl-seed-row .form-control { font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums; border-color: var(--dl-border); }
+.dl-dice { margin-bottom: 1rem; padding: 0.35rem 0.6rem; border-radius: 0.6rem; }
+.dl-sim-help { margin-top: -0.25rem; }
+.dl-sim-table { max-width: 40rem; }
+.dl-sim-table caption { caption-side: top; color: var(--dl-muted); font-size: 0.85rem; padding-top: 0; }
+.dl-mc-table td.dl-cell-mark { text-align: center; }
+.dl-mark-yes { color: var(--dl-accent-text); font-weight: 700; }
+.dl-mark-no { color: var(--dl-amber-text); font-weight: 700; }
+.dl-sim-summary { display: flex; flex-direction: column; gap: 0.5rem; margin: 0.5rem 0; }
+.dl-sim-law { margin: 0; }
+.dl-sim-rel-head { margin-bottom: 0.5rem; }
+.dl-sim-rel-head .dl-panel-title .badge { vertical-align: middle; }
+.dl-sim-params code { font-size: 0.82rem; color: var(--dl-ink); background: var(--dl-chip-bg);
+  padding: 0.08rem 0.4rem; border-radius: 0.35rem; }
+.dl-sim-verdict { border: 1px solid var(--dl-border); border-left: 4px solid var(--dl-teal);
+  border-radius: 0.6rem; background: var(--dl-formula-bg); padding: 0.6rem 0.85rem; margin: 0.25rem 0 0.75rem; }
+.dl-sim-verdict p { margin: 0; }
+.dl-sim-verdict-no { border-left-color: var(--dl-amber); }
+.dl-sim-verdict-main { font-weight: 600; display: flex; align-items: center; gap: 0.45rem; }
+.dl-sim-verdict-yes .dl-sim-verdict-main .fa, .dl-sim-verdict-yes .dl-sim-verdict-main svg { color: var(--dl-accent-text); }
+.dl-sim-verdict-no .dl-sim-verdict-main .fa, .dl-sim-verdict-no .dl-sim-verdict-main svg { color: var(--dl-amber-text); }
+.dl-sim-unsupported .btn { margin-left: 0.25rem; }
+.dl-sim .dl-code { margin-top: 0.75rem; }
+
 /* Dark mode details */
 [data-bs-theme="dark"] .selectize-input, [data-bs-theme="dark"] .selectize-dropdown {
   background: var(--dl-bg); color: var(--dl-ink); border-color: var(--dl-border); }
@@ -550,6 +594,8 @@ th[aria-sort="ascending"], th[aria-sort="descending"] { color: var(--dl-ink); }
 @media (max-width: 575.98px) {
   .dl-map { height: 460px; }
   .dl-comp-search { max-width: none; }
+  .dl-sim-controls > .shiny-input-container, .dl-sim-controls > .form-group,
+  .dl-sim-controls > .shiny-panel-conditional { flex: 1 1 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
   .dl-chip, .dl-dist-card, .dl-segmented .radio-inline > span { transition: none; }

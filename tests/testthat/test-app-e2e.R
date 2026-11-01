@@ -48,4 +48,22 @@ test_that("the language switch keeps tab, distribution and parameters", {
   app$run_js("document.querySelector('.navbar [data-value=\"compare\"]').click()")
   app$wait_for_idle()
   expect_identical(app$get_js("document.querySelectorAll('.dl-slot:not([hidden])').length"), 3L)
+  # The Simulation draws the sample check with its seeded code, then a
+  # relation with its formula typeset.
+  app$run_js("document.querySelector('.navbar [data-value=\"simulation\"]').click()")
+  app$wait_for_idle()
+  expect_identical(app$get_js("document.querySelectorAll('.dl-mc-table tbody tr').length"), 8L)
+  expect_match(app$get_js("document.querySelector('.dl-sim .dl-code-block').textContent"),
+               "^set\\.seed\\(2026\\)")
+  app$run_js("document.querySelector('.dl-sim [data-value=\"relations\"]').click()")
+  app$wait_for_idle()
+  expect_gt(app$get_js("document.querySelectorAll('.dl-sim-rel-head .katex').length"), 0)
+  expect_gt(app$get_js("document.querySelectorAll('.dl-sim .js-plotly-plot').length"), 0)
+  # On a phone the open tab, its table and its code stay inside the screen.
+  app$run_js("document.querySelector('.dl-sim [data-value=\"sample\"]').click()")
+  app$set_window_size(375, 812)
+  app$wait_for_idle()
+  pane <- ".dl-sim .tab-content > .tab-pane.active"
+  expect_lte(app$get_js(sprintf("document.querySelector('%s').getBoundingClientRect().right", pane)),
+             app$get_js("window.innerWidth"))
 })

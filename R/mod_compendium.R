@@ -175,7 +175,8 @@ graph_legend <- function(lang, reg = dl_registry()) {
 # `lang` may be fixed or reactive; `dark` a reactive logical; `request` a
 # reactive navigation request from other pages (list(tab, group, ...)).
 # Returns a reactive with the latest navigation request: list(tab, id, n),
-# where tab is "explorer", "calculator" or "compare".
+# where tab is "explorer", "calculator", "compare" or "simulation" (with
+# `edge` instead of `id` for a relation).
 mod_compendium_server <- function(id, lang, dark = shiny::reactive(FALSE),
                                   request = shiny::reactive(NULL)) {
   lang_r <- if (shiny::is.reactive(lang)) lang else shiny::reactive(lang)
@@ -187,9 +188,9 @@ mod_compendium_server <- function(id, lang, dark = shiny::reactive(FALSE),
     groups_all <- registry_groups(reg)
     route <- shiny::reactiveVal(NULL)
     count <- 0L
-    go <- function(tab, did = NULL) {
+    go <- function(tab, did = NULL, edge = NULL) {
       count <<- count + 1L
-      route(list(tab = tab, id = did, n = count))
+      route(list(tab = tab, id = did, edge = edge, n = count))
     }
     # Current selection on the map: NULL or list(kind = "node" | "edge", id).
     sel <- shiny::reactiveVal(NULL)
@@ -278,6 +279,12 @@ mod_compendium_server <- function(id, lang, dark = shiny::reactive(FALSE),
     shiny::observeEvent(input$compare, {
       if (valid_node(input$compare)) go("compare", input$compare)
     })
+    shiny::observeEvent(input$sim, {
+      if (valid_node(input$sim)) go("simulation", input$sim)
+    })
+    shiny::observeEvent(input$sim_edge, {
+      if (valid_edge(input$sim_edge)) go("simulation", edge = input$sim_edge)
+    })
     shiny::observeEvent(input$pick_node, {
       if (valid_node(input$pick_node)) select_node(input$pick_node)
     })
@@ -334,9 +341,10 @@ mod_compendium_server <- function(id, lang, dark = shiny::reactive(FALSE),
       if (is.null(s)) return(empty_panel(lg, reg, rel))
       if (s$kind == "node") {
         node_panel(reg[[s$id]], lg, ns("open"), ns("pick_edge"), rel = rel,
-                   calc_id = ns("calc"), compare_id = ns("compare"))
+                   calc_id = ns("calc"), compare_id = ns("compare"), sim_id = ns("sim"))
       } else {
-        edge_panel(rel[rel$id == s$id, , drop = FALSE], lg, ns("open"), reg = reg)
+        edge_panel(rel[rel$id == s$id, , drop = FALSE], lg, ns("open"), reg = reg,
+                   sim_id = ns("sim_edge"))
       }
     })
 
@@ -395,9 +403,9 @@ entry_badges <- function(entry, lang, group = TRUE) {
 
 # Side panel of a selected distribution: name, badges, support, parameters,
 # story excerpt, its relations (each selects the edge) and buttons that open
-# it in the Explorer, the Calculator and Compare.
+# it in the Explorer, the Calculator, Compare and the Simulation.
 node_panel <- function(entry, lang, open_id, edge_id, rel = NULL, calc_id = NULL,
-                       compare_id = NULL) {
+                       compare_id = NULL, sim_id = NULL) {
   reg <- dl_registry()
   if (is.null(rel)) {
     rel <- relations_frame(reg)
@@ -453,14 +461,20 @@ node_panel <- function(entry, lang, open_id, edge_id, rel = NULL, calc_id = NULL
         dist_button(entry$id, tr("compendium.compare", lang), compare_id,
                     class = "btn btn-outline-primary btn-sm",
                     label = tr("compendium.compare_label", lang, name = entry_text(entry, "names", lang)))
+      },
+      if (!is.null(sim_id)) {
+        dist_button(entry$id, tr("compendium.simulate", lang), sim_id,
+                    class = "btn btn-outline-primary btn-sm",
+                    label = tr("compendium.simulate_label", lang, name = entry_text(entry, "names", lang)))
       }
     )
   )
 }
 
-# Side panel of a selected edge: path, type, condition, formula (KaTeX) and
-# buttons that open either end in the Explorer.
-edge_panel <- function(r, lang, open_id, reg = dl_registry()) {
+# Side panel of a selected edge: path, type, condition, formula (KaTeX),
+# buttons that open either end in the Explorer and one that simulates the
+# relation (`sim_id`, when given; the button sends the edge id).
+edge_panel <- function(r, lang, open_id, reg = dl_registry(), sim_id = NULL) {
   name <- function(i) entry_text(reg[[i]], "names", lang)
   cond <- if (lang == "pt-BR") r$condition_pt else r$condition_en
   ends <- unique(c(r$from, r$to))
@@ -478,6 +492,12 @@ edge_panel <- function(r, lang, open_id, reg = dl_registry()) {
     shiny::tags$div(class = "dl-rel-math dl-panel-math", math_tag(r$latex)),
     shiny::tags$div(
       class = "dl-panel-actions",
+      if (!is.null(sim_id) && !is.null(r$id)) {
+        path <- paste(name(r$from), "\u2192", name(r$to))
+        dist_button(r$id, tr("compendium.simulate_relation", lang), sim_id,
+                    class = "btn btn-primary btn-sm",
+                    label = tr("compendium.simulate_relation_label", lang, name = path))
+      },
       lapply(ends, function(i) {
         dist_button(i, tr("compendium.open_name", lang, name = name(i)), open_id,
                     class = "btn btn-outline-primary btn-sm",

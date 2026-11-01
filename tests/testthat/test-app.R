@@ -188,3 +188,54 @@ test_that("switching language keeps the Calculator and Compare state", {
     expect_match(output$`compare-summary`$html, "Variance")
   })
 })
+
+test_that("the Explorer, the Compendium and the Simulation link to each other", {
+  sess <- recording_session()
+  last <- function(id) {
+    m <- input_messages(sess, id)
+    m[[length(m)]]$message$value
+  }
+  shiny::testServer(app_for_test("en-US"), session = sess, {
+    # The Explorer sends its distribution and values.
+    session$setInputs(`explore-dist` = "gamma", `explore-p_gamma_shape` = 3.5,
+                      `explore-p_gamma_rate` = 2, nav = "explorer")
+    session$setInputs(`explore-to_sim` = 1)
+    expect_identical(last("nav"), "simulation")
+    expect_identical(last("dist"), "gamma")
+    session$setInputs(`sim-dist` = "gamma")
+    expect_match(output$`sim-params`$html, 'data-from="3.5"', fixed = TRUE)
+    # The Compendium simulates a distribution or a relation.
+    session$setInputs(nav = "compendium", `compendium-sim` = "poisson")
+    expect_identical(last("nav"), "simulation")
+    expect_identical(last("dist"), "poisson")
+    session$setInputs(`compendium-sim_edge` = "beta__uniform__special_case")
+    expect_identical(last("nav"), "simulation")
+    expect_identical(last("edge"), "beta__uniform__special_case")
+    expect_identical(last("tab"), "relations")
+    n_nav <- length(input_messages(sess, "nav"))
+    session$setInputs(`compendium-sim_edge` = "nope")
+    expect_length(input_messages(sess, "nav"), n_nav)
+    # An end of the relation opens in the Explorer with the recipe values.
+    session$setInputs(nav = "simulation", `sim-tab` = "relations",
+                      `sim-edge` = "beta__uniform__special_case", `sim-seed` = 2026)
+    session$setInputs(`sim-open_end` = "beta")
+    expect_identical(last("nav"), "explorer")
+    expect_identical(last("dist"), "beta")
+    session$setInputs(`explore-dist` = "beta")
+    expect_match(output$`explore-params`$html, 'data-from="1"', fixed = TRUE)
+  })
+})
+
+test_that("Compendium panels offer the Simulation", {
+  html <- as.character(distlab:::node_panel(dl_entry("gamma"), "en-US", "c-open", "c-edge",
+                                            sim_id = "c-sim"))
+  expect_match(html, 'data-input="c-sim"', fixed = TRUE)
+  expect_match(html, "Simulate Gamma")
+  rel <- dl_relations()
+  rel$id <- distlab:::edge_ids(rel)
+  r <- rel[rel$id == "normal__cauchy__transformation", ]
+  html <- as.character(distlab:::edge_panel(r, "pt-BR", "c-open", sim_id = "c-sim-edge"))
+  expect_match(html, 'data-dist="normal__cauchy__transformation"', fixed = TRUE)
+  expect_match(html, "Simular esta relação")
+  expect_no_match(as.character(distlab:::edge_panel(r, "en-US", "c-open")), "Simulate")
+})
