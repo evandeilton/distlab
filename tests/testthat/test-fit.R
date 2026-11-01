@@ -112,7 +112,7 @@ test_that("boundary and nonexistent MLEs are reported honestly", {
   endpoint <- dl_fit(c(0, 0.5, 1), c("beta", "lognormal", "gamma"))
   expect_length(endpoint$fits, 0)
   expect_true(all(!endpoint$ranking$converged))
-  expect_match(dl_fit(c(1, 1, 1, 2), "cauchy")$failures$cauchy, "unbounded")
+  expect_match(dl_fit(c(1, 1, 1, 2), "cauchy")$failures$cauchy, "no unique finite maximum")
   expect_match(dl_fit(c(0, 1, 1, 2), "negbinomial")$failures$negbinomial, "Poisson limit")
   expect_length(dl_fit(rep(2, 10), "normal", fixed = list(normal = list(sd = 1)))$fits, 1)
 })
@@ -151,11 +151,13 @@ test_that("fitting is deterministic and does not consume randomness", {
   expect_identical(.Random.seed, rng)
   expect_equal(fit, dl_fit(x, c("gamma", "weibull")))
   expect_type(fit$code, "character")
-  # Execute the generated script, using namespace functions supplied by the
-  # package loaded by testthat; no screenshots or implementation mocks.
+  # The generated script rebuilds the same raw data and ranking. Some
+  # platforms do not round 17-digit literals correctly, hence the tolerance.
   env <- new.env()
   eval(parse(text = fit$code), envir = env)
-  expect_equal(env$fit$ranking, fit$ranking)
+  expect_identical(env$data$type, "raw")
+  expect_equal(env$data$x, fit$data$x, tolerance = 1e-14)
+  expect_equal(env$fit$ranking, fit$ranking, tolerance = 1e-10)
 })
 
 test_that("Gamma MLE agrees with an independent optimizer", {
@@ -197,4 +199,188 @@ test_that("argument validation and individual failures preserve other candidates
   expect_length(fit$fits, 1)
   expect_match(fit$failures$gamma, "outside its domain")
   expect_true(all(is.na(fit$ranking$AIC[fit$ranking$id == "gamma"])))
+})
+
+test_that("closed-form estimates have zero score and exact observed information", {
+  set.seed(31)
+  cases <- list(
+    normal = list(x = rnorm(40, 3, 2)),
+    lognormal = list(x = rlnorm(40, .5, .7)),
+    exponential = list(x = rexp(40, 1.5)),
+    poisson = list(x = rpois(40, 3.2)),
+    bernoulli = list(x = rbinom(40, 1, .3)),
+    binomial = list(x = rbinom(40, 12, .35), fixed = list(size = 12)),
+    geometric = list(x = rgeom(40, .3)))
+  for (id in names(cases)) {
+    x <- cases[[id]]$x
+    fixed <- if (length(cases[[id]]$fixed)) stats::setNames(list(cases[[id]]$fixed), id) else list()
+    f <- dl_fit(x, id, fixed = fixed)$fits[[id]]
+    free <- f$estimates$parameter[!f$estimates$fixed]
+    nll <- function(v) {
+      p <- f$dist$params
+      p[free] <- as.list(v)
+      -sum(dl_density(do.call(dl_dist, c(list(id), p)), x, log = TRUE))
+    }
+    v <- unlist(f$dist$params[free])
+    expect_lt(max(abs(numDeriv::grad(nll, v))), 1e-6, label = id)
+    expect_equal(unname(f$vcov[free, free, drop = FALSE]), solve(numDeriv::hessian(nll, v)),
+                 tolerance = 1e-6, info = id)
+    expect_equal(f$estimates$se[!f$estimates$fixed], sqrt(diag(solve(numDeriv::hessian(nll, v)))),
+                 tolerance = 1e-6, info = id)
+  }
+  # Fixing one Normal parameter keeps the closed form of the other.
+  x <- cases$normal$x
+  sd_only <- dl_fit(x, "normal", fixed = list(normal = list(mean = 3)))$fits$normal
+  expect_equal(sd_only$dist$params$sd, sqrt(mean((x - 3)^2)))
+  expect_equal(sd_only$estimates$se[2], sd_only$dist$params$sd / sqrt(2 * length(x)))
+})
+
+test_that("closed forms reproduce MASS::fitdistr", {
+  skip_if_not_installed("MASS")
+  set.seed(8)
+  x <- rgamma(50, 3, 2)
+  for (id in c("normal", "lognormal", "exponential")) {
+    ref <- MASS::fitdistr(x, id)
+    f <- dl_fit(x, id)$fits[[id]]
+    expect_equal(unname(unlist(f$dist$params)), unname(ref$estimate), tolerance = 1e-10, info = id)
+    expect_equal(f$estimates$se, unname(ref$sd), tolerance = 1e-10, info = id)
+    expect_equal(f$logLik, ref$loglik, tolerance = 1e-10, info = id)
+  }
+  counts <- rpois(50, 2.4)
+  for (id in c("poisson", "geometric")) {
+    ref <- MASS::fitdistr(counts, id)
+    f <- dl_fit(counts, id)$fits[[id]]
+    expect_equal(unname(unlist(f$dist$params)), unname(ref$estimate), tolerance = 1e-10, info = id)
+    expect_equal(f$estimates$se, unname(ref$sd), tolerance = 1e-10, info = id)
+  }
+  u <- rbeta(60, 2, 5)
+  ref <- suppressWarnings(MASS::fitdistr(u, "beta", start = list(shape1 = 1, shape2 = 1)))
+  f <- dl_fit(u, "beta")$fits$beta
+  expect_equal(unname(unlist(f$dist$params)), unname(ref$estimate), tolerance = 1e-4)
+  expect_equal(f$logLik, ref$loglik, tolerance = 1e-8)
+})
+
+test_that("sufficient-statistic likelihoods equal the density sums", {
+  x <- c(.12, .3, .45, .7, .81)
+  w <- c(2, 1, 3, 1, 4)
+  n <- sum(w)
+  gamma <- distlab:::fit_sufficient_loglik("gamma", x, w, n)
+  expect_equal(gamma(list(shape = 2.3, rate = 1.7)), sum(w * dgamma(x, 2.3, 1.7, log = TRUE)),
+               tolerance = 1e-12)
+  chisq <- distlab:::fit_sufficient_loglik("chisq", x, w, n)
+  expect_equal(chisq(list(df = 3.4)), sum(w * dchisq(x, 3.4, log = TRUE)), tolerance = 1e-12)
+  beta <- distlab:::fit_sufficient_loglik("beta", x, w, n)
+  expect_equal(beta(list(shape1 = 2.1, shape2 = 3.3)), sum(w * dbeta(x, 2.1, 3.3, log = TRUE)),
+               tolerance = 1e-12)
+  expect_null(distlab:::fit_sufficient_loglik("weibull", x, w, n))
+  # The Chi-square fit agrees with a one-dimensional optimizer.
+  set.seed(12)
+  y <- rchisq(60, 3.3)
+  ref <- optimize(function(d) -sum(dchisq(y, d, log = TRUE)), c(.1, 50), tol = 1e-10)
+  expect_equal(dl_fit(y, "chisq")$fits$chisq$dist$params$df, ref$minimum, tolerance = 1e-6)
+})
+
+test_that("degenerate and limiting likelihoods are failures, not ranked fits", {
+  half <- dl_fit(c(0, 0, 0, 1, 2, 5), c("cauchy", "normal"))
+  expect_match(half$failures$cauchy, "half or more")
+  expect_true(is.na(half$ranking$weight[half$ranking$id == "cauchy"]))
+  expect_equal(half$ranking$weight[half$ranking$id == "normal"], 1)
+  expect_match(dl_fit(c(1, 3), "cauchy")$failures$cauchy, "half or more")
+  expect_match(dl_fit(c(1, 3, 3, 8), "cauchy", fixed = list(cauchy = list(location = 3)))$failures$cauchy,
+               "half or more")
+  expect_length(dl_fit(c(1, 3, 3.5), "cauchy")$fits, 1)
+  size <- list(betabinomial = list(size = 10))
+  expect_match(dl_fit(rep(3, 10), "betabinomial", fixed = size)$failures$betabinomial,
+               "Binomial limit")
+  expect_match(dl_fit(c(rep(3, 5), rep(4, 5)), "betabinomial", fixed = size)$failures$betabinomial,
+               "Binomial limit")
+  over <- dl_fit(c(0, 1, 2, 5, 8, 9, 10, 3), "betabinomial", fixed = size)
+  expect_length(over$failures, 0)
+  expect_true(all(is.finite(over$fits$betabinomial$estimates$se)))
+  # A numerical optimum with singular information is a failure; analytic
+  # fits keep the estimate and only lose their standard errors.
+  specs <- stats::setNames(dl_entry("cauchy")$parameters, c("location", "scale"))
+  pars <- list(location = 0, scale = 1)
+  flat <- function(th) th[1]^2
+  expect_error(distlab:::fit_uncertainty(c(0, 0), names(pars), specs, pars, flat, .95,
+                                         regular = TRUE, strict = TRUE), "Singular")
+  soft <- distlab:::fit_uncertainty(c(0, 0), names(pars), specs, pars, flat, .95, regular = TRUE)
+  expect_match(soft$warnings, "singular")
+  expect_true(all(is.na(soft$estimates$se)))
+  # Constant data on a Uniform report constant data, not a domain violation.
+  expect_match(dl_fit(rep(2, 5), "uniform")$failures$uniform, "Constant data")
+  expect_match(dl_fit(rep(0, 5), "uniform", fixed = list(uniform = list(min = 0)))$failures$uniform,
+               "Constant data")
+})
+
+test_that("Wald intervals are built on unconstrained scales and stay in the domain", {
+  z <- qnorm(.975)
+  b <- dl_fit(c(1, rep(0, 19)), "bernoulli")$fits$bernoulli$estimates
+  se <- sqrt(.05 * .95 / 20)
+  expect_equal(b$se, se)
+  expect_equal(c(b$lower, b$upper), plogis(qlogis(.05) + c(-1, 1) * z * se / (.05 * .95)))
+  expect_true(b$lower > 0 && b$upper < 1)
+  g <- dl_fit(c(0, 0, 1), "geometric")$fits$geometric$estimates
+  expect_true(g$lower > 0 && g$upper < 1)
+  e <- dl_fit(c(.5, 1, 2), "exponential")$fits$exponential$estimates
+  expect_equal(c(e$lower, e$upper), e$estimate * exp(c(-1, 1) * z / sqrt(3)))
+  w <- dl_fit(c(.02, .5, 3), "weibull")$fits$weibull$estimates
+  expect_lt(w$estimate[2] - z * w$se[2], 0)
+  expect_true(all(w$lower > 0))
+  expect_true(all(w$lower < w$estimate & w$estimate < w$upper))
+  # Unbounded parameters keep the symmetric interval; the level is honored.
+  n <- dl_fit(c(-1, .5, 2, 3.5), "normal", level = .9)$fits$normal$estimates
+  expect_equal(n$upper[1] - n$estimate[1], qnorm(.95) * n$se[1])
+  expect_equal(n$estimate[1] - n$lower[1], qnorm(.95) * n$se[1])
+  expect_equal(n$lower[2], n$estimate[2] * exp(-qnorm(.95) / sqrt(8)))
+})
+
+test_that("generated literals read back exactly and keep raw data raw", {
+  x <- c(0.1, 1 / 3, pi * 1e10, -2.5e-300, Inf, NA)
+  expect_equal(eval(parse(text = distlab:::fit_literal(x))), x, tolerance = 1e-15)
+  expect_match(distlab:::fit_literal(1 / 3), "0.33333333333333331", fixed = TRUE)
+  expect_identical(distlab:::fit_literal(.95), "0.95")
+  expect_identical(distlab:::fit_literal(list(normal = list(sd = 1))), "list(normal = list(sd = 1))")
+  d <- dl_fit_data(c(1.5, 2, 2, 3))
+  code <- distlab:::fit_data_code(d)
+  expect_match(code, "rep(", fixed = TRUE)
+  env <- new.env()
+  eval(parse(text = code), envir = env)
+  expect_identical(env$data$type, "raw")
+  expect_equal(env$data$counts, d$counts)
+  table <- dl_fit_data(c(0, 1, 2), frequency = c(4, 0, 6))
+  env <- new.env()
+  eval(parse(text = distlab:::fit_data_code(table)), envir = env)
+  expect_identical(env$data$type, "frequency")
+  expect_equal(env$data$x, table$x)
+})
+
+test_that("fitting reports each candidate to a progress callback", {
+  seen <- character()
+  fit <- distlab:::fit_models(1:5, c("normal", "poisson"), progress = function(id, i, total) {
+    seen <<- c(seen, sprintf("%s %d/%d", id, i, total))
+  })
+  expect_identical(seen, c("normal 1/2", "poisson 2/2"))
+  expect_equal(fit$ranking, dl_fit(1:5, c("normal", "poisson"))$ranking)
+})
+
+test_that("Wald limits use the derivative of the optimizer coordinate", {
+  z <- qnorm(.95)
+  specs <- list(list(lower = 0, upper = 1), list(lower = 0, upper = Inf),
+                list(lower = -Inf, upper = 5), list(lower = -Inf, upper = Inf))
+  estimates <- c(.2, 2.5, 4.7, 2.5)
+  se <- .07
+  for (j in seq_along(specs)) {
+    spec <- specs[[j]]
+    est <- estimates[j]
+    slope <- numDeriv::grad(function(v) distlab:::fit_transform(spec, x = v), est)
+    theta <- distlab:::fit_transform(spec, x = est)
+    expected <- sort(vapply(theta + c(-1, 1) * z * se * abs(slope), function(t) {
+      distlab:::fit_transform(spec, inverse = TRUE, x = t)
+    }, 0))
+    expect_equal(distlab:::fit_wald_limits(spec, est, se, z), expected, tolerance = 1e-8)
+  }
+  expect_equal(distlab:::fit_wald_limits(specs[[2]], 2, 0, z), c(2, 2))
+  expect_true(all(is.na(distlab:::fit_wald_limits(specs[[2]], 2, NA_real_, z))))
+  expect_true(all(is.na(distlab:::fit_wald_limits(specs[[1]], 1, .1, z))))
 })

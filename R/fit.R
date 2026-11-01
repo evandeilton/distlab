@@ -17,11 +17,25 @@
 #' Uniform bounds are sample extrema for ungrouped data. For grouped data
 #' both bounds must be fixed because endpoints need not be identified within
 #' a class. Nonregular estimates and boundary estimates have no Wald intervals.
-#' Confidence intervals for regular parameters use the observed Hessian and
-#' delta method; these are asymptotic approximations, not bootstrap intervals.
-#' Grouped fits must identify every free parameter and have stable local
-#' information. Flat partitions and numerically saturated limiting fits are
-#' reported as failures rather than ranked as finite interior maxima.
+#'
+#' Ungrouped Normal, Lognormal, Exponential, Poisson, Bernoulli, Binomial and
+#' Geometric fits use their closed-form estimates and exact observed
+#' information; Gamma, Chi-square and Beta likelihoods are evaluated from
+#' sufficient statistics. Other families are maximized numerically, and their
+#' observed information is a numerical Hessian.
+#'
+#' Standard errors come from the observed information, by the delta method
+#' for the natural parameters. Wald intervals are built where each parameter
+#' is unconstrained (log scale for positive parameters, logit scale for
+#' probabilities) and transformed back, so they stay inside the parameter
+#' space. They are asymptotic approximations, not bootstrap intervals.
+#'
+#' Every free parameter must be identified with stable local information.
+#' Flat likelihoods, singular observed information and numerically saturated
+#' limiting fits are reported as failures rather than ranked as finite
+#' interior maxima; so are Cauchy samples in which half or more of the
+#' observations coincide (any sample of two) and Beta-binomial samples whose
+#' variance does not exceed the Binomial variance.
 #'
 #' @param x Numeric observations or a [dl_fit_data()] object.
 #' @param ids Character vector of registry ids to fit.
@@ -33,8 +47,9 @@
 #' @returns A `dl_fit` object with `data`, successful `fits`, a `ranking` data
 #'   frame, named `failures` and reproducible R `code`. Individual fits include
 #'   the `dl_dist`, `estimates` (including standard errors and Wald limits),
-#'   `vcov`, `logLik`, `k`, `AIC`, `BIC`, optimizer `convergence`, a `boundary`
-#'   flag and `warnings`. Failed candidates remain visible in the ranking.
+#'   `vcov` (natural parameters), `logLik`, `k`, `AIC`, `BIC`, optimizer
+#'   `convergence`, a `boundary` flag and `warnings`. Failed candidates remain
+#'   visible in the ranking.
 #'
 #' @family engine
 #' @export
@@ -43,6 +58,13 @@
 #' dl_fit(c(0, 2, 1, 3, 2), "binomial", fixed = list(binomial = list(size = 5)))
 dl_fit <- function(x, ids = c("normal", "gamma"), fixed = list(),
                    level = 0.95, control = list()) {
+  fit_models(x, ids, fixed, level, control)
+}
+
+# dl_fit() with an optional `progress(id, i, total)` callback, called before
+# each candidate is fitted; the app uses it to report progress.
+fit_models <- function(x, ids = c("normal", "gamma"), fixed = list(),
+                       level = 0.95, control = list(), progress = NULL) {
   data <- if (inherits(x, "dl_fit_data")) x else dl_fit_data(x)
   if (!is.character(ids) || !length(ids) || anyNA(ids) ||
       any(!ids %in% dl_ids()) || anyDuplicated(ids)) {
@@ -59,14 +81,22 @@ dl_fit <- function(x, ids = c("normal", "gamma"), fixed = list(),
   fit_check_named_list(control, "control")
   settings <- utils::modifyList(list(iter.max = 500, eval.max = 1000,
                                      rel.tol = 1e-10), control)
+  # The data literal is the long part of every script; write it once.
+  input <- fit_data_code(data)
   fits <- failures <- list()
-  for (id in ids) {
+  for (i in seq_along(ids)) {
+    id <- ids[i]
+    if (is.function(progress)) progress(id, i, length(ids))
     result <- tryCatch(fit_one(data, id, fixed[[id]] %||% list(), level, settings),
                        error = function(e) conditionMessage(e))
-    if (is.character(result)) failures[[id]] <- result else fits[[id]] <- result
+    if (is.character(result)) failures[[id]] <- result else {
+      own <- if (length(fixed[[id]])) stats::setNames(list(fixed[[id]]), id) else list()
+      result$code <- fit_code(input, id, own, level, control)
+      fits[[id]] <- result
+    }
   }
   ranking <- fit_ranking(ids, data$type, fits, failures)
-  code <- fit_code(data, ids, fixed, level, control)
+  code <- fit_code(input, ids, fixed, level, control)
   structure(list(data = data, fits = fits, ranking = ranking,
                  failures = failures, code = code), class = "dl_fit")
 }
@@ -230,14 +260,23 @@ fit_one <- function(data, id, fixed, level, control) {
       logistic = all(c("location", "scale") %in% free) ||
         ("scale" %in% free && all(x == fixed$location)),
       laplace = all(c("mu", "sigma") %in% free) ||
-        ("sigma" %in% free && all(x == fixed$mu)), FALSE)
+        ("sigma" %in% free && all(x == fixed$mu)),
+      # Sample extrema would give min = max, outside the min < max domain.
+      uniform = , discrete_uniform = all(c("min", "max") %in% free) ||
+        ("max" %in% free && all(x == fixed$min)) ||
+        ("min" %in% free && all(x == fixed$max)), FALSE)
     if (degenerate && collapse) {
       stop("Constant data have no finite MLE for these free parameters.", call. = FALSE)
     }
-    if (id == "cauchy" && all(c("location", "scale") %in% free) &&
-        max(counts) > data$n / 2) {
-      stop("The Cauchy likelihood is unbounded when a majority of observations coincide.",
-           call. = FALSE)
+    # The Cauchy likelihood behaves like scale^(n - 2m) as the scale shrinks
+    # around a value with m copies, so m >= n / 2 leaves no unique interior
+    # maximum; this includes every sample of two.
+    if (id == "cauchy" && "scale" %in% free) {
+      tied <- if ("location" %in% free) max(counts) else sum(counts[x == fixed$location])
+      if (tied >= data$n / 2) {
+        stop("The Cauchy likelihood has no unique finite maximum when half or more of the observations coincide.",
+             call. = FALSE)
+      }
     }
     if (id == "negbinomial" && all(x == 0) && "size" %in% free) {
       stop("All-zero data do not identify Negative-binomial size.", call. = FALSE)
@@ -249,6 +288,18 @@ fit_one <- function(data, id, fixed, level, control) {
       variance <- sum((counts / data$n) * (x - mean)^2)
       if (variance <= mean) {
         stop("No finite Negative-binomial size MLE: empirical variance is not greater than the mean; use the Poisson limit.",
+             call. = FALSE)
+      }
+    }
+    if (id == "betabinomial" && all(c("alpha", "beta") %in% free)) {
+      # The overdispersion score at the Binomial limit (Tarone, 1979) is
+      # positive only when the variance (divisor n) exceeds size p (1 - p);
+      # otherwise the limit is reported, as for the Negative binomial.
+      mean <- sum(x * (counts / data$n))
+      variance <- sum((counts / data$n) * (x - mean)^2)
+      p <- mean / fixed$size
+      if (variance <= fixed$size * p * (1 - p)) {
+        stop("No finite Beta-binomial MLE: empirical variance does not exceed the Binomial variance; use the Binomial limit.",
              call. = FALSE)
       }
     }
@@ -301,6 +352,18 @@ fit_one <- function(data, id, fixed, level, control) {
     analytic <- TRUE
     if ("mu" %in% free) warnings <- c(warnings, "Laplace location has a nonsmooth likelihood; Hessian-based Wald uncertainty is unavailable.")
   }
+  exact <- NULL
+  if (raw && length(free) && !analytic) {
+    closed <- fit_closed_form(id, x, counts, data$n, free, pars)
+    # Data outside the support can give out-of-domain formulas; the numerical
+    # path then reports the infinite likelihood.
+    if (!is.null(closed) &&
+        all(vapply(free, function(nm) in_domain(closed$pars[[nm]], specs[[nm]]), logical(1)))) {
+      pars <- closed$pars
+      exact <- closed$vcov
+      analytic <- TRUE
+    }
+  }
   make_dist <- function(p) do.call(dl_dist, c(list(id), p))
   theta <- vapply(free, function(nm) fit_transform(specs[[nm]], x = pars[[nm]]), 0)
   decode <- function(th) {
@@ -310,9 +373,12 @@ fit_one <- function(data, id, fixed, level, control) {
     }
     out
   }
+  # Sufficient statistics make each evaluation O(1) for some families; the
+  # reported logLik below always sums the registry density.
+  fast <- if (raw) fit_sufficient_loglik(id, x, counts, data$n)
+  loglik <- if (is.null(fast)) function(p) fit_loglik(data, make_dist(p)) else fast
   objective <- function(th) {
-    ll <- suppressWarnings(tryCatch(fit_loglik(data, make_dist(decode(th))),
-                                   error = function(e) -Inf))
+    ll <- suppressWarnings(tryCatch(loglik(decode(th)), error = function(e) -Inf))
     if (is.finite(ll)) -ll else 1e100
   }
   convergence <- 0L
@@ -352,17 +418,72 @@ fit_one <- function(data, id, fixed, level, control) {
   if (!raw && length(free)) {
     fit_grouped_check(data, dist, theta, free, specs, pars, decode, make_dist, objective)
   }
+  # A numerical optimum without positive definite information is not a
+  # finite interior maximum (flat ridges, limiting families).
   uncertainty <- fit_uncertainty(theta, free, specs, pars, objective, level,
                                  regular = !boundary && convergence == 0L &&
-                                   !(raw && id == "laplace" && "mu" %in% free))
+                                   !(raw && id == "laplace" && "mu" %in% free),
+                                 exact = exact, strict = raw && !analytic)
   warnings <- c(warnings, uncertainty$warnings)
   k <- length(free)
   list(id = id, dist = dist, estimates = uncertainty$estimates,
        vcov = uncertainty$vcov, logLik = logLik, k = k,
        AIC = 2 * k - 2 * logLik, BIC = log(data$n) * k - 2 * logLik,
-       convergence = convergence, boundary = boundary, warnings = unique(warnings),
-       code = fit_code(data, id, if (length(fixed)) stats::setNames(list(fixed), id) else list(),
-                       level, control))
+       convergence = convergence, boundary = boundary, warnings = unique(warnings))
+}
+
+# Closed-form MLEs for ungrouped data, with the inverse of their exact
+# observed information (natural parameters). NULL when none applies.
+fit_closed_form <- function(id, x, w, n, free, pars) {
+  average <- function(v) sum(w * v) / n
+  variances <- list()
+  if (id %in% c("normal", "lognormal")) {
+    location <- if (id == "normal") "mean" else "meanlog"
+    scale <- if (id == "normal") "sd" else "sdlog"
+    y <- if (id == "normal") x else log(x)
+    if (location %in% free) pars[[location]] <- average(y)
+    if (scale %in% free) pars[[scale]] <- sqrt(average((y - pars[[location]])^2))
+    s <- pars[[scale]]
+    # Observed information n / s^2 and 2 n / s^2; the cross term vanishes.
+    variances[[location]] <- s^2 / n
+    variances[[scale]] <- s^2 / (2 * n)
+  } else if (id == "exponential") {
+    pars$rate <- n / sum(w * x)
+    variances$rate <- pars$rate^2 / n
+  } else if (id == "poisson") {
+    pars$lambda <- average(x)
+    variances$lambda <- pars$lambda / n
+  } else if (id %in% c("bernoulli", "binomial")) {
+    size <- if (id == "binomial") pars$size else 1
+    pars$prob <- average(x) / size
+    variances$prob <- pars$prob * (1 - pars$prob) / (n * size)
+  } else if (id == "geometric") {
+    # Failures before the first success: prob = 1 / (1 + mean).
+    pars$prob <- 1 / (1 + average(x))
+    variances$prob <- pars$prob^2 * (1 - pars$prob) / n
+  } else return(NULL)
+  v <- unlist(variances[free])
+  list(pars = pars, vcov = diag(v, length(v), length(v), names = FALSE))
+}
+
+# Log-likelihoods written in sufficient statistics: sum(x), sum(log x) and,
+# for the Beta, sum(log(1 - x)). NULL for other families.
+fit_sufficient_loglik <- function(id, x, w, n) {
+  if (!id %in% c("gamma", "chisq", "beta")) return(NULL)
+  sx <- sum(w * x)
+  slog <- sum(w * log(x))
+  switch(id,
+    gamma = function(p) {
+      n * (p$shape * log(p$rate) - lgamma(p$shape)) + (p$shape - 1) * slog - p$rate * sx
+    },
+    chisq = function(p) {
+      h <- p$df / 2
+      -n * (h * log(2) + lgamma(h)) + (h - 1) * slog - sx / 2
+    },
+    beta = {
+      slog1 <- sum(w * log1p(-x))
+      function(p) (p$shape1 - 1) * slog + (p$shape2 - 1) * slog1 - n * lbeta(p$shape1, p$shape2)
+    })
 }
 
 # CDF values at all finite class boundaries determine the whole observed
@@ -415,7 +536,12 @@ fit_grouped_check <- function(data, dist, theta, free, specs, pars, decode,
   invisible(NULL)
 }
 
-fit_uncertainty <- function(theta, free, specs, pars, objective, level, regular) {
+# Standard errors from the observed information: `exact` is the inverse
+# information of the natural parameters, otherwise a numerical Hessian on the
+# optimizer coordinates is mapped back by the delta method. With `strict`, a
+# singular or indefinite Hessian is a fitting failure instead of a note.
+fit_uncertainty <- function(theta, free, specs, pars, objective, level, regular,
+                            exact = NULL, strict = FALSE) {
   nms <- names(pars)
   p <- unlist(pars, use.names = FALSE)
   cov <- matrix(NA_real_, length(p), length(p), dimnames = list(nms, nms))
@@ -425,7 +551,7 @@ fit_uncertainty <- function(theta, free, specs, pars, objective, level, regular)
   se[fixed] <- 0
   warnings <- character()
   if (length(free) && regular) {
-    result <- tryCatch({
+    result <- if (!is.null(exact)) exact else tryCatch({
       h <- numDeriv::hessian(objective, theta)
       eigenvalues <- eigen(h, symmetric = TRUE, only.values = TRUE)$values
       if (any(!is.finite(h)) || min(eigenvalues) <= max(eigenvalues) * 1e-10) {
@@ -438,6 +564,10 @@ fit_uncertainty <- function(theta, free, specs, pars, objective, level, regular)
       }, theta)
       jac %*% solve(h) %*% t(jac)
     }, error = function(e) NULL)
+    if (is.null(result) && strict) {
+      stop("Singular or non-positive observed information: no stable finite interior MLE.",
+           call. = FALSE)
+    }
     if (is.null(result)) {
       warnings <- "Observed information is singular or unstable; Wald uncertainty is unavailable."
     } else {
@@ -446,10 +576,37 @@ fit_uncertainty <- function(theta, free, specs, pars, objective, level, regular)
     }
   }
   z <- stats::qnorm((1 + level) / 2)
+  limits <- vapply(seq_along(p), function(j) {
+    fit_wald_limits(specs[[nms[j]]], p[j], se[j], z)
+  }, numeric(2))
   estimates <- data.frame(parameter = nms, estimate = p, se = se,
-                          lower = p - z * se, upper = p + z * se, fixed = fixed,
+                          lower = limits[1, ], upper = limits[2, ], fixed = fixed,
                           row.names = NULL)
   list(estimates = estimates, vcov = cov, warnings = warnings)
+}
+
+# Wald limits estimate +- z * se on the optimizer coordinate of the parameter
+# (identity, log or logit, as in fit_transform()), transformed back. There
+# the standard error is se divided by |d estimate / d coordinate|.
+fit_wald_limits <- function(spec, estimate, se, z) {
+  if (!is.finite(se) || !is.finite(estimate)) return(c(NA_real_, NA_real_))
+  if (se == 0) return(c(estimate, estimate))
+  lo <- spec$lower
+  hi <- spec$upper
+  if (is.finite(lo) && is.finite(hi)) {
+    u <- (estimate - lo) / (hi - lo)
+    if (!(u > 0 && u < 1)) return(c(NA_real_, NA_real_))
+    width <- z * se / ((hi - lo) * u * (1 - u))
+    lo + (hi - lo) * stats::plogis(stats::qlogis(u) + c(-width, width))
+  } else if (is.finite(lo)) {
+    d <- estimate - lo
+    if (!(d > 0)) return(c(NA_real_, NA_real_))
+    lo + d * exp(c(-1, 1) * z * se / d)
+  } else if (is.finite(hi)) {
+    d <- hi - estimate
+    if (!(d > 0)) return(c(NA_real_, NA_real_))
+    hi - d * exp(c(1, -1) * z * se / d)
+  } else estimate + c(-1, 1) * z * se
 }
 
 fit_ranking <- function(ids, type, fits, failures) {
@@ -482,19 +639,37 @@ fit_ranking <- function(ids, type, fits, failures) {
   out
 }
 
-# dput gives valid R literals (including Inf and long vectors) without
-# rounding observations or depending on a locale-specific CSV parser.
-fit_literal <- function(x) paste(utils::capture.output(dput(x)), collapse = "\n")
+# R literal that reads back identically: deparse() with its default 15
+# significant digits when they suffice (0.95 stays 0.95), otherwise the 17
+# digits of dput()'s "digits17" option, as for most observed doubles.
+fit_literal <- function(x) {
+  text <- paste(deparse(x), collapse = "\n")
+  if (!identical(eval(str2lang(text), baseenv()), x)) {
+    text <- paste(deparse(x, control = c("keepNA", "keepInteger", "niceNames",
+                                         "showAttributes", "digits17")),
+                  collapse = "\n")
+  }
+  text
+}
 
-fit_code <- function(data, ids, fixed, level, control) {
-  input <- if (data$type == "grouped") {
+# Script line that rebuilds the data. Raw observations stay raw: ties are
+# written as rep(values, counts) rather than as a frequency table.
+fit_data_code <- function(data) {
+  if (data$type == "grouped") {
     paste0("data <- distlab::dl_fit_data(lower = ", fit_literal(data$lower),
            ", upper = ", fit_literal(data$upper),
            ", frequency = ", fit_literal(data$counts), ")")
+  } else if (data$type == "raw") {
+    x <- if (all(data$counts == 1)) fit_literal(data$x) else
+      paste0("rep(", fit_literal(data$x), ", ", fit_literal(data$counts), ")")
+    paste0("data <- distlab::dl_fit_data(x = ", x, ")")
   } else {
     paste0("data <- distlab::dl_fit_data(x = ", fit_literal(data$x),
            ", frequency = ", fit_literal(data$counts), ")")
   }
+}
+
+fit_code <- function(input, ids, fixed, level, control) {
   paste(input, paste0("fit <- distlab::dl_fit(data, ids = ", fit_literal(ids),
          ", fixed = ", fit_literal(fixed), ", level = ", fit_literal(level),
          ", control = ", fit_literal(control), ")"), "fit$ranking", sep = "\n")

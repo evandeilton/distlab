@@ -28,8 +28,9 @@ dl_fit(
 A \code{dl_fit} object with \code{data}, successful \code{fits}, a \code{ranking} data
 frame, named \code{failures} and reproducible R \code{code}. Individual fits include
 the \code{dl_dist}, \code{estimates} (including standard errors and Wald limits),
-\code{vcov}, \code{logLik}, \code{k}, \code{AIC}, \code{BIC}, optimizer \code{convergence}, a \code{boundary}
-flag and \code{warnings}. Failed candidates remain visible in the ranking.
+\code{vcov} (natural parameters), \code{logLik}, \code{k}, \code{AIC}, \code{BIC}, optimizer
+\code{convergence}, a \code{boundary} flag and \code{warnings}. Failed candidates remain
+visible in the ranking.
 }
 \description{
 Fits the R parameterization of each selected family. Integer design
@@ -47,11 +48,25 @@ Counts of zero contribute zero, even when the interval probability is zero.
 Uniform bounds are sample extrema for ungrouped data. For grouped data
 both bounds must be fixed because endpoints need not be identified within
 a class. Nonregular estimates and boundary estimates have no Wald intervals.
-Confidence intervals for regular parameters use the observed Hessian and
-delta method; these are asymptotic approximations, not bootstrap intervals.
-Grouped fits must identify every free parameter and have stable local
-information. Flat partitions and numerically saturated limiting fits are
-reported as failures rather than ranked as finite interior maxima.
+
+Ungrouped Normal, Lognormal, Exponential, Poisson, Bernoulli, Binomial and
+Geometric fits use their closed-form estimates and exact observed
+information; Gamma, Chi-square and Beta likelihoods are evaluated from
+sufficient statistics. Other families are maximized numerically, and their
+observed information is a numerical Hessian.
+
+Standard errors come from the observed information, by the delta method
+for the natural parameters. Wald intervals are built where each parameter
+is unconstrained (log scale for positive parameters, logit scale for
+probabilities) and transformed back, so they stay inside the parameter
+space. They are asymptotic approximations, not bootstrap intervals.
+
+Every free parameter must be identified with stable local information.
+Flat likelihoods, singular observed information and numerically saturated
+limiting fits are reported as failures rather than ranked as finite
+interior maxima; so are Cauchy samples in which half or more of the
+observations coincide (any sample of two) and Beta-binomial samples whose
+variance does not exceed the Binomial variance.
 }
 \examples{
 dl_fit(c(1.2, 2.5, 0.8, 3.1, 1.9), c("normal", "gamma"))

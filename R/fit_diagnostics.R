@@ -14,8 +14,11 @@
 #' @returns A list with `id`, `discrete`, `density`, `cdf`, `qq`, `pp`,
 #'   `gof`, `bins` and `notes`. Density rows have `kind` equal to `fitted`
 #'   or `empirical`. GOF p-values are descriptive simple-null references,
-#'   explicitly uncalibrated when parameters are estimated. Chi-square bins
-#'   include unobserved tails and are merged until expected counts reach 5.
+#'   explicitly uncalibrated when parameters are estimated. The KS p-value
+#'   uses the exact Kolmogorov distribution for fewer than 100 observations
+#'   without ties, as [stats::ks.test()] does, and the limiting distribution
+#'   otherwise; its `label` and `notes` say which. Chi-square bins include
+#'   unobserved tails and are merged until expected counts reach 5.
 #' @export
 #' @examples
 #' fit <- dl_fit(c(-1, 0, 1, 2), "normal")
@@ -87,7 +90,11 @@ dl_fit_diagnostics <- function(fit, id = NULL, points = 200L, level = .95) {
                       label = if (model$k > 0) "descriptive (parameters estimated; merged expected bins)" else
                         "descriptive (fixed parameters; merged expected bins)")
     if (!enough) notes <- c(notes, "fit.note_insufficient_bins")
-  } else gof <- fit_continuous_gof(data, dist, estimated = model$k > 0)
+  } else {
+    ks_exact <- data$n < 100 && all(data$counts == 1)
+    gof <- fit_continuous_gof(data, dist, estimated = model$k > 0, exact = ks_exact)
+    notes <- c(notes, if (ks_exact) "fit.note_ks_exact" else "fit.note_ks_limiting")
+  }
   list(id = id, discrete = discrete, density = density, cdf = cdf, qq = qq,
        pp = pp, gof = gof, bins = bins, notes = unique(notes))
 }
@@ -151,8 +158,9 @@ fit_diagnostic_density <- function(data, dist, points) {
 }
 
 # Compressed versions of the EDF statistics, algebraically identical to
-# evaluating the sorted, expanded sample. Log tails avoid log(1 - F).
-fit_continuous_gof <- function(data, dist, estimated = TRUE) {
+# evaluating the sorted, expanded sample. Log tails avoid log(1 - F). With
+# `exact`, the observations are distinct and the KS p-value is exact.
+fit_continuous_gof <- function(data, dist, estimated = TRUE, exact = FALSE) {
   n <- data$n
   w <- data$counts
   u <- dl_cdf(dist, data$x)
@@ -171,10 +179,17 @@ fit_continuous_gof <- function(data, dist, estimated = TRUE) {
   reference_n <- if (n > .Machine$integer.max) Inf else n
   p_ad <- if (is.infinite(ad)) 0 else goftest::pAD(ad, n = reference_n, lower.tail = FALSE)
   p_cvm <- if (is.infinite(cvm)) 0 else goftest::pCvM(cvm, n = reference_n, lower.tail = FALSE)
+  # stats::ks.test() gives the exact two-sided law (Marsaglia, Tsang and Wang,
+  # 2003) for the same statistic; the limiting law covers large or tied samples.
+  p_ks <- if (exact) {
+    stats::ks.test(data$x, function(q) dl_cdf(dist, q), exact = TRUE)$p.value
+  } else fit_ks_reference(sqrt(n) * ks)
+  label <- if (estimated) "descriptive (parameters estimated; simple-null reference)" else
+    "descriptive (fixed parameters; simple-null reference)"
+  ks_label <- sub("simple-null", if (exact) "exact simple-null" else "limiting simple-null", label)
   data.frame(test = c("KS", "AD", "CvM"), statistic = c(ks, ad, cvm),
-             df = NA_real_, p.value = c(fit_ks_reference(sqrt(n) * ks), p_ad, p_cvm),
-             label = if (estimated) "descriptive (parameters estimated; simple-null reference)" else
-               "descriptive (fixed parameters; simple-null reference)")
+             df = NA_real_, p.value = c(p_ks, p_ad, p_cvm),
+             label = c(ks_label, label, label))
 }
 
 # Limiting two-sided Kolmogorov distribution, evaluated on the numerically

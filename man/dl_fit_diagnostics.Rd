@@ -19,8 +19,11 @@ dl_fit_diagnostics(fit, id = NULL, points = 200L, level = 0.95)
 A list with \code{id}, \code{discrete}, \code{density}, \code{cdf}, \code{qq}, \code{pp},
 \code{gof}, \code{bins} and \code{notes}. Density rows have \code{kind} equal to \code{fitted}
 or \code{empirical}. GOF p-values are descriptive simple-null references,
-explicitly uncalibrated when parameters are estimated. Chi-square bins
-include unobserved tails and are merged until expected counts reach 5.
+explicitly uncalibrated when parameters are estimated. The KS p-value
+uses the exact Kolmogorov distribution for fewer than 100 observations
+without ties, as \code{\link[stats:ks.test]{stats::ks.test()}} does, and the limiting distribution
+otherwise; its \code{label} and \code{notes} say which. Chi-square bins include
+unobserved tails and are merged until expected counts reach 5.
 }
 \description{
 Produces plot data and descriptive goodness-of-fit statistics without

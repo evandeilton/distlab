@@ -166,3 +166,30 @@ test_that("fixed-model labels and fitted engine integration are consistent", {
   fit <- dl_fit(grouped, "normal")
   expect_identical(dl_fit_diagnostics(fit)$gof$test, "Chi-square")
 })
+
+test_that("KS p-values use the exact law for small samples without ties", {
+  set.seed(5)
+  x <- rnorm(40, .2, 1.1)
+  fixed <- list(normal = list(mean = 0, sd = 1))
+  d <- dl_fit_diagnostics(dl_fit(x, "normal", fixed = fixed))
+  ks <- d$gof[d$gof$test == "KS", ]
+  ref <- ks.test(x, "pnorm", exact = TRUE)
+  expect_equal(ks$statistic, unname(ref$statistic))
+  expect_equal(ks$p.value, ref$p.value)
+  expect_match(ks$label, "exact")
+  expect_true("fit.note_ks_exact" %in% d$notes)
+  # Ties and large samples use the limiting law, as stats::ks.test() does;
+  # ks.test() sums that series to a tolerance of 1e-6.
+  tied <- c(x, x[1:3])
+  dt <- dl_fit_diagnostics(dl_fit(tied, "normal", fixed = fixed))
+  limit <- suppressWarnings(ks.test(tied, "pnorm", exact = FALSE))
+  expect_equal(dt$gof$p.value[1], limit$p.value, tolerance = 1e-6)
+  expect_match(dt$gof$label[1], "limiting")
+  expect_true("fit.note_ks_limiting" %in% dt$notes)
+  large <- rnorm(150)
+  dl <- dl_fit_diagnostics(dl_fit(large, "normal", fixed = fixed))
+  expect_equal(dl$gof$p.value[1], ks.test(large, "pnorm", exact = FALSE)$p.value, tolerance = 1e-6)
+  for (k in c("fit.note_ks_exact", "fit.note_ks_limiting")) {
+    expect_false(identical(distlab:::tr(k, "pt-BR"), k))
+  }
+})
