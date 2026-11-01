@@ -6,6 +6,7 @@ type: continuous
 group: positive
 subgroup: gamma_family
 tier: 1
+graph: {xy: [-170, 170]}
 support:
   lower: 0
   upper: .inf
@@ -69,6 +70,7 @@ story:
 relationships:
   - to: f
     type: transformation
+    label: "(U/d₁)/(V/d₂)"
     condition:
       en-US: "If U ~ Chi-square(d1) and V ~ Chi-square(d2) are independent, (U / d1) / (V / d2) is F(d1, d2)."
       pt-BR: "Se U ~ Qui-quadrado(d1) e V ~ Qui-quadrado(d2) são independentes, (U / d1) / (V / d2) é F(d1, d2)."

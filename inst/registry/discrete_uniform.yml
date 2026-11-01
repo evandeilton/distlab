@@ -6,6 +6,7 @@ type: discrete
 group: counts
 subgroup: uniform_family
 tier: 1
+graph: {xy: [150, -330]}
 support:
   lower: min
   upper: max

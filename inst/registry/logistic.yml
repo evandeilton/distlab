@@ -6,6 +6,7 @@ type: continuous
 group: real_line
 subgroup: symmetric_family
 tier: 1
+graph: {xy: [-830, 480]}
 support:
   lower: -.inf
   upper: .inf

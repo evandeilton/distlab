@@ -6,6 +6,7 @@ type: discrete
 group: counts
 subgroup: poisson_family
 tier: 1
+graph: {xy: [-60, -190]}
 support:
   lower: 0
   upper: .inf
@@ -64,6 +65,7 @@ story:
 relationships:
   - to: normal
     type: limit
+    label: "λ→∞"
     condition:
       en-US: "For a large rate lambda, the standardized Poisson tends to the standard Normal."
       pt-BR: "Para uma taxa lambda grande, a Poisson padronizada tende à Normal padrão."

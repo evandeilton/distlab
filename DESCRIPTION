@@ -30,11 +30,13 @@ Depends:
 Imports:
     bslib (>= 0.9.0),
     extraDistr,
+    grDevices,
     htmltools,
     plotly,
     shiny (>= 1.8.0),
     stats,
     utils,
+    visNetwork (>= 2.1.0),
     yaml
 Suggests:
     chromote,

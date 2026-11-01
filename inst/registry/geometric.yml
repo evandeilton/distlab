@@ -6,6 +6,7 @@ type: discrete
 group: counts
 subgroup: negbinomial_family
 tier: 1
+graph: {xy: [380, -330]}
 support:
   lower: 0
   upper: .inf
@@ -91,6 +92,7 @@ story:
 relationships:
   - to: negbinomial
     type: sum
+    label: "ΣXᵢ"
     condition:
       en-US: "The sum of r independent Geometric(p) variables is Negative binomial(r, p)."
       pt-BR: "A soma de r variáveis Geométrica(p) independentes é Binomial negativa(r, p)."

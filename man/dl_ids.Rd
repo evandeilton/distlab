@@ -25,6 +25,8 @@ dl_ids(type = "discrete")
 }
 \seealso{
 Other registry:
-\code{\link[=dl_registry]{dl_registry()}}
+\code{\link[=dl_catalog]{dl_catalog()}},
+\code{\link[=dl_registry]{dl_registry()}},
+\code{\link[=dl_relations]{dl_relations()}}
 }
 \concept{registry}

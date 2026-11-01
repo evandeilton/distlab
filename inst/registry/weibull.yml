@@ -6,6 +6,7 @@ type: continuous
 group: positive
 subgroup: weibull_family
 tier: 1
+graph: {xy: [-260, 480]}
 support:
   lower: 0
   upper: .inf
@@ -84,6 +85,7 @@ story:
 relationships:
   - to: exponential
     type: special_case
+    label: "k=1"
     condition:
       en-US: "With shape k = 1 the failure risk is constant: Weibull(1, lambda) is Exponential with rate 1 / lambda."
       pt-BR: "Com forma k = 1 o risco de falha é constante: Weibull(1, lambda) é Exponencial com taxa 1 / lambda."

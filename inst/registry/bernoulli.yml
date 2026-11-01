@@ -6,6 +6,7 @@ type: discrete
 group: binary
 subgroup: binomial_family
 tier: 1
+graph: {xy: [-580, -330]}
 support:
   lower: 0
   upper: 1
@@ -88,6 +89,7 @@ story:
 relationships:
   - to: binomial
     type: sum
+    label: "ΣXᵢ"
     condition:
       en-US: "The sum of n independent Bernoulli(p) variables is Binomial(n, p)."
       pt-BR: "A soma de n variáveis Bernoulli(p) independentes é Binomial(n, p)."

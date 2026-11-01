@@ -179,7 +179,22 @@ validate_entry <- function(entry) {
   for (rel in entry$relationships) {
     p <- c(p, validate_relationship(rel))
   }
+  p <- c(p, validate_graph(entry$graph))
+  if (!is.null(entry$also_in) &&
+      (!is.character(entry$also_in) || !all(entry$also_in %in% .dl_groups) ||
+       entry$group %in% entry$also_in)) {
+    p <- c(p, "also_in must list other known groups")
+  }
   p
+}
+
+# Optional position on the relationship map: `xy`, two finite numbers (a
+# pair, since YAML reads a bare `y` key as a logical).
+validate_graph <- function(g) {
+  if (is.null(g)) return(character())
+  xy <- if (is.list(g)) unlist(g$xy)
+  ok <- is.numeric(xy) && length(xy) == 2L && all(is.finite(xy))
+  if (ok) character() else "graph needs xy, two finite numbers"
 }
 
 # Allowed relationship types between registry entries.
@@ -200,6 +215,12 @@ validate_relationship <- function(rel) {
   }
   if (!is_string(rel$latex)) {
     p <- c(p, sprintf("relationship to %s needs a latex string", label))
+  }
+  # Optional short map label: plain Unicode text, no LaTeX.
+  if (!is.null(rel$label) &&
+      (!is_string(rel$label) || nchar(rel$label) > 24L ||
+       grepl("\\", rel$label, fixed = TRUE) || grepl("$", rel$label, fixed = TRUE))) {
+    p <- c(p, sprintf("relationship to %s needs a short plain-text label", label))
   }
   p
 }

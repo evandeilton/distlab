@@ -46,9 +46,9 @@ test_that("switching language keeps distribution and parameter values", {
     expect_match(output$`explore-formulas_moments`$html, "Variance")
     expect_match(output$`explore-related`$html, "Special case")
     # The client gets the new dictionary; the selection is kept, not reset.
-    custom <- attr(sess, "log")$custom
-    expect_identical(custom[[length(custom)]]$type, "dl-lang")
-    expect_identical(custom[[length(custom)]]$message$dict[["nav.home"]], "Home")
+    custom <- Filter(function(m) identical(m$type, "dl-lang"), attr(sess, "log")$custom)
+    expect_length(custom, 1L)
+    expect_identical(custom[[1]]$message$dict[["nav.home"]], "Home")
     sel <- input_messages(sess, "dist")
     expect_identical(sel[[length(sel)]]$message$value, "gamma")
     expect_false(any(vapply(attr(sess, "log")$input, function(m) identical(m$id, "nav"),
@@ -108,4 +108,27 @@ test_that("building the UI registers the resource path for logo and favicon", {
   shiny::removeResourcePath("distlab-www")
   distlab:::app_ui("en-US")
   expect_true("distlab-www" %in% names(shiny::resourcePaths()))
+})
+
+test_that("the Compendium opens distributions in the Explorer", {
+  sess <- recording_session()
+  shiny::testServer(app_for_test("en-US"), session = sess, {
+    session$setInputs(nav = "compendium", `compendium-open` = "weibull")
+    nav <- input_messages(sess, "nav")
+    expect_identical(nav[[length(nav)]]$message$value, "explorer")
+    sel <- input_messages(sess, "dist")
+    expect_identical(sel[[length(sel)]]$message$value, "weibull")
+  })
+})
+
+test_that("Home group links open that group in the Compendium", {
+  sess <- recording_session()
+  shiny::testServer(app_for_test("en-US"), session = sess, {
+    session$setInputs(`home-compendium` = "positive")
+    nav <- input_messages(sess, "nav")
+    expect_identical(nav[[length(nav)]]$message$value, "compendium")
+    g <- input_messages(sess, "groups")
+    expect_identical(g[[length(g)]]$message$value, "positive")
+    expect_length(input_messages(sess, "dist"), 0L)
+  })
 })

@@ -6,6 +6,7 @@ type: continuous
 group: bounded
 subgroup: beta_family
 tier: 1
+graph: {xy: [-830, 170]}
 support:
   lower: 0
   upper: 1
@@ -94,6 +95,7 @@ story:
 relationships:
   - to: uniform
     type: special_case
+    label: "α=β=1"
     condition:
       en-US: "With alpha = beta = 1 the density is flat: Beta(1, 1) is Uniform(0, 1)."
       pt-BR: "Com alfa = beta = 1 a densidade é constante: Beta(1, 1) é Uniforme(0, 1)."

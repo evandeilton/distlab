@@ -6,6 +6,7 @@ type: continuous
 group: positive
 subgroup: normal_family
 tier: 1
+graph: {xy: [-520, 0]}
 support:
   lower: 0
   lower_open: true
@@ -73,6 +74,7 @@ story:
 relationships:
   - to: normal
     type: transformation
+    label: "log X"
     condition:
       en-US: "The logarithm of a Lognormal(mu, sigma) variable is Normal(mu, sigma)."
       pt-BR: "O logaritmo de uma variável Lognormal(mu, sigma) é Normal(mu, sigma)."
