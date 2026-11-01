@@ -2,8 +2,9 @@
 
 Leitura consolidada por Sol/Codex em 2026-11-01, a partir do histórico completo
 até `21b1fc5`, dos fontes, registros YAML, ativos e testes locais. O lote 6
-está implementado e validado localmente em `codex/fit-lab`; o GitHub remoto não foi consultado
-para afirmar estado de PR ou CI.
+está implementado e validado em `codex/fit-lab`, publicado com a base de
+Simulação na [PR #5](https://github.com/evandeilton/distlab/pull/5). A consulta
+ao GitHub confirmou a PR aberta e cinco jobs de CI iniciados; merge pendente.
 
 ## O produto e sua unidade central
 
@@ -153,8 +154,8 @@ Resultados posteriores ficam no histórico `COLLABORATION.md`.
 
 O `PLAN.md` também descreve intenções futuras. A marca já existe; o lote de
 Simulação já foi implementado, mas não está integrado na `main` local.
-O Fit está implementado e validado localmente, com revisão/entrega remota
-pendentes. Cartões multivariados, `dl_report()`, modo
+O Fit está implementado, validado localmente e publicado na PR #5, com
+revisão, CI e merge pendentes. Cartões multivariados, `dl_report()`, modo
 apresentação e exportações gerais são lotes posteriores. A API proposta
 `dl_compare()`, `dl_plot_*()` e `dl_code()` não deve ser confundida com uma
 API já exportada só porque as páginas correspondentes existem.

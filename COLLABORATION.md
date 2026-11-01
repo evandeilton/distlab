@@ -265,3 +265,27 @@ O proprietário solicitou comitar as mudanças e criar uma nova PR.
   Esta preparação altera somente documentação e regras de versionamento.
 
 O hash do commit e o endereço da PR serão registrados após a publicação.
+
+### PR publicada — 2026-11-01 — Sol
+
+- Commit de implementação: `e9f2df6a9e74bad5715f4727b7ed321745c092ce`
+  (`Add the Fit lab and document the shared project handoff`).
+- Autor e committer conferidos no commit: José Evandeilton Lopes
+  <evandeilton@gmail.com>. Mensagem sem trailer de coautoria.
+- Branch enviada: `origin/codex/fit-lab`, com tracking configurado.
+- PR: **#5 — Add Simulation and Fit labs with reproducible R workflows**
+  https://github.com/evandeilton/distlab/pull/5
+- Criada pela conta `evandeilton`, aberta para revisão, base `main`.
+  A PR inclui os quatro commits preservados da Simulação e o novo Fit lab.
+- Cinco jobs de R CMD check consultados no GitHub e iniciados:
+  macOS/release, Windows/release, Ubuntu/devel, Ubuntu/release e
+  Ubuntu/oldrel-1. Não há afirmação de CI verde nesta etapa.
+- PR vinculada a este chat no Codex. Não houve merge, auto-merge nem
+  reescrita do histórico existente.
+- Esta atualização documental registra a entrega em `PLAN.md`, neste
+  histórico e em `docs/architecture.md`; será comitada/enviada na mesma PR,
+  sem alterações funcionais ou necessidade de repetir os testes locais.
+
+Próximo passo: revisar a PR e acompanhar os resultados do CI. Eventuais
+correções devem ser registradas aqui e continuar com autoria exclusiva do
+proprietário nos commits novos.

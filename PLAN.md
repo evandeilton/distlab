@@ -190,15 +190,16 @@ bookmarkable URL state (v1).
 | 2 | feat/brand-shell | #2 | merged |
 | 3 | feat/compendium | #3 | merged |
 | 4 | feat/calculator-compare | #4 | merged |
-| 5 | feat/simulation-lab | — | implemented through 21b1fc5; package/browser checks passed on combined branch; review/CI/merge pending |
-| 6 | codex/fit-lab | — | implemented and validated locally; independent review findings fixed by Sol; not committed/pushed |
+| 5 | feat/simulation-lab (included in codex/fit-lab) | #5 | implemented through 21b1fc5; published with batch 6; review/CI/merge pending |
+| 6 | codex/fit-lab | #5 | implemented, validated and committed as e9f2df6; PR open against main; CI started |
 | 7 | feat/multivariate | — | not implemented; four catalog entries/cards pending |
 | 8 | feat/study-report | — | not implemented; dl_report() and session export pending |
 | 9 | feat/export-presentation | — | partial groundwork: copy-code controls exist; remaining scope pending |
 
-Status is based on the local checkout and Git history at `21b1fc5`. Live GitHub PR/CI status has not
-been checked. Batches 1–4 are merged; batch 5 needs closure; batch 6 is locally implemented and validated;
-batches 7–9 remain queued. Branch `codex/fit-lab` includes the unmerged Simulation base.
+Status includes the Simulation base at `21b1fc5`, Fit commit `e9f2df6` and live GitHub inspection on
+2026-11-01. Batches 1–4 are merged; batches 5/6 are published together in
+[PR #5](https://github.com/evandeilton/distlab/pull/5), with five CI jobs started; batches 7–9 remain queued.
+Branch `codex/fit-lab` includes the unmerged Simulation base. No merge has been performed.
 
 ### Remaining MVP work, in delivery order
 
@@ -207,7 +208,7 @@ batches 7–9 remain queued. Branch `codex/fit-lab` includes the unmerged Simula
 - [ ] Review the complete diff against main and address findings.
 - [ ] Validate the UI in pt-BR/en-US, light/dark mode and desktop/mobile layouts.
 - [x] Install the package, run the browser smoke test and R CMD check (verified on `codex/fit-lab`).
-- [ ] Verify/create the PR, obtain green results in all five CI jobs and merge.
+- [ ] Obtain green results in all five CI jobs and merge (PR #5 is open).
 - [ ] Update the handoff and restart the preview after landing.
 
 **6. Fit lab (`codex/fit-lab`).** Locally implemented and validated on 2026-11-01.
@@ -228,10 +229,10 @@ smoke test and final full R CMD check with 0 errors, 0 warnings and 0 notes. Des
 CSV/R downloads, script reproduction and fitted-model navigation were checked. Preview: port 4322;
 the pre-existing process on 4321 was preserved. See `COLLABORATION.md` and `docs/architecture.md`.
 
-Delivery in progress: commit with the owner's identity and create one PR against main containing the
-unmerged Simulation base and Fit lab. Existing Simulation commits will be preserved. Live GitHub inspection
-confirmed that only PRs #1–4 exist and are merged; no separate Simulation PR is open. Remote CI must pass
-before merge. The project plan and collaboration handoff are now versioned alongside the implementation.
+Published in [PR #5](https://github.com/evandeilton/distlab/pull/5), against `main`, with the existing
+Simulation commits preserved and Fit commit `e9f2df6` authored/committed solely by the owner. The PR was
+created by `evandeilton`; no assistant coauthor trailers were added to the new commits. Five remote CI jobs
+have started and must pass before merge. The plan and collaboration handoff are versioned with the code.
 
 **7. Complete T1 catalog (`feat/multivariate`).**
 
@@ -266,8 +267,9 @@ push -> PR with Auto-fix -> merge when all 5 CI jobs are green -> next batch fro
 Simulation base (5, `feat/simulation-lab`): engine, six-tab UI, relation demos, seeded R code and refinements
 are implemented in four commits after main. The owner requested starting batch 6 on `codex/fit-lab`,
 which now includes the locally validated Fit lab. Local package/browser checks cover this combined state;
-the remaining Simulation visual review and remote CI/PR/merge status still require closure.
-Next delivery step: review and submit batches 5/6 in the correct dependency order; then proceed to batch 7.
+the remaining Simulation visual review and remote CI/merge still require closure.
+Next delivery step: review PR #5 and its CI, address findings, and merge only after the appropriate review;
+then proceed to batch 7. No merge has been authorized or performed in this publication step.
 See `COLLABORATION.md` for the shared handoff and validation record;
 all assistants must follow the owner's identity and change-log instructions in `AGENTS.md` / `CLAUDE.md`.
 
