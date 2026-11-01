@@ -310,10 +310,12 @@ sim.ecdf: Função de distribuição empírica e exata
 sim.ecdf.empirical: Empírica
 sim.note.outside: "{pct} dos sorteios ficam fora da faixa do gráfico (caudas pesadas)."
 sim.sample.intro: >-
-  Uma amostra sorteada com a semente, comparada com a lei exata. Cada
-  intervalo de 95% deve conter o valor exato em cerca de 95 de 100 sementes.
+  Uma amostra sorteada com a semente, comparada com a lei exata. Os
+  intervalos de 95% da média e das probabilidades devem conter o valor exato
+  em cerca de 95 de 100 sementes; o intervalo da variância o contém menos
+  vezes para leis de caudas pesadas (excesso de curtose grande).
 sim.sample.check: Verificação de Monte Carlo
-sim.col.quantity: Quantidade
+sim.col.quantity: Grandeza
 sim.col.exact: Exato
 sim.col.estimate: Estimativa
 sim.col.se: Erro-padrão
@@ -331,8 +333,9 @@ sim.lln.xlab: Número de sorteios k
 sim.lln.ylab: Média dos k primeiros sorteios
 sim.lln.path: "Trajetória {n}"
 sim.lln.note.band: >-
-  As médias acumuladas se estabilizam na média μ = {mu}; cerca de 95% delas
-  ficam na faixa μ ± 2σ/√k, que se estreita à medida que k cresce.
+  As médias acumuladas se estabilizam na média μ = {mu}; para cada k, cerca
+  de 95% das médias acumuladas ficam na faixa μ ± 2σ/√k, que se estreita à
+  medida que k cresce.
 sim.lln.note.no_mean: >-
   Esta distribuição não tem média, então as médias acumuladas nunca se
   estabilizam: um único sorteio extremo pode deslocá-las a qualquer momento,
@@ -358,13 +361,9 @@ sim.clt.note: >-
   distância à N(0, 1) diminui quando n cresce, como diz o Teorema Central do
   Limite.
 sim.clt.note.discrete: >-
-  Os sorteios são números inteiros, então as médias caem numa grade e a
-  distância diminui mais devagar para n pequeno.
-sim.clt.note.raw: >-
-  A variância não é finita, então as médias não podem ser padronizadas e o
-  Teorema Central do Limite não se aplica: o histograma das médias não se
-  estreita quando n cresce. A média de n sorteios de uma Cauchy é de novo
-  Cauchy.
+  Os sorteios são números inteiros, então as médias caem numa grade de
+  espaçamento 1/(σ√n); as barras ficam sobre essa grade, e a distância
+  diminui mais devagar para n pequeno.
 sim.transform.intro: >-
   Y é calculado a partir de sorteios independentes de X; quando Y segue uma
   distribuição do catálogo, sua lei exata aparece sobre o histograma.
@@ -393,10 +392,8 @@ sim.rel.series.approx: Lei aproximante
 sim.rel.series.target: Lei limite
 sim.rel.col.frame: Etapa
 sim.rel.col.distance: Distância
-sim.rel.col.band: Nível de ruído de 95%
 sim.rel.note.draws: >-
-  O histograma se forma à medida que os sorteios se acumulam. Uma distância
-  abaixo do nível de ruído de 95%, 1,36/√n, está de acordo com a lei exata.
+  O histograma se forma à medida que os sorteios se acumulam.
 sim.rel.note.sum: >-
   Cada quadro acrescenta parcelas à soma, e a lei exata da soma muda com o
   número de parcelas k.
@@ -428,7 +425,7 @@ sim.mem.unsupported: >-
   suporte [0, ∞).
 sim.mem.to_exp: Mudar para a Exponencial
 sim.error.seed: A semente deve ser um número inteiro de 1 a 2147483647.
-sim.error.ab: Digite um número para a e para b.
+sim.error.ab: "Digite números para a e b entre −{max} e {max}."
 sim.error.log_support: >-
   log(X) exige X > 0: escolha uma distribuição com suporte contido em (0, ∞).
 sim.error.affine_b: A inclinação b não pode ser 0, pois a + 0·X é uma constante.
@@ -437,4 +434,24 @@ sim.error.memoryless_support: >-
   suporte [0, ∞).
 sim.error.memoryless_few: >-
   Menos de 30 sorteios passaram de s; escolha um s menor ou mais sorteios.
-sim.error.engine: "Não foi possível rodar a simulação: {message}"
+sim.error.engine: Não foi possível rodar a simulação com estes valores.
+sim.clt.note.no_mean: >-
+  A média não existe, então as médias não podem ser padronizadas e as médias
+  brutas não se estreitam quando n cresce: a média de n sorteios de uma Cauchy
+  é de novo a mesma Cauchy.
+sim.clt.note.infinite_mean: >-
+  A média é infinita, então as médias não podem ser padronizadas: as médias
+  brutas sobem e não se estabilizam quando n cresce.
+sim.clt.note.infinite_var: >-
+  A média existe, mas a variância é infinita: as médias brutas se estreitam,
+  mas devagar, e não há escala √n com limite Normal.
+sim.rel.col.band_ks: Nível de ruído de 95%
+sim.rel.col.band_tv: Nível de ruído esperado
+sim.rel.note.band_ks: >-
+  Uma distância de Kolmogorov–Smirnov abaixo do nível de ruído de 95%,
+  1,36/√n, está de acordo com a lei exata.
+sim.rel.note.band_tv: >-
+  Mesmo sorteios da lei exata deixam uma distância de variação total de cerca
+  de ½ Σ √(2p(1 − p)/(πn)), o nível de ruído esperado; uma distância próxima
+  dele está de acordo com a lei exata.
+sim.mem.verdict.special: "Com estes parâmetros, a {law} é a {base}."

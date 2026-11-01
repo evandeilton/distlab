@@ -532,6 +532,12 @@ th[aria-sort="ascending"], th[aria-sort="descending"] { color: var(--dl-ink); }
 
 /* Simulation */
 .dl-sim .card-body { overflow: visible; }
+/* Flex items default to min-width: auto, so a wide table or code block would
+   stretch the tab past its card on phones; let them scroll inside instead. */
+.dl-sim > .main, .dl-sim .card-body, .dl-sim .tab-content, .dl-sim .tab-content > .tab-pane,
+.dl-sim .bslib-grid > *, .dl-sim .shiny-html-output { min-width: 0; }
+.dl-sim .table-responsive { max-width: 100%; }
+.dl-sim .dl-code-block { max-width: 100%; overflow-x: auto; }
 .dl-sim .bslib-navs-card-title, .dl-sim .card-header .nav-underline { flex-wrap: wrap; row-gap: 0.25rem; }
 .dl-sim-intro { color: var(--dl-muted); margin: 0 0 0.75rem; line-height: 1.55; max-width: 60rem; }
 .dl-sim-heading { font-size: 0.95rem; font-weight: 700; margin: 0.25rem 0 0.5rem; }

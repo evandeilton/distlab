@@ -69,7 +69,7 @@ test_that("the LLN and CLT tabs explain heavy tails", {
     session$elapse(400)
     expect_false(clt()$standardized)
     expect_null(output$clt_table)
-    expect_match(output$clt_note$html, "again Cauchy")
+    expect_match(output$clt_note$html, "again the same Cauchy")
     session$setInputs(tab = "lln")
     expect_match(output$lln_note$html, "no mean")
     session$setInputs(dist = "student_t", p_student_t_df = 1.5)
@@ -86,6 +86,7 @@ test_that("the transformation tab names the exact law or the approximation", {
     session$elapse(400)
     expect_identical(tf()$target$id, "gamma")
     expect_match(output$tf_summary$html, "Exact law of Y: Gamma(shape = 3, rate = 1)", fixed = TRUE)
+    expect_match(output$tf_plot, '"text":"f(y)"', fixed = TRUE)
     expect_match(output$tf_code$html, "rowSums(x)", fixed = TRUE)
     expect_type(output$tf_plot, "character")
     session$setInputs(op = "max")
@@ -94,7 +95,9 @@ test_that("the transformation tab names the exact law or the approximation", {
     session$elapse(400)
     expect_match(output$tf_summary$html, "Normal approximation: Normal(mean = 6, sd = 1)", fixed = TRUE)
     session$setInputs(op = "affine", a = 1, b = NA)
-    expect_error(output$tf_summary, "Enter a number")
+    expect_error(output$tf_summary, "Enter numbers for a and b between")
+    session$setInputs(b = 1001)
+    expect_error(output$tf_summary, "Enter numbers for a and b between")
     session$setInputs(b = 0)
     expect_error(output$tf_summary, "must not be 0")
     session$setInputs(dist = "poisson", p_poisson_lambda = 3, op = "log")
@@ -102,7 +105,8 @@ test_that("the transformation tab names the exact law or the approximation", {
     expect_error(output$tf_summary, "needs X > 0")
     # Sums of a discrete law keep whole-number bins.
     session$setInputs(op = "sum", k = 2)
-    expect_true(tf_view()$discrete)
+    expect_identical(tf_view()$step, 1)
+    expect_match(output$tf_plot, "P(Y = y)", fixed = TRUE)
     session$setInputs(dist = "cauchy", p_cauchy_location = 0, p_cauchy_scale = 1, op = "mean", k = 10)
     session$elapse(400)
     expect_match(output$tf_summary$html, "same Cauchy law")
@@ -256,4 +260,133 @@ test_that("the UI has every tab, the seed controls and translated labels", {
   expect_identical(distlab:::valid_seed(2147483647), 2147483647L)
   expect_identical(distlab:::format_share(0.0123, "pt-BR"), "1,2%")
   expect_identical(distlab:::format_share(1e-5, "en-US"), "< 0.1%")
+})
+
+test_that("lattice transforms keep a bounded number of bars", {
+  # a + bX with a huge slope: bars on the lattice of step b, not one per integer.
+  p30 <- dl_dist("poisson", lambda = 30)
+  y <- dl_transform(p30, "affine", n = 2000, seed = 1, a = 0, b = 1e4)$sample
+  v <- distlab:::sim_view(y, NULL, mode = distlab:::transform_bin_mode(p30, "affine", 0, 1e4))
+  expect_identical(v$step, 1e4)
+  expect_lte(nrow(v$bins), 2000L)
+  expect_equal(sum(v$bins$proportion), 1)
+  # X^2 of a wide Geometric: too many whole numbers, so continuous bins.
+  g <- dl_dist("geometric", prob = 0.01)
+  y <- dl_transform(g, "square", n = 2000, seed = 1)$sample
+  v <- distlab:::sim_view(y, NULL, mode = distlab:::transform_bin_mode(g, "square", 0, 1))
+  expect_true(is.na(v$step))
+  expect_lte(nrow(v$bins), 80L)
+})
+
+test_that("means of discrete draws sit on their lattice", {
+  # Poisson(1) mean of 3 copies: bars of width 1/3 against the Normal approximation.
+  res <- dl_transform(dl_dist("poisson", lambda = 1), "mean", k = 3, n = 5000, seed = 1)
+  v <- distlab:::sim_view(res$sample, res$approx, mode = "auto")
+  expect_equal(v$step, 1 / 3)
+  peak <- dnorm(0, sd = 1 / sqrt(3))
+  ratio <- max(v$bins$density) / peak
+  expect_true(ratio > 1 / 1.3 && ratio < 1.3)
+  # Standardized Bernoulli(0.5) means of 30 draws: spacing 1/(sigma sqrt(30)).
+  b <- dl_dist("bernoulli", prob = 0.5)
+  clt <- dl_clt(b, sizes = c(1, 30), reps = 2000, seed = 1)
+  bins <- distlab:::clt_bins(clt, b)
+  last <- bins[bins$frame == 2, ]
+  expect_equal(last$width[1], 1 / (0.5 * sqrt(30)), tolerance = 1e-9)
+  ratio <- max(last$density) / dnorm(0)
+  expect_true(ratio > 1 / 1.3 && ratio < 1.3)
+  # Continuous laws keep the fixed 0.2-wide bins.
+  cn <- distlab:::clt_bins(dl_clt(dl_dist("exponential"), sizes = 5, reps = 200, seed = 1),
+                           dl_dist("exponential"))
+  expect_equal(unique(round(cn$width, 10)), 0.2)
+})
+
+test_that("a very wide discrete law still shows its law and moments", {
+  shiny::testServer(distlab:::mod_sim_server, args = list(lang = "en-US"), {
+    session$setInputs(dist = "negbinomial", p_negbinomial_size = 50, p_negbinomial_prob = 0.05,
+                      seed = 2026, n = "1000", tab = "transform", op = "sum", k = 30)
+    session$elapse(400)
+    expect_identical(tf()$target$params$size, 1500)
+    expect_match(output$tf_summary$html, "Negative binomial(size = 1500, prob = 0.05)", fixed = TRUE)
+    expect_type(output$tf_plot, "character")
+  })
+  expect_identical(distlab:::sim_error_text(simpleError("internal detail"), "pt-BR"),
+                   "Não foi possível rodar a simulação com estes valores.")
+})
+
+test_that("special cases of the Exponential and Geometric are named", {
+  html <- as.character(distlab:::mem_verdict_tag(
+    dl_memoryless(dl_dist("gamma", shape = 1, rate = 2), s = 0.5, n = 500, seed = 1),
+    dl_dist("gamma", shape = 1, rate = 2), 500, "en-US"))
+  expect_match(html, "dl-sim-verdict-yes")
+  expect_match(html, "With these parameters the Gamma is the Exponential.")
+  html <- as.character(distlab:::mem_verdict_tag(
+    dl_memoryless(dl_dist("negbinomial", size = 1, prob = 0.3), s = 2, n = 500, seed = 1),
+    dl_dist("negbinomial", size = 1, prob = 0.3), 500, "pt-BR"))
+  expect_match(html, "a Binomial negativa é a Geométrica")
+  expect_identical(distlab:::format_gap(0, "en-US"), "0")
+  expect_identical(distlab:::format_gap(3e-17, "en-US"), "< 10⁻¹²")
+  expect_identical(distlab:::format_gap(0.1839, "pt-BR"), "0,1839")
+})
+
+test_that("the threshold slider starts above 0", {
+  for (d in list(dl_dist("exponential"), dl_dist("weibull", shape = 0.2, scale = 1),
+                 dl_dist("geometric", prob = 0.9), dl_dist("poisson", lambda = 0.5))) {
+    sl <- distlab:::mem_slider(d)
+    expect_gt(sl$min, 0)
+    expect_gte(sl$value, sl$min)
+    expect_lte(sl$value, sl$max)
+    expect_gt(sl$max, sl$min)
+  }
+})
+
+test_that("the LLN plot shows the band from k = 1 unless the variance is infinite", {
+  r <- dl_lln(dl_dist("normal"), n = 1000, paths = 3, seed = 1)
+  y <- distlab:::lln_ylim(r$paths$mean, r$paths$mean[r$paths$k >= 50], 0, 1)
+  expect_lte(y[1], -2.2)
+  expect_gte(y[2], 2.2)
+  expect_lte(y[1], min(r$paths$mean))
+  # Heavy tails keep the late running means in view.
+  cy <- dl_lln(dl_dist("cauchy"), n = 2000, seed = 3)
+  late <- cy$paths$mean[cy$paths$k >= 100]
+  y <- distlab:::lln_ylim(cy$paths$mean, late, NA, NA)
+  expect_true(is.null(y) || diff(y) < diff(range(cy$paths$mean)) + 1e-9)
+})
+
+test_that("a language switch does not re-run the simulation", {
+  calls <- 0L
+  real <- distlab:::mc_check_run
+  local_mocked_bindings(mc_check_run = function(...) {
+    calls <<- calls + 1L
+    real(...)
+  }, .package = "distlab")
+  lang <- shiny::reactiveVal("en-US")
+  shiny::testServer(distlab:::mod_sim_server, args = list(lang = lang), {
+    do.call(session$setInputs, sim_inputs)
+    session$elapse(400)
+    first <- mc()
+    n_calls <- calls
+    expect_gte(n_calls, 1L)
+    lang("pt-BR")
+    session$elapse(400)
+    expect_match(output$mc_table$html, "Grandeza")
+    expect_identical(calls, n_calls)
+    expect_identical(mc(), first)
+  })
+})
+
+test_that("count choices use the thousands separator of the language", {
+  expect_no_warning(pt <- distlab:::count_choices(c(500, 100000), "pt-BR"))
+  expect_identical(names(pt), c("500", "100.000"))
+  expect_identical(unname(distlab:::count_choices(c(500, 100000), "en-US")), c("500", "100000"))
+  expect_identical(names(distlab:::count_choices(100000, "en-US")), "100,000")
+  html <- as.character(distlab:::mod_sim_ui("sim", "en-US"))
+  expect_match(html, "heavy-tailed laws")
+  expect_match(html, ">100,000<", fixed = TRUE)
+})
+
+test_that("the Simulation stylesheet keeps tabs inside their card on phones", {
+  css <- paste(readLines(system.file("app", "www", "distlab.css", package = "distlab")),
+               collapse = "\n")
+  expect_match(css, ".dl-sim .tab-content > .tab-pane", fixed = TRUE)
+  expect_match(css, "min-width: 0; }", fixed = TRUE)
 })

@@ -308,8 +308,10 @@ sim.ecdf: Empirical and exact CDF
 sim.ecdf.empirical: Empirical
 sim.note.outside: "{pct} of the draws lie outside the plotted range (heavy tails)."
 sim.sample.intro: >-
-  A sample drawn with the seed, compared with the exact law. Each 95%
-  interval should hold the exact value in about 95 of 100 seeds.
+  A sample drawn with the seed, compared with the exact law. The 95%
+  intervals of the mean and of the probabilities should hold the exact value
+  in about 95 of 100 seeds; the variance interval holds it less often for
+  heavy-tailed laws (large excess kurtosis).
 sim.sample.check: Monte Carlo check
 sim.col.quantity: Quantity
 sim.col.exact: Exact
@@ -329,8 +331,8 @@ sim.lln.xlab: Number of draws k
 sim.lln.ylab: Mean of the first k draws
 sim.lln.path: "Path {n}"
 sim.lln.note.band: >-
-  The running means settle at the mean μ = {mu}; about 95% of them stay in
-  the band μ ± 2σ/√k, which narrows as k grows.
+  The running means settle at the mean μ = {mu}; for each k, about 95% of
+  the running means fall in the band μ ± 2σ/√k, which narrows as k grows.
 sim.lln.note.no_mean: >-
   This distribution has no mean, so the running means never settle: a single
   extreme draw can move them at any time, however large k is.
@@ -353,12 +355,9 @@ sim.clt.note: >-
   Each frame shows the standardized means of the samples of size n. The
   distance to N(0, 1) shrinks as n grows, as the central limit theorem says.
 sim.clt.note.discrete: >-
-  The draws are whole numbers, so the means fall on a grid and the distance
-  falls more slowly for small n.
-sim.clt.note.raw: >-
-  The variance is not finite, so the means cannot be standardized and the
-  central limit theorem does not apply: the histogram of the raw means does
-  not narrow as n grows. The mean of n Cauchy draws is again Cauchy.
+  The draws are whole numbers, so the means fall on a grid with spacing
+  1/(σ√n); the bars sit on that grid, and the distance falls more slowly for
+  small n.
 sim.transform.intro: >-
   Y is computed from independent draws of X; when Y follows a distribution
   of the catalog, its exact law is drawn over the histogram.
@@ -387,10 +386,8 @@ sim.rel.series.approx: Approximating law
 sim.rel.series.target: Limit law
 sim.rel.col.frame: Step
 sim.rel.col.distance: Distance
-sim.rel.col.band: 95% noise level
 sim.rel.note.draws: >-
-  The histogram builds up as draws accumulate. A distance below the 95%
-  noise level 1.36/√n agrees with the exact law.
+  The histogram builds up as draws accumulate.
 sim.rel.note.sum: >-
   Each frame adds terms to the sum, and its exact law changes with the number
   of terms k.
@@ -421,7 +418,7 @@ sim.mem.unsupported: >-
   Memorylessness concerns waiting times: distributions with support [0, ∞).
 sim.mem.to_exp: Switch to the Exponential
 sim.error.seed: The seed must be a whole number from 1 to 2147483647.
-sim.error.ab: Enter a number for a and for b.
+sim.error.ab: "Enter numbers for a and b between −{max} and {max}."
 sim.error.log_support: >-
   log(X) needs X > 0: choose a distribution whose support lies in (0, ∞).
 sim.error.affine_b: The slope b must not be 0, since a + 0·X is a constant.
@@ -429,4 +426,24 @@ sim.error.memoryless_support: >-
   Memorylessness concerns waiting times: distributions with support [0, ∞).
 sim.error.memoryless_few: >-
   Fewer than 30 draws passed s; choose a smaller s or more draws.
-sim.error.engine: "The simulation could not be run: {message}"
+sim.error.engine: The simulation could not be run with these values.
+sim.clt.note.no_mean: >-
+  The mean does not exist, so the means cannot be standardized and the raw
+  means do not narrow as n grows: the mean of n Cauchy draws is again the
+  same Cauchy.
+sim.clt.note.infinite_mean: >-
+  The mean is infinite, so the means cannot be standardized: the raw means
+  drift upward and do not settle as n grows.
+sim.clt.note.infinite_var: >-
+  The mean exists but the variance is infinite: the raw means narrow, but
+  slowly, and there is no √n scaling with a Normal limit.
+sim.rel.col.band_ks: 95% noise level
+sim.rel.col.band_tv: Expected noise level
+sim.rel.note.band_ks: >-
+  A Kolmogorov–Smirnov distance below the 95% noise level 1.36/√n agrees with
+  the exact law.
+sim.rel.note.band_tv: >-
+  Even draws from the exact law leave a total variation distance of about
+  ½ Σ √(2p(1 − p)/(πn)), the expected noise level; a distance close to it
+  agrees with the exact law.
+sim.mem.verdict.special: "With these parameters the {law} is the {base}."

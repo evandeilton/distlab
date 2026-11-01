@@ -119,7 +119,7 @@
     target = list("chisq", df = 4),
     from = list(shape = 2, rate = 0.5), to = list(df = 4)),
   gamma__beta__transformation = list(
-    kind = "draws", params = "shape = 2 and shape = 3, rate = 1",
+    kind = "draws", params = "shape = 2, rate = 1; shape = 3, rate = 1",
     draw = c("g1 <- rgamma(n, shape = 2, rate = 1)",
              "g2 <- rgamma(n, shape = 3, rate = 1)",
              "x <- g1 / (g1 + g2)"),
@@ -225,7 +225,7 @@
     target = list("f", df1 = 1, df2 = 5),
     from = list(df = 5), to = list(df1 = 1, df2 = 5)),
   uniform__exponential__transformation = list(
-    kind = "draws", params = "min = 0, max = 1, lambda = 2",
+    kind = "draws", params = "min = 0, max = 1; rate = 2",
     draw = "x <- -log(runif(n, min = 0, max = 1)) / 2",
     target = list("exponential", rate = 2),
     from = list(min = 0, max = 1), to = list(rate = 2)),
@@ -275,9 +275,12 @@ limit_std_curves <- function(dist, k) {
 #'   after 100, 300, 1000, ... draws (up to `n`), by the Kolmogorov-Smirnov
 #'   distance (continuous laws, with the asymptotic 95% value
 #'   \eqn{1.36 / \sqrt{n}} as `band`) or the total variation distance
-#'   (discrete laws);
+#'   (discrete laws, with the expected distance of an \eqn{n}-draw sample
+#'   from the exact mass function \eqn{p} as `band`,
+#'   \eqn{\frac{1}{2} \sum_i \sqrt{2 p_i (1 - p_i) / (\pi n)}}, the Normal
+#'   approximation of \eqn{E|\hat p_i - p_i|});
 #' * sums add 1, 2, 3, 5, 10 and 20 independent terms, `n` draws each, and
-#'   compare them with the exact law of the sum;
+#'   compare them with the exact law of the sum, with the same bands;
 #' * limits are computed exactly, without draws: the approximating law
 #'   (such as Binomial(n, \eqn{\lambda/n})) is compared with the limit law
 #'   along a sequence of parameters, by the total variation distance
@@ -286,8 +289,9 @@ limit_std_curves <- function(dist, k) {
 #'   along the frames.
 #'
 #' Heavy-tailed laws (such as the Cauchy and F) are plotted on their 0.5% to
-#' 99.5% quantile range; the share of draws outside the range is reported in
-#' `frames$outside`.
+#' 99.5% quantile range, cut at 15 interquartile ranges from the median (finite
+#' support ends are kept); the share of draws outside the range is reported
+#' in `frames$outside`.
 #'
 #' @inheritParams dl_mc_check
 #' @param from,to Distribution ids at the two ends of the edge.
@@ -309,7 +313,8 @@ limit_std_curves <- function(dist, k) {
 #'     or limit law, `"approx"` for the approximating law of a limit), `x`,
 #'     `density` (mass for discrete laws) and `cdf`;
 #'   * `distance`: data frame with `frame`, `value`, `metric` (`"ks"`,
-#'     `"tv"` or `"kolmogorov"`) and `band`;
+#'     `"tv"` or `"kolmogorov"`) and `band` (the reference level of the
+#'     distance under the exact law; `NA` for limits);
 #'   * `range`: plotting range; `discrete`: whether the compared laws are
 #'     discrete (whole-number bins);
 #'   * `params`: the recipe parameters as text; `seed` (`NA` for limits or
@@ -374,11 +379,14 @@ run_code <- function(code, seed) {
 }
 
 # Even grid of `n` points for continuous laws or whole numbers for discrete
-# ones on `range`.
+# ones on `range`; at most about 2000 whole numbers, evenly spread, for very
+# wide discrete laws.
 law_curve <- function(dist, range, n = 401L) {
   if (identical(dist$entry$type, "discrete")) {
     s <- dl_support(dist)
-    x <- seq(max(range[1], s$lower), min(range[2], s$upper))
+    lo <- max(range[1], s$lower)
+    hi <- min(range[2], s$upper)
+    x <- if (hi - lo > 2000) unique(round(seq(lo, hi, length.out = 2001))) else seq(lo, hi)
     return(data.frame(x = x, density = dl_density(dist, x), cdf = dl_cdf(dist, x)))
   }
   curve_grid(dist, range[1], range[2], n = n)
@@ -394,19 +402,25 @@ demo_draws <- function(recipe, n, seed) {
   discrete <- identical(target$entry$type, "discrete")
   sizes <- unique(c(.dl_sim_frames[.dl_sim_frames < n], n))
   metric <- if (discrete) "tv" else "ks"
-  law <- if (discrete) {
-    sprintf("function(k) %s", code_fn(target, "d", "k"))
+  check <- if (discrete) {
+    c(sprintf("pmf <- function(k) %s", code_fn(target, "d", "k")),
+      .dl_tv_code,
+      "tv <- sapply(frames, function(m) tv_dist(x[seq_len(m)], pmf))",
+      # Expected distance of an m-draw sample from the exact mass function.
+      sprintf("p <- pmf(%s)", support_code(list(target))),
+      "band <- sapply(frames, function(m) 0.5 * sum(sqrt(2 * p * (1 - p) / (pi * m))))")
   } else {
-    sprintf("function(q) %s", code_fn(target, "p", "q"))
+    c(.dl_ks_code,
+      sprintf("ks <- sapply(frames, function(m) ks_dist(x[seq_len(m)], function(q) %s))",
+              code_fn(target, "p", "q")),
+      "band <- 1.36 / sqrt(frames)")
   }
   code <- paste(c(
     code_head(seed),
     sprintf("n <- %s", code_num(n)),
     recipe$draw,
     sprintf("frames <- %s", code_vec(sizes)),
-    if (discrete) .dl_tv_code else .dl_ks_code,
-    sprintf("%s <- sapply(frames, function(m) %s_dist(x[seq_len(m)], %s))", metric, metric, law),
-    if (!discrete) "band <- 1.36 / sqrt(frames)"
+    check
   ), collapse = "\n")
   env <- run_code(code, seed)
   x <- env$x
@@ -422,9 +436,19 @@ demo_draws <- function(recipe, n, seed) {
     curves = data.frame(frame = rep(seq_len(nf), each = nrow(curve)), series = "target",
                         curve[rep(seq_len(nrow(curve)), nf), , drop = FALSE], row.names = NULL),
     distance = data.frame(frame = seq_len(nf), value = env[[metric]], metric = metric,
-                          band = if (discrete) NA_real_ else env$band),
+                          band = env$band),
     range = rng, discrete = discrete, seed = seed, code = code
   )
+}
+
+# Whole numbers holding all but 1e-12 of the mass of every law in `targets`,
+# as R source ("0:12"), for the expected total variation distance.
+support_code <- function(targets) {
+  lo <- min(vapply(targets, function(d) dl_support(d)$lower, numeric(1)))
+  hi <- max(vapply(targets, function(d) {
+    min(dl_support(d)$upper, dl_quantile(d, 1e-12, lower.tail = FALSE))
+  }, numeric(1)))
+  sprintf("%s:%s", code_num(lo), code_num(hi))
 }
 
 demo_sum <- function(recipe, n, seed) {
@@ -441,7 +465,13 @@ demo_sum <- function(recipe, n, seed) {
     "sums <- lapply(terms, function(j) rowSums(x[, seq_len(j), drop = FALSE]))",
     if (discrete) .dl_tv_code else .dl_ks_code,
     sprintf("%s <- mapply(function(v, j) %s_dist(v, %s), sums, terms)", metric, metric, law),
-    if (!discrete) "band <- 1.36 / sqrt(n)"
+    if (discrete) {
+      c(sprintf("support <- %s", support_code(targets)),
+        sprintf("band <- sapply(terms, function(j) {\n  k <- support\n  p <- %s\n  0.5 * sum(sqrt(2 * p * (1 - p) / (pi * n)))\n})",
+                recipe$law))
+    } else {
+      "band <- 1.36 / sqrt(n)"
+    }
   ), collapse = "\n")
   env <- run_code(code, seed)
   sums <- env$sums
@@ -457,7 +487,7 @@ demo_sum <- function(recipe, n, seed) {
     samples = data.frame(frame = rep(seq_len(nf), lengths(sums)), value = unlist(sums)),
     curves = curves,
     distance = data.frame(frame = seq_len(nf), value = env[[metric]], metric = metric,
-                          band = if (discrete) NA_real_ else env$band),
+                          band = env$band),
     range = rng, discrete = discrete, seed = seed, code = code
   )
 }

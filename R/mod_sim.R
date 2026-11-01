@@ -16,6 +16,9 @@
 # Seeds accepted by the app: whole numbers from 1 to 2^31 - 1.
 .dl_seed_max <- 2147483647
 
+# Largest |a| and |b| of a + bX in the app.
+.dl_ab_max <- 1000
+
 mod_sim_ui <- function(id, lang) {
   ns <- shiny::NS(id)
   tab <- function(value, icon, ...) {
@@ -56,8 +59,7 @@ mod_sim_ui <- function(id, lang) {
         )
       ),
       shiny::selectInput(ns("n"), i18n_span("sim.draws", lang),
-                         choices = stats::setNames(as.character(.dl_sim_n),
-                                                   format(.dl_sim_n, scientific = FALSE, trim = TRUE)),
+                         choices = count_choices(.dl_sim_n, lang),
                          selected = as.character(.dl_sim_n_default)),
       shiny::tags$p(class = "dl-muted dl-field-help dl-sim-help", i18n_span("sim.seed_help", lang))
     ),
@@ -95,7 +97,7 @@ mod_sim_ui <- function(id, lang) {
           shiny::tags$div(
             class = "dl-sim-controls",
             shiny::selectInput(ns("reps"), i18n_span("sim.clt.reps", lang),
-                               choices = as.character(.dl_clt_reps), selected = "2000")
+                               choices = count_choices(.dl_clt_reps, lang), selected = "2000")
           ),
           plotly::plotlyOutput(ns("clt_plot"), height = "420px"),
           shiny::uiOutput(ns("clt_note")),
@@ -116,8 +118,10 @@ mod_sim_ui <- function(id, lang) {
               "input.op == 'affine'", ns = ns,
               shiny::tags$div(
                 class = "dl-calc-pair",
-                shiny::numericInput(ns("a"), label = math_tag("a"), value = 0, step = 0.5),
-                shiny::numericInput(ns("b"), label = math_tag("b"), value = 2, step = 0.5)
+                shiny::numericInput(ns("a"), label = math_tag("a"), value = 0, step = 0.5,
+                                    min = -.dl_ab_max, max = .dl_ab_max),
+                shiny::numericInput(ns("b"), label = math_tag("b"), value = 2, step = 0.5,
+                                    min = -.dl_ab_max, max = .dl_ab_max)
               )
             )
           ),
@@ -171,6 +175,15 @@ edge_choices <- function(lang) {
   out
 }
 
+# Choices of a count select: values as text, labels with the thousands
+# separator of the language ("100.000" in pt-BR, "100,000" in en-US).
+count_choices <- function(values, lang) {
+  pt <- match_lang(lang) == "pt-BR"
+  labels <- formatC(values, format = "d", big.mark = if (pt) "." else ",",
+                    decimal.mark = if (pt) "," else ".")
+  stats::setNames(format(values, scientific = FALSE, trim = TRUE), labels)
+}
+
 # Operations of the Transformations tab, labeled in `lang`.
 transform_choices <- function(lang) {
   stats::setNames(.dl_transform_ops,
@@ -186,19 +199,23 @@ valid_seed <- function(x) {
 }
 
 # Translated text of an engine error: keyed errors have their own entry,
-# others show the engine message.
+# others a general message (the English engine text is never shown).
 sim_error_text <- function(err, lang) {
   key <- err$key
   if (is_string(key)) {
     txt <- tr(paste0("sim.error.", key), lang)
     if (!identical(txt, paste0("sim.error.", key))) return(txt)
   }
-  tr("sim.error.engine", lang, message = conditionMessage(err))
+  tr("sim.error.engine", lang)
 }
 
-# Run an engine call; errors become validation messages, never crashes.
-sim_try <- function(expr, lang) {
-  res <- tryCatch(expr, error = function(err) err)
+# Run an engine call keeping an error as the value, so results never depend
+# on the language; sim_value() translates it when an output renders.
+sim_run <- function(expr) tryCatch(expr, error = function(err) err)
+
+# A result for rendering: an engine error becomes a translated validation
+# message, never a crash.
+sim_value <- function(res, lang) {
   if (inherits(res, "error")) shiny::validate(sim_error_text(res, lang))
   res
 }
@@ -228,6 +245,10 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
                                selected = shiny::isolate(input$edge))
       shiny::updateSelectInput(session, "op", choices = transform_choices(lg),
                                selected = shiny::isolate(input$op))
+      shiny::updateSelectInput(session, "n", choices = count_choices(.dl_sim_n, lg),
+                               selected = shiny::isolate(input$n))
+      shiny::updateSelectInput(session, "reps", choices = count_choices(.dl_clt_reps, lg),
+                               selected = shiny::isolate(input$reps))
     }, ignoreInit = TRUE)
 
     # Requests from other pages: a distribution (with the Explorer's values)
@@ -257,9 +278,11 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
 
     # Seed and number of draws; typing in the seed field is debounced.
     seed_in <- shiny::debounce(shiny::reactive(input$seed), 300)
+    # The language is read only for the message, so a switch never re-runs
+    # a simulation.
     seed <- shiny::reactive({
       s <- valid_seed(seed_in())
-      shiny::validate(shiny::need(!is.null(s), tr("sim.error.seed", lang_r())))
+      if (is.null(s)) shiny::validate(tr("sim.error.seed", lang_r()))
       s
     })
     n_draws <- shiny::reactive({
@@ -271,7 +294,11 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
       e <- entry()
       p <- pars()
       shiny::req(p, identical(p$id, e$id))
-      dist_from_pars(p, lang_r())
+      d <- sim_run(do.call(dl_dist, c(list(p$id), p$vals)))
+      if (inherits(d, "error")) {
+        shiny::validate(tr("error.invalid_params", lang_r(), message = conditionMessage(d)))
+      }
+      d
     })
     # Slider drags fire many events; simulate only after a short pause.
     dist_d <- shiny::debounce(dist, 300)
@@ -294,28 +321,33 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
       d <- dist_now()
       s <- seed()
       n <- n_draws()
-      sim_try(mc_check_run(d, n, s), lang_r())
+      sim_run(mc_check_run(d, n, s))
     })
+    mc_val <- shiny::reactive(sim_value(mc(), lang_r()))
     output$hist_title <- shiny::renderText({
       tr(if (is_discrete()) "sim.hist.pmf" else "sim.hist.density", lang_r())
     })
     sample_view <- shiny::reactive({
       d <- dist_now()
-      x <- mc()$sample
-      res <- tryCatch(sim_view(x, d, d), error = function(err) conditionMessage(err))
-      shiny::validate(shiny::need(is.list(res), res))
-      res
+      res <- mc()
+      if (inherits(res, "error")) return(res)
+      sim_run(sim_view(res$sample, d, mode = if (is_discrete()) "law" else "none"))
     })
     output$sample_hist <- plotly::renderPlotly({
-      v <- sample_view()
+      mc_val()
+      v <- sim_value(sample_view(), lang_r())
       sim_hist_plot(v, lang_r(), plot_theme(dark()), tr("sim.exact", lang_r()))
     })
     output$sample_ecdf <- plotly::renderPlotly({
-      sim_ecdf_plot(mc()$sample, dist_now(), sample_view()$range, lang_r(), plot_theme(dark()))
+      v <- sim_value(sample_view(), lang_r())
+      sim_ecdf_plot(mc_val()$sample, dist_now(), v$range, lang_r(), plot_theme(dark()))
     })
-    output$sample_note <- shiny::renderUI(outside_note(sample_view()$outside, lang_r()))
-    output$mc_table <- shiny::renderUI(mc_table_tag(mc()$table, lang_r()))
-    output$sample_code <- shiny::renderUI(code_tag(mc()$code, ns("sample-code"), lang_r()))
+    output$sample_note <- shiny::renderUI({
+      v <- sample_view()
+      if (is.list(v) && !inherits(v, "error")) outside_note(v$outside, lang_r())
+    })
+    output$mc_table <- shiny::renderUI(mc_table_tag(mc_val()$table, lang_r()))
+    output$sample_code <- shiny::renderUI(code_tag(mc_val()$code, ns("sample-code"), lang_r()))
 
     # Law of large numbers.
     lln <- shiny::reactive({
@@ -325,13 +357,14 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
       n <- n_draws()
       p <- suppressWarnings(as.numeric(input$paths))
       p <- if (length(p) == 1L && p %in% 1:5) p else 3
-      sim_try(dl_lln(d, n, paths = p, seed = s), lang_r())
+      sim_run(dl_lln(d, n, paths = p, seed = s))
     })
+    lln_val <- shiny::reactive(sim_value(lln(), lang_r()))
     output$lln_plot <- plotly::renderPlotly({
-      lln_plot(lln(), isTRUE(input$lln_log), lang_r(), plot_theme(dark()))
+      lln_plot(lln_val(), isTRUE(input$lln_log), lang_r(), plot_theme(dark()))
     })
-    output$lln_note <- shiny::renderUI(lln_note(lln(), lang_r()))
-    output$lln_code <- shiny::renderUI(code_tag(lln()$code, ns("lln-code"), lang_r()))
+    output$lln_note <- shiny::renderUI(lln_note(lln_val(), lang_r()))
+    output$lln_code <- shiny::renderUI(code_tag(lln_val()$code, ns("lln-code"), lang_r()))
 
     # Central limit theorem.
     clt <- shiny::reactive({
@@ -340,27 +373,32 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
       s <- seed()
       r <- suppressWarnings(as.numeric(input$reps))
       r <- if (length(r) == 1L && r %in% .dl_clt_reps) r else 2000
-      sim_try(dl_clt(d, sizes = .dl_clt_sizes, reps = r, seed = s), lang_r())
+      sim_run(dl_clt(d, sizes = .dl_clt_sizes, reps = r, seed = s))
     })
+    clt_val <- shiny::reactive(sim_value(clt(), lang_r()))
     output$clt_plot <- plotly::renderPlotly({
-      clt_plot(clt(), dist_now(), lang_r(), plot_theme(dark()))
+      clt_plot(clt_val(), dist_now(), lang_r(), plot_theme(dark()))
     })
     output$clt_note <- shiny::renderUI({
-      res <- clt()
+      res <- clt_val()
       lg <- lang_r()
       notes <- if (res$standardized) {
         c(tr("sim.clt.note", lg), if (is_discrete()) tr("sim.clt.note.discrete", lg))
+      } else if (is.na(res$mean)) {
+        tr("sim.clt.note.no_mean", lg)
+      } else if (is.infinite(res$mean)) {
+        tr("sim.clt.note.infinite_mean", lg)
       } else {
-        tr("sim.clt.note.raw", lg)
+        tr("sim.clt.note.infinite_var", lg)
       }
       note_list(notes)
     })
     output$clt_table <- shiny::renderUI({
-      res <- clt()
+      res <- clt_val()
       if (!res$standardized) return(NULL)
       clt_table_tag(res, lang_r())
     })
-    output$clt_code <- shiny::renderUI(code_tag(clt()$code, ns("clt-code"), lang_r()))
+    output$clt_code <- shiny::renderUI(code_tag(clt_val()$code, ns("clt-code"), lang_r()))
 
     # Sums and transformations.
     op <- shiny::reactive({
@@ -373,37 +411,38 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
       s <- seed()
       n <- n_draws()
       o <- op()
-      lg <- lang_r()
       k <- suppressWarnings(as.numeric(input$k))
       k <- if (length(k) == 1L && is.finite(k) && k >= 1 && k <= 30) round(k) else 3
       a <- if (o == "affine") input$a else 0
       b <- if (o == "affine") input$b else 1
-      shiny::validate(shiny::need(is.numeric(a) && is.numeric(b) && length(a) == 1L &&
-                                    length(b) == 1L && is.finite(a) && is.finite(b),
-                                  tr("sim.error.ab", lg)))
+      ok <- is.numeric(a) && is.numeric(b) && length(a) == 1L && length(b) == 1L &&
+        is.finite(a) && is.finite(b) && abs(a) <= .dl_ab_max && abs(b) <= .dl_ab_max
+      if (!ok) shiny::validate(tr("sim.error.ab", lang_r(), max = .dl_ab_max))
       if (o %in% .dl_transform_multi) n <- min(n, floor(1e7 / k))
-      sim_try(dl_transform(d, o, k = k, n = n, seed = s, a = a, b = b), lg)
+      sim_run(dl_transform(d, o, k = k, n = n, seed = s, a = a, b = b))
     })
+    tf_val <- shiny::reactive(sim_value(tf(), lang_r()))
+    # The plot range may fail on its own (a very wide law); the law and its
+    # moments are still shown.
     tf_view <- shiny::reactive({
       res <- tf()
-      d <- dist_now()
+      if (inherits(res, "error")) return(res)
       ref <- res$target %||% res$approx
-      lattice <- transform_lattice(d, res$op, res$a, res$b)
-      out <- tryCatch(sim_view(res$sample, ref, d, discrete = lattice,
-                               total = length(res$sample) + res$dropped),
-                      error = function(err) conditionMessage(err))
-      shiny::validate(shiny::need(is.list(out), out))
-      out
+      mode <- transform_bin_mode(dist_now(), res$op, res$a, res$b)
+      sim_run(sim_view(res$sample, ref, mode = mode, total = length(res$sample) + res$dropped))
     })
     output$tf_plot <- plotly::renderPlotly({
-      res <- tf()
+      res <- tf_val()
       lg <- lang_r()
+      v <- sim_value(tf_view(), lg)
       label <- if (!is.null(res$target)) tr("sim.exact", lg) else tr("sim.approx", lg)
-      sim_hist_plot(tf_view(), lg, plot_theme(dark()), label,
-                    dashed = is.null(res$target), xlab = "y")
+      sim_hist_plot(v, lg, plot_theme(dark()), label, dashed = is.null(res$target), var = "y")
     })
-    output$tf_summary <- shiny::renderUI(tf_summary_tag(tf(), dist_now(), tf_view(), lang_r()))
-    output$tf_code <- shiny::renderUI(code_tag(tf()$code, ns("tf-code"), lang_r()))
+    output$tf_summary <- shiny::renderUI({
+      v <- tf_view()
+      tf_summary_tag(tf_val(), dist_now(), if (!inherits(v, "error")) v, lang_r())
+    })
+    output$tf_code <- shiny::renderUI(code_tag(tf_val()$code, ns("tf-code"), lang_r()))
 
     # Relations.
     edge <- shiny::reactive({
@@ -417,16 +456,17 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
       limit <- identical(.dl_sim_recipes[[e]]$kind, "limit")
       s <- if (!limit) seed()
       n <- if (!limit) n_draws() else .dl_sim_n_default
-      sim_try(relation_demo_run(e, n = n, seed = s), lang_r())
+      sim_run(relation_demo_run(e, n = n, seed = s))
     })
+    demo_val <- shiny::reactive(sim_value(demo(), lang_r()))
     output$rel_head <- shiny::renderUI({
       tab_open("relations")
       rel_head_tag(edge(), lang_r(), ns("open_end"))
     })
-    output$rel_plot <- plotly::renderPlotly(rel_plot(demo(), lang_r(), plot_theme(dark())))
-    output$rel_note <- shiny::renderUI(rel_note(demo(), lang_r()))
-    output$rel_table <- shiny::renderUI(rel_table_tag(demo(), lang_r()))
-    output$rel_code <- shiny::renderUI(code_tag(demo()$code, ns("rel-code"), lang_r()))
+    output$rel_plot <- plotly::renderPlotly(rel_plot(demo_val(), lang_r(), plot_theme(dark())))
+    output$rel_note <- shiny::renderUI(rel_note(demo_val(), lang_r()))
+    output$rel_table <- shiny::renderUI(rel_table_tag(demo_val(), lang_r()))
+    output$rel_code <- shiny::renderUI(code_tag(demo_val()$code, ns("rel-code"), lang_r()))
     # Either end opens in the Explorer with the parameters of the recipe.
     shiny::observeEvent(input$open_end, {
       e <- edge()
@@ -479,39 +519,43 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
       n <- n_draws()
       s <- shiny::req(input$mem_s)
       if (identical(d$entry$type, "discrete")) s <- round(s)
-      sim_try(dl_memoryless(d, s, n = n, seed = sd), lang_r())
+      sim_run(dl_memoryless(d, s, n = n, seed = sd))
     })
-    output$mem_verdict <- shiny::renderUI(mem_verdict_tag(mem(), n_draws(), lang_r()))
+    mem_val <- shiny::reactive(sim_value(mem(), lang_r()))
+    output$mem_verdict <- shiny::renderUI(mem_verdict_tag(mem_val(), dist_now(), n_draws(),
+                                                          lang_r()))
     output$mem_note <- shiny::renderUI({
       if (is_discrete()) note_list(tr("sim.mem.note.discrete", lang_r()))
     })
-    output$mem_code <- shiny::renderUI(code_tag(mem()$code, ns("mem-code"), lang_r()))
-    output$mem_surv <- plotly::renderPlotly(mem_surv_plot(mem(), dist_now(), lang_r(),
+    output$mem_code <- shiny::renderUI(code_tag(mem_val()$code, ns("mem-code"), lang_r()))
+    output$mem_surv <- plotly::renderPlotly(mem_surv_plot(mem_val(), dist_now(), lang_r(),
                                                           plot_theme(dark())))
     output$mem_hist <- plotly::renderPlotly({
-      res <- mem()
+      res <- mem_val()
       d <- dist_now()
-      v <- tryCatch(sim_view(res$residual, d, d), error = function(err) conditionMessage(err))
-      shiny::validate(shiny::need(is.list(v), v))
-      sim_hist_plot(v, lang_r(), plot_theme(dark()), tr("sim.mem.law_x", lang_r()), xlab = "t")
+      v <- sim_value(sim_run(sim_view(res$residual, d, mode = if (is_discrete()) "law" else "none")),
+                     lang_r())
+      sim_hist_plot(v, lang_r(), plot_theme(dark()), tr("sim.mem.law_x", lang_r()), var = "t",
+                    labels = list(prob = "P(X \u2212 s = t)", dens = "f(t)"))
     })
 
-    list(dist = dist, tab = shiny::reactive(input$tab), seed = seed, mc = mc, lln = lln,
-         clt = clt, tf = tf, demo = demo, mem = mem, route = route)
+    list(dist = dist, tab = shiny::reactive(input$tab), seed = seed, mc = mc_val, lln = lln_val,
+         clt = clt_val, tf = tf_val, demo = demo_val, mem = mem_val, route = route)
   })
 }
 
-# Range of the memorylessness slider: 0 to the 90% point of X, with about
-# 50 steps (whole steps for discrete laws), starting at the median.
+# Range of the memorylessness slider: one step to the 80% point of X, with
+# about 50 steps (whole steps for discrete laws), starting at the median.
+# s = 0 is left out, since every law passes the check there.
 mem_slider <- function(dist) {
-  q <- dl_quantile(dist, c(0.5, 0.9))
+  q <- dl_quantile(dist, c(0.5, 0.8))
   if (identical(dist$entry$type, "discrete")) {
-    hi <- max(1, round(q[2]))
-    return(list(min = 0, max = hi, step = 1, value = min(round(q[1]), hi)))
+    hi <- max(2, round(q[2]))
+    return(list(min = 1, max = hi, step = 1, value = min(max(1, round(q[1])), hi)))
   }
   hi <- signif(q[2], 2)
   step <- signif(hi / 50, 1)
-  list(min = 0, max = hi, step = step, value = min(round(q[1] / step) * step, hi))
+  list(min = step, max = hi, step = step, value = min(max(step, round(q[1] / step) * step), hi))
 }
 
 # TRUE when Y keeps whole-number values: a discrete X under a sum, an
@@ -522,20 +566,37 @@ transform_lattice <- function(dist, op, a, b) {
        (op == "affine" && a == round(a) && b == round(b)))
 }
 
+# Bins of Y (see bin_step()): the lattice of a whole-number transform, a
+# lattice found in the draws for other transforms of a discrete X (means,
+# fractional a + bX), continuous bins for a continuous X.
+transform_bin_mode <- function(dist, op, a, b) {
+  if (!identical(dist$entry$type, "discrete")) return("none")
+  if (transform_lattice(dist, op, a, b)) "law" else "auto"
+}
+
 # Everything a histogram needs: the draws binned on a plotting range, the
-# reference law on the same range and the share of draws outside it. `ref`
-# is the law drawn over the bars (NULL for none) and `base` the law that
-# sets the range when `ref` is NULL.
-sim_view <- function(x, ref, base = ref, discrete = NULL, total = length(x)) {
+# reference law on the same range and the share of the finite draws outside
+# it (non-finite draws are counted apart). `ref` is the law drawn over the
+# bars (NULL for none); `mode` chooses lattice or continuous bins, see
+# bin_step(). `unit` is TRUE for bars on a unit lattice, whose heights are
+# probabilities.
+sim_view <- function(x, ref, mode = "auto", total = length(x)) {
   x <- x[is.finite(x)]
-  if (is.null(discrete)) discrete <- identical((ref %||% base)$entry$type, "discrete")
+  ref_discrete <- !is.null(ref) && identical(ref$entry$type, "discrete")
   rng <- if (!is.null(ref)) sim_range(ref, x) else sample_range(x)
-  if (discrete) rng <- c(floor(rng[1]), ceiling(rng[2]))
-  bins <- sim_bins(x, discrete = discrete, range = rng, total = total)
+  step <- bin_step(x, rng, mode, unit = ref_discrete)
+  whole <- all(x == round(x))
+  bins <- if (is.na(step)) {
+    sim_bins(x, range = rng, total = total)
+  } else if (step == 1 && whole) {
+    rng <- c(floor(rng[1]), ceiling(rng[2]))
+    sim_bins(x, discrete = TRUE, range = rng, total = total)
+  } else {
+    sim_bins(x, range = rng, total = total, step = step)
+  }
   curve <- if (!is.null(ref)) law_curve(ref, rng)
-  list(bins = bins, curve = curve, range = rng, discrete = discrete,
-       ref_discrete = !is.null(ref) && identical(ref$entry$type, "discrete"),
-       outside = (sum(x < rng[1] | x > rng[2]) + (total - length(x))) / total)
+  list(bins = bins, curve = curve, range = rng, step = step, unit = isTRUE(step == 1),
+       ref_discrete = ref_discrete, outside = sum(x < rng[1] | x > rng[2]) / total)
 }
 
 # Y limit that keeps an unbounded density (Chi-square with 1 df, Beta with a
@@ -549,20 +610,21 @@ sim_ylim <- function(bars, curve) {
 }
 
 # Histogram (bars) with the reference law: a curve for continuous laws,
-# points for mass functions; `dashed` marks an approximation.
-sim_hist_plot <- function(v, lang, th, ref_label, dashed = FALSE, xlab = NULL) {
+# points for mass functions (a line when they are too many to tell apart);
+# `dashed` marks an approximation. `var` names the axis ("x" gives f(x) and
+# P(X = x)); `labels` overrides the probability and density axis titles.
+sim_hist_plot <- function(v, lang, th, ref_label, dashed = FALSE, var = "x", labels = NULL) {
   b <- v$bins
-  y <- if (v$discrete) b$proportion else b$density
+  y <- if (v$unit) b$proportion else b$density
   p <- plotly::plot_ly()
   p <- plotly::add_trace(
     p, x = b$mid, y = y, width = b$right - b$left, type = "bar", name = tr("sim.simulated", lang),
     marker = list(color = th$fill, line = list(color = th$fill_solid, width = 1)),
-    hovertemplate = if (v$discrete) "x = %{x}<br>%{y:.4f}<extra></extra>" else
-      "x = %{x:.3f}<br>%{y:.4f}<extra></extra>"
+    hovertemplate = paste0(var, " = %{x:.4g}<br>%{y:.4f}<extra></extra>")
   )
   cv <- v$curve
   if (!is.null(cv) && nrow(cv)) {
-    if (v$ref_discrete) {
+    if (v$ref_discrete && nrow(cv) <= 300) {
       p <- plotly::add_trace(p, x = cv$x, y = cv$density, type = "scatter", mode = "markers",
                              name = ref_label,
                              marker = list(color = th$line2, size = 7,
@@ -576,8 +638,12 @@ sim_hist_plot <- function(v, lang, th, ref_label, dashed = FALSE, xlab = NULL) {
                              hovertemplate = "x = %{x:.3f}<br>f(x) = %{y:.4f}<extra></extra>")
     }
   }
-  ylab <- if (v$discrete) tr("plot.probability", lang) else tr("plot.density", lang)
-  p <- plot_layout(p, xlab %||% tr("plot.x", lang), ylab, th, lang, ylim = sim_ylim(y, cv))
+  ylab <- if (v$unit) {
+    labels$prob %||% sprintf("P(%s = %s)", toupper(var), var)
+  } else {
+    labels$dens %||% sprintf("f(%s)", var)
+  }
+  p <- plot_layout(p, var, ylab, th, lang, ylim = sim_ylim(y, cv))
   compare_legend(plotly::layout(p, bargap = 0), th)
 }
 
@@ -716,19 +782,28 @@ lln_plot <- function(res, log_x, lang, th) {
   shapes <- if (is.finite(mu)) list(list(
     type = "line", xref = "paper", yref = "y", x0 = 0, x1 = 1, y0 = mu, y1 = mu,
     line = list(color = th$accent, width = 1.5, dash = "dash")))
-  # Early running means of heavy tails can be huge; keep the late ones visible.
-  late <- d$mean[d$k >= max(1, n %/% 20)]
-  ylim <- NULL
-  if (length(late) && all(is.finite(late))) {
-    lo <- min(late, if (is.finite(mu)) mu)
-    hi <- max(late, if (is.finite(mu)) mu)
-    pad <- max(hi - lo, 1e-8) * 0.6
-    all_m <- d$mean[d$k %in% idx]
-    if (min(all_m) < lo - 4 * pad || max(all_m) > hi + 4 * pad) ylim <- c(lo - 4 * pad, hi + 4 * pad)
-  }
+  all_m <- d$mean[d$k %in% idx]
+  ylim <- lln_ylim(all_m, d$mean[d$k >= max(1, n %/% 20)], mu, sigma)
   p <- plot_layout(p, tr("sim.lln.xlab", lang), tr("sim.lln.ylab", lang), th, lang, ylim = ylim)
   p <- plotly::layout(p, shapes = shapes, xaxis = list(type = if (log_x) "log" else "linear"))
   compare_legend(p, th)
+}
+
+# Y range of the running means. With a finite sigma, the band from k = 1
+# (mu +/- 2.2 sigma) and every path are shown. Without it, early running
+# means can be huge, so the range follows the late ones (k >= n/20) unless
+# the paths stay close to them anyway.
+lln_ylim <- function(all_m, late, mu, sigma) {
+  all_m <- all_m[is.finite(all_m)]
+  if (!length(all_m)) return(NULL)
+  if (is.finite(mu) && is.finite(sigma)) {
+    return(c(min(mu - 2.2 * sigma, all_m), max(mu + 2.2 * sigma, all_m)))
+  }
+  if (!length(late) || !all(is.finite(late))) return(NULL)
+  lo <- min(late, if (is.finite(mu)) mu)
+  hi <- max(late, if (is.finite(mu)) mu)
+  pad <- max(hi - lo, 1e-8) * 0.6
+  if (min(all_m) < lo - 4 * pad || max(all_m) > hi + 4 * pad) c(lo - 4 * pad, hi + 4 * pad)
 }
 
 # Notes under the running means: the band, or why the paths do not settle.
@@ -765,23 +840,13 @@ sim_animate <- function(p, labels, lang, th) {
 # Standardized sample means against N(0, 1), one frame per sample size; raw
 # means on the range of the law itself when they cannot be standardized.
 clt_plot <- function(res, dist, lang, th) {
-  m <- res$means
+  bins <- clt_bins(res, dist)
+  breaks <- attr(bins, "breaks")
   sizes <- res$distance$size
-  if (res$standardized) {
-    breaks <- seq(-4, 4, by = 0.2)
-    xlab <- tr("sim.clt.xlab", lang)
-  } else {
-    rng <- sim_range(dist, m$value)
-    breaks <- sim_breaks(m$value, rng)
-    xlab <- tr("sim.clt.xlab_raw", lang)
-  }
-  bins <- do.call(rbind, lapply(seq_along(sizes), function(i) {
-    v <- m$value[m$size == sizes[i]]
-    data.frame(frame = i, sim_bins(v, breaks = breaks, total = length(v)))
-  }))
+  xlab <- tr(if (res$standardized) "sim.clt.xlab" else "sim.clt.xlab_raw", lang)
   p <- plotly::plot_ly()
   p <- plotly::add_trace(p, data = bins, x = ~mid, y = ~density, frame = ~frame, type = "bar",
-                         width = diff(breaks)[1], name = tr("sim.simulated", lang),
+                         width = ~width, name = tr("sim.simulated", lang),
                          marker = list(color = th$fill, line = list(color = th$fill_solid, width = 1)),
                          hovertemplate = "%{x:.2f}<br>%{y:.4f}<extra></extra>")
   top <- max(bins$density)
@@ -800,6 +865,33 @@ clt_plot <- function(res, dist, lang, th) {
   p <- plotly::layout(p, legend = list(y = 1.02, yanchor = "bottom", x = 1, xanchor = "right"),
                       margin = list(l = 64, r = 12, t = 48, b = 40))
   sim_animate(p, paste("n =", sizes), lang, th)
+}
+
+# Bars of each CLT frame on one range: bins 0.2 wide on [-4, 4] for
+# standardized means (an automatic grid for raw ones), or, for a discrete law,
+# bars on the lattice of the means (spacing 1/(sigma sqrt(n)) for a unit
+# lattice) when it is coarser than those bins. The breaks are kept as an
+# attribute for the x range.
+clt_bins <- function(res, dist) {
+  m <- res$means
+  sizes <- res$distance$size
+  if (res$standardized) {
+    breaks <- seq(-4, 4, by = 0.2)
+  } else {
+    breaks <- sim_breaks(m$value, sim_range(dist, m$value))
+  }
+  rng <- range(breaks)
+  width <- diff(breaks)[1]
+  discrete <- identical(dist$entry$type, "discrete")
+  bins <- do.call(rbind, lapply(seq_along(sizes), function(i) {
+    v <- m$value[m$size == sizes[i]]
+    step <- if (discrete) bin_step(v, rng, "auto", width = width) else NA_real_
+    b <- if (is.na(step)) sim_bins(v, breaks = breaks, total = length(v)) else
+      sim_bins(v, range = rng, total = length(v), step = step)
+    data.frame(frame = i, b, width = b$right - b$left)
+  }))
+  attr(bins, "breaks") <- breaks
+  bins
 }
 
 # Distance to N(0, 1) per sample size, for screen readers too.
@@ -848,7 +940,7 @@ tf_summary_tag <- function(res, dist, view, lang) {
   notes <- c(
     if (res$dropped > 0) tr("sim.transform.dropped", lang, n = res$dropped),
     if (res$op == "mean" && dist$id == "cauchy") tr("sim.transform.note.cauchy_mean", lang),
-    if (is.finite(view$outside) && view$outside > 0) {
+    if (!is.null(view) && is.finite(view$outside) && view$outside > 0) {
       tr("sim.note.outside", lang, pct = format_share(view$outside, lang))
     }
   )
@@ -981,8 +1073,10 @@ rel_plot <- function(res, lang, th) {
 
 # How to read the relation demo, and the share of draws off the plot.
 rel_note <- function(res, lang) {
+  metric <- res$distance$metric[1]
   notes <- c(
     tr(paste0("sim.rel.note.", res$kind), lang),
+    if (res$kind != "limit") tr(paste0("sim.rel.note.band_", metric), lang),
     if (res$kind != "limit" && any(res$frames$outside > 0)) {
       tr("sim.note.outside", lang, pct = format_share(max(res$frames$outside), lang))
     }
@@ -1009,7 +1103,7 @@ rel_table_tag <- function(res, lang) {
       shiny::tags$thead(shiny::tags$tr(
         shiny::tags$th(scope = "col", tr("sim.rel.col.frame", lang)),
         shiny::tags$th(scope = "col", tr("sim.rel.col.distance", lang)),
-        if (band) shiny::tags$th(scope = "col", tr("sim.rel.col.band", lang))
+        if (band) shiny::tags$th(scope = "col", tr(paste0("sim.rel.col.band_", d$metric[1]), lang))
       )),
       shiny::tags$tbody(rows)
     )
@@ -1018,20 +1112,35 @@ rel_table_tag <- function(res, lang) {
 
 # Verdict of the memorylessness tab, with the kept draws and the largest gap
 # between the two survival curves.
-mem_verdict_tag <- function(res, n, lang) {
+mem_verdict_tag <- function(res, dist, n, lang) {
   gap <- max(abs(res$exact$survival - res$exact$residual))
   yes <- isTRUE(res$memoryless)
+  # A special case (Gamma with shape 1, ...) names the memoryless law it is.
+  special <- if (yes && !dist$id %in% c("exponential", "geometric")) {
+    base <- if (dist$id == "negbinomial") "geometric" else "exponential"
+    tr("sim.mem.verdict.special", lang, law = entry_text(dist$entry, "names", lang),
+       base = entry_text(dl_entry(base), "names", lang))
+  }
   shiny::tags$div(
     class = paste("dl-sim-verdict", if (yes) "dl-sim-verdict-yes" else "dl-sim-verdict-no"),
     role = "status",
     shiny::tags$p(class = "dl-sim-verdict-main",
                   shiny::icon(if (yes) "circle-check" else "circle-xmark", `aria-hidden` = "true"),
                   tr(if (yes) "sim.mem.verdict.yes" else "sim.mem.verdict.no", lang)),
+    if (!is.null(special)) shiny::tags$p(special),
     shiny::tags$p(class = "dl-muted",
                   tr("sim.mem.kept", lang, kept = format(res$kept, scientific = FALSE),
                      n = format(n, scientific = FALSE)), " ",
-                  tr("sim.mem.gap", lang, gap = format_num(gap, lang)))
+                  tr("sim.mem.gap", lang, gap = format_gap(gap, lang)))
   )
+}
+
+# Gap between two exact curves: 0, "< 10^-12" for rounding residue, or the
+# value with the decimal mark of the language.
+format_gap <- function(g, lang) {
+  if (g == 0) return("0")
+  if (g < 1e-12) return(paste0("< 10", sup_digits("-12")))
+  format_num(g, lang)
 }
 
 # Exact survival of X and of the residual after s.

@@ -25,7 +25,8 @@ A list with
 otherwise an error asks for a smaller \code{s} or more draws);
 \item \code{exact}: data frame with columns \code{t}, \code{survival} (\eqn{S(t)}) and
 \code{residual} (the conditional survival of the residual);
-\item \code{memoryless}: \code{TRUE} for the Exponential and the Geometric;
+\item \code{memoryless}: \code{TRUE} for the Exponential, the Geometric and the
+parameter values that make another law one of them;
 \item \code{s}, \code{seed}, \code{code} (R code that reproduces the residuals, both
 survival curves and their largest gap exactly when a seed is given).
 }
@@ -37,11 +38,17 @@ survival is \eqn{P(X > s + t \mid X > s) = S(s + t) / S(s)}; for discrete
 ones the residual is \eqn{X - s} given \eqn{X \ge s}, with
 \eqn{P(X \ge s + t \mid X \ge s)}, so the Geometric (failures counted from
 0) satisfies \eqn{P(X \ge s + t \mid X \ge s) = P(X \ge t)}. Only the
-Exponential and the Geometric are memoryless: the two curves coincide for
-every \eqn{s}. Survival ratios are taken on the log scale with
+Exponential and the Geometric are memoryless, with their special cases
+Gamma(1, \eqn{\beta}), Weibull with shape 1, Chi-square with 2 degrees of
+freedom and Negative binomial with size 1: the two curves coincide for every
+\eqn{s}. Survival ratios are taken on the log scale with
 \code{lower.tail = FALSE}, so they keep their precision far in the tail.
 }
 \details{
+The exact curves are drawn for \eqn{t} from 0 to the 95\% point of both
+\eqn{X} and the residual, but at most 15 interquartile ranges of \eqn{X}
+above its median, so heavy tails stay readable.
+
 The distribution must have support \eqn{[0, \infty)}.
 }
 \examples{

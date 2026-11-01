@@ -33,7 +33,8 @@ frame (\code{NULL} for limits);
 or limit law, \code{"approx"} for the approximating law of a limit), \code{x},
 \code{density} (mass for discrete laws) and \code{cdf};
 \item \code{distance}: data frame with \code{frame}, \code{value}, \code{metric} (\code{"ks"},
-\code{"tv"} or \code{"kolmogorov"}) and \code{band};
+\code{"tv"} or \code{"kolmogorov"}) and \code{band} (the reference level of the
+distance under the exact law; \code{NA} for limits);
 \item \code{range}: plotting range; \code{discrete}: whether the compared laws are
 discrete (whole-number bins);
 \item \code{params}: the recipe parameters as text; \code{seed} (\code{NA} for limits or
@@ -51,9 +52,12 @@ fixed recipe:
 after 100, 300, 1000, ... draws (up to \code{n}), by the Kolmogorov-Smirnov
 distance (continuous laws, with the asymptotic 95\% value
 \eqn{1.36 / \sqrt{n}} as \code{band}) or the total variation distance
-(discrete laws);
+(discrete laws, with the expected distance of an \eqn{n}-draw sample
+from the exact mass function \eqn{p} as \code{band},
+\eqn{\frac{1}{2} \sum_i \sqrt{2 p_i (1 - p_i) / (\pi n)}}, the Normal
+approximation of \eqn{E|\hat p_i - p_i|});
 \item sums add 1, 2, 3, 5, 10 and 20 independent terms, \code{n} draws each, and
-compare them with the exact law of the sum;
+compare them with the exact law of the sum, with the same bands;
 \item limits are computed exactly, without draws: the approximating law
 (such as Binomial(n, \eqn{\lambda/n})) is compared with the limit law
 along a sequence of parameters, by the total variation distance
@@ -64,8 +68,9 @@ along the frames.
 }
 \details{
 Heavy-tailed laws (such as the Cauchy and F) are plotted on their 0.5\% to
-99.5\% quantile range; the share of draws outside the range is reported in
-\code{frames$outside}.
+99.5\% quantile range, cut at 15 interquartile ranges from the median (finite
+support ends are kept); the share of draws outside the range is reported
+in \code{frames$outside}.
 }
 \examples{
 demo <- dl_relation_demo("normal", "cauchy", n = 2000, seed = 7)
