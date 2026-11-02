@@ -652,3 +652,102 @@ fit.tab_diagnostics: Diagnósticos
 fit.tab_export: Reproduzir e exportar
 fit.show_candidates: Mostrar suporte e requisitos de todas as famílias
 fit.show_descriptives: Mostrar todas as medidas descritivas
+report.download: Baixar relatório de estudo
+report.building: Montando o relatório de estudo…
+report.title: "Relatório de estudo: {name}"
+report.kicker: relatório de estudo do distlab
+report.subtitle: >-
+  A distribuição como explorada nesta sessão: história, fórmulas, números
+  exatos e simulados, gráficos interativos, cálculos, relações e o código R
+  que reproduz cada resultado.
+report.print: Imprimir
+report.toc: Sumário
+report.param.symbol: Símbolo
+report.param.name: Nome no R
+report.param.value: Valor
+report.meta.support: Suporte
+report.meta.date: Data
+report.meta.language: Idioma
+report.meta.seeds: Sementes
+report.meta.version: Versão do distlab
+report.section.story: História e distribuições relacionadas
+report.section.formulas: Fórmulas
+report.section.numbers: Números exatos e simulados
+report.section.plots: Gráficos interativos
+report.section.calculations: Resultados da Calculadora
+report.section.relations: Relações
+report.section.fit: Ajuste aos dados
+report.section.code: Código R
+report.section.references: Referências e sessão
+report.parameterization: Parametrização no R
+report.support: "Suporte:"
+report.support_values: "({support} para estes valores dos parâmetros)"
+report.functions: "Funções do R:"
+report.param_note: >-
+  Os parâmetros seguem as funções do R acima, com os nomes mostrados na
+  capa; os símbolos são os das fórmulas.
+report.numbers.intro: >-
+  Os valores exatos vêm de fórmulas fechadas. Os valores simulados vêm de
+  sorteios com semente, com erros padrão de Monte Carlo e intervalos de 95%
+  onde a teoria assintótica vale.
+report.numbers.missing: >-
+  Um momento infinito ou inexistente não tem erro padrão: seu valor amostral
+  não se estabiliza quando o número de sorteios cresce.
+report.numbers.discrete: >-
+  Em uma distribuição discreta, a probabilidade exata em um quartil q é F(q),
+  que é pelo menos o valor nominal 1/4, 1/2 ou 3/4.
+report.numbers.failed: "Não foi possível fazer a verificação de Monte Carlo: {message}"
+report.quantile: Função quantil
+report.plots.functions: Funções densidade, de distribuição e quantil
+report.plots.sweep: "Variação de parâmetro: {param}"
+report.plots.sweep_help: >-
+  Clique em reproduzir ou arraste o controle para ver como a forma muda com
+  {param}; os outros parâmetros mantêm seus valores.
+report.plots.current: atual
+report.plots.simulations: Simulações
+report.plots.simulations_help: >-
+  Simulações com semente desta sessão (ou um conjunto padrão): a mesma
+  semente dá os mesmos sorteios, e o código R de cada uma está no apêndice.
+report.plot_unavailable: Este gráfico não está disponível para estes valores dos parâmetros.
+report.sim.draws: "{n} sorteios"
+report.sim.seed: "semente {seed}"
+report.sim.no_seed: sem semente (os sorteios não podem ser repetidos)
+report.sim.failed: "Não foi possível fazer esta simulação: {message}"
+report.sim.no_draws: >-
+  Os sorteios não foram guardados porque a verificação não tinha semente; a
+  tabela acima ainda mostra seus números.
+report.calc.item: "Pergunta {n}"
+report.calc.none: >-
+  Nenhum cálculo foi registrado nesta sessão. Probabilidades, quantis e
+  intervalos calculados na Calculadora aparecem aqui.
+report.rel.no_demo: Esta relação não tem demonstração neste relatório.
+report.fit.intro: >-
+  Ajuste por máxima verossimilhança da {name} e das outras famílias
+  candidatas aos dados do laboratório de Ajuste: {n} observações ({kind}).
+report.fit.diagnostics: Gráficos de diagnóstico
+report.fit.gof_note: >-
+  Descritivo: os parâmetros foram estimados com os mesmos dados, então estes
+  p-valores são uma orientação, não um teste calibrado.
+report.fit.failed: "O ajuste da {name} falhou: {message}"
+report.code.intro: >-
+  Cada bloco roda sozinho em uma sessão nova do R com o distlab instalado e
+  reproduz os números e gráficos a que se refere; blocos com sorteios
+  começam com set.seed().
+report.code.ref: "Código R: bloco {n}"
+report.code.dist: Distribuição, momentos exatos e curvas
+report.code.sweep: "Variação de {param}"
+report.code.calc: "Pergunta {n} da Calculadora"
+report.code.relation: "Relação {edge}"
+report.code.fit: Ajuste, estimativas e aderência
+report.code.show: "Mostrar o código ({n} linhas)"
+report.code.script: Baixar todos os blocos como um script R
+report.data.title: Dados simulados
+report.data.intro: Arquivos CSV com os valores simulados, para usar em outros programas.
+report.data.rows: "{n} linhas"
+report.data.cap: "primeiras {kept} de {n} linhas; o código R gera todas elas de novo"
+report.refs: Referências
+report.session: Sessão
+report.session.r: Versão do R
+report.session.platform: Plataforma
+report.session.packages: Pacotes
+report.session.date: Gerado em

@@ -99,6 +99,12 @@
   samples of 100,000 values fit in seconds.
 * Parameter sliders widen to show values opened from a fit and keep that
   range while you drag.
+* New `dl_report()` writes a study report of a distribution: one HTML file
+  with the story, the formula sheet, exact moments against a seeded Monte
+  Carlo check, interactive plots (density, CDF, quantile function, a
+  parameter sweep and every simulation), calculator results, a demo of each
+  relationship, an optional fit, and R code that reproduces every number.
+  The file opens offline, in Portuguese or English.
 * `dl_lln()`, `dl_clt()`, `dl_transform()` and `dl_memoryless()` also return
   the simulated distribution as `dist`; `dl_memoryless()` returns the number
   of draws as `n`.

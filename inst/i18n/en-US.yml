@@ -644,3 +644,102 @@ fit.tab_diagnostics: Diagnostics
 fit.tab_export: Reproduce and export
 fit.show_candidates: Show support and requirements for every family
 fit.show_descriptives: Show all descriptive measures
+report.download: Download study report
+report.building: Building the study report…
+report.title: "Study report: {name}"
+report.kicker: distlab study report
+report.subtitle: >-
+  The distribution as explored in this session: story, formulas, exact and
+  simulated numbers, interactive plots, calculations, relationships and the R
+  code that reproduces every result.
+report.print: Print
+report.toc: Contents
+report.param.symbol: Symbol
+report.param.name: R name
+report.param.value: Value
+report.meta.support: Support
+report.meta.date: Date
+report.meta.language: Language
+report.meta.seeds: Seeds
+report.meta.version: distlab version
+report.section.story: Story and related distributions
+report.section.formulas: Formulas
+report.section.numbers: Exact and simulated numbers
+report.section.plots: Interactive plots
+report.section.calculations: Calculator results
+report.section.relations: Relationships
+report.section.fit: Fit to data
+report.section.code: R code
+report.section.references: References and session
+report.parameterization: Parameterization in R
+report.support: "Support:"
+report.support_values: "({support} for these parameter values)"
+report.functions: "R functions:"
+report.param_note: >-
+  Parameters follow the R functions above, with the names shown on the cover;
+  the symbols are those of the formulas.
+report.numbers.intro: >-
+  Exact values come from closed forms. Simulated values come from seeded
+  draws, with Monte Carlo standard errors and 95% intervals where the
+  asymptotics hold.
+report.numbers.missing: >-
+  A moment that is infinite or does not exist has no standard error: its
+  sample value does not settle as the number of draws grows.
+report.numbers.discrete: >-
+  For a discrete distribution the exact probability at a quartile q is F(q),
+  which is at least the nominal 1/4, 1/2 or 3/4.
+report.numbers.failed: "The Monte Carlo check could not be run: {message}"
+report.quantile: Quantile function
+report.plots.functions: Density, distribution and quantile functions
+report.plots.sweep: "Parameter sweep: {param}"
+report.plots.sweep_help: >-
+  Press play or drag the slider to see how the shape changes with {param};
+  the other parameters keep their values.
+report.plots.current: current
+report.plots.simulations: Simulations
+report.plots.simulations_help: >-
+  Seeded simulations of this session (or a default set): the same seed gives
+  the same draws, and the R code of each one is in the appendix.
+report.plot_unavailable: This plot is not available for these parameter values.
+report.sim.draws: "{n} draws"
+report.sim.seed: "seed {seed}"
+report.sim.no_seed: no seed (draws cannot be repeated)
+report.sim.failed: "This simulation could not be run: {message}"
+report.sim.no_draws: >-
+  The draws were not kept because the check had no seed; the table above
+  still shows its numbers.
+report.calc.item: "Question {n}"
+report.calc.none: >-
+  No calculations were recorded in this session. Probabilities, quantiles
+  and intervals computed in the Calculator appear here.
+report.rel.no_demo: This relationship has no demonstration in this report.
+report.fit.intro: >-
+  Maximum likelihood fit of the {name} and the other candidate families to
+  the data of the Fit lab: {n} observations ({kind}).
+report.fit.diagnostics: Diagnostic plots
+report.fit.gof_note: >-
+  Descriptive: the parameters were estimated from the same data, so these
+  p-values are a guide, not a calibrated test.
+report.fit.failed: "The fit of the {name} failed: {message}"
+report.code.intro: >-
+  Each block runs on its own in a fresh R session with distlab installed and
+  reproduces the numbers and figures it refers to; blocks with random draws
+  start with set.seed().
+report.code.ref: "R code: block {n}"
+report.code.dist: Distribution, exact moments and curves
+report.code.sweep: "Parameter sweep of {param}"
+report.code.calc: "Calculator question {n}"
+report.code.relation: "Relationship {edge}"
+report.code.fit: Fit, estimates and goodness of fit
+report.code.show: "Show the code ({n} lines)"
+report.code.script: Download every block as an R script
+report.data.title: Simulated data
+report.data.intro: CSV files of the simulated values, for use in other software.
+report.data.rows: "{n} rows"
+report.data.cap: "first {kept} of {n} rows; the R code regenerates all of them"
+report.refs: References
+report.session: Session
+report.session.r: R version
+report.session.platform: Platform
+report.session.packages: Packages
+report.session.date: Built on

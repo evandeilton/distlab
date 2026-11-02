@@ -27,6 +27,7 @@ if (interactive()) {
 }
 \seealso{
 Other app:
-\code{\link[=dl_languages]{dl_languages()}}
+\code{\link[=dl_languages]{dl_languages()}},
+\code{\link[=dl_report]{dl_report()}}
 }
 \concept{app}

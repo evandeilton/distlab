@@ -17,6 +17,7 @@ dl_languages()
 }
 \seealso{
 Other app:
+\code{\link[=dl_report]{dl_report()}},
 \code{\link[=run_app]{run_app()}}
 }
 \concept{app}
