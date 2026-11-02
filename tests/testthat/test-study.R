@@ -49,8 +49,6 @@ test_that("the store keeps the latest simulation of each kind, every demo and fi
   expect_identical(st$get("gamma")$fit, fit)
   expect_identical(st$get("exponential")$fit, fit)
   expect_null(st$get("normal")$fit)
-  st$set_params("gamma", list(shape = 3, rate = 1))
-  expect_identical(st$get("gamma")$params$shape, 3)
 })
 
 test_that("the Calculator records each result shown, also after a language switch", {
@@ -104,14 +102,12 @@ test_that("the report downloads build the page of the open distribution", {
   shiny::testServer(distlab:::mod_explore_server, args = list(lang = "pt-BR", store = st), {
     session$setInputs(dist = "bernoulli", p_bernoulli_prob = 0.3)
     session$elapse(200)
-    output$moments
     path <- output$report
     expect_identical(basename(path), sprintf("distlab-bernoulli-%s.html", day))
     html <- paste(readLines(path, encoding = "UTF-8", warn = FALSE), collapse = "\n")
     expect_match(html, "Relatório de estudo: Bernoulli", fixed = TRUE)
     expect_match(html, "Pergunta 1", fixed = TRUE)
   })
-  expect_identical(st$get("bernoulli")$params, list(prob = 0.3))
   shiny::testServer(distlab:::mod_sim_server, args = list(lang = "en-US", store = st), {
     session$setInputs(dist = "bernoulli", p_bernoulli_prob = 0.4, seed = 7, n = "500",
                       tab = "sample")
@@ -154,4 +150,46 @@ test_that("the Explorer, Simulation and Fit pages offer the report", {
     }
   }
   expect_identical(distlab:::tr("report.download", "pt-BR"), "Baixar relatório de estudo")
+})
+
+test_that("the store keeps simulations of the last distributions and demos only", {
+  st <- distlab:::study_store(max_ids = 2, max_demos = 2)
+  for (id in c("exponential", "gamma", "normal")) st$add_sim(dl_lln(dl_dist(id), 20, seed = 1))
+  expect_length(st$get("exponential")$simulations, 0L)
+  expect_length(st$get("normal")$simulations, 1L)
+  # Simulating a distribution again makes it recent.
+  st$add_sim(dl_lln(dl_dist("gamma"), 20, seed = 2))
+  st$add_sim(dl_lln(dl_dist("exponential"), 20, seed = 3))
+  expect_length(st$get("normal")$simulations, 0L)
+  expect_length(st$get("gamma")$simulations, 1L)
+  for (e in list(c("binomial", "poisson"), c("poisson", "normal"), c("student_t", "normal"))) {
+    st$add_sim(dl_relation_demo(e[1], e[2]))
+  }
+  expect_length(st$get("binomial")$simulations, 0L)
+  expect_length(st$get("normal")$simulations, 2L)
+})
+
+test_that("a report that cannot be built says so", {
+  sess <- shiny::MockShinySession$new()
+  notes <- list()
+  sess$sendNotification <- function(type, message) notes[[length(notes) + 1L]] <<- message
+  local_mocked_bindings(dl_report = function(...) stop("boom"))
+  shiny::testServer(distlab:::mod_explore_server, args = list(lang = "pt-BR"), session = sess, {
+    session$setInputs(dist = "bernoulli", p_bernoulli_prob = 0.3)
+    session$elapse(200)
+    expect_error(output$report)
+  })
+  expect_true(any(grepl(distlab:::tr("report.failed", "pt-BR"), unlist(notes), fixed = TRUE)))
+})
+
+test_that("the Fit page offers the report once a fit exists", {
+  shiny::testServer(distlab:::mod_fit_server, args = list(lang = "en-US"), {
+    session$setInputs(source = "example", example = "counts", level = ".95", load = 0, run = 0)
+    expect_identical(output$fitted, "")
+    session$setInputs(load = 1)
+    session$setInputs(candidates = "poisson", run = 1)
+    expect_identical(output$fitted, "yes")
+  })
+  expect_match(as.character(distlab:::mod_fit_ui("fit", "en-US")),
+               'data-display-if="output.fitted"', fixed = TRUE)
 })

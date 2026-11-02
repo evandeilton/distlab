@@ -12,6 +12,10 @@
 # data URIs above about 2 MB fail in some browsers.
 .dl_report_csv_max <- 5e4
 .dl_report_csv_file_max <- 2.5e4
+# Rows of fit data written into the code; larger tables are read from a CSV
+# file, embedded in the page up to the second limit.
+.dl_report_fit_literal <- 2000
+.dl_report_fit_csv <- 25000
 # Code blocks longer than this many characters start collapsed.
 .dl_report_fold <- 20000
 # Largest R script offered as a single download link.
@@ -31,13 +35,16 @@
 #' inlined, so the file opens offline in a browser, without a folder of
 #' assets and without 'pandoc'.
 #'
-#' Text is in `lang`, and numbers use its decimal mark. Exact moments that
-#' are infinite show as the infinity sign, and those that do not exist are
-#' named so. Each
-#' block of the appendix runs on its own in a fresh R session; blocks with
-#' random draws start with [set.seed()]. Simulated values are also embedded
-#' as CSV download links, up to 50,000 rows over the whole report (25,000
-#' per file); the code regenerates all of them.
+#' Text is in `lang`, and numbers use its decimal mark, with at most 4
+#' decimal places. Exact moments that are infinite show as the infinity
+#' sign, and those that do not exist are named so.
+#'
+#' Each block of the appendix runs on its own in a fresh R session; blocks
+#' with random draws start with [set.seed()]. Fit data longer than 2000 rows
+#' are read from a CSV file, embedded in the page up to 25,000 rows.
+#' Simulated values are also embedded as CSV download links, up to 50,000
+#' rows over the whole report (25,000 per file); the code regenerates all
+#' of them.
 #'
 #' @param dist A `dl_dist` object from [dl_dist()].
 #' @param file Path of the HTML file to write, in UTF-8, or `NULL` to only
@@ -59,8 +66,10 @@
 #'   `dist`, and of [dl_relation_demo()] for edges that start or end at it.
 #'   Without a simulation of `dist` itself (relation demos aside), a Monte
 #'   Carlo check, the law of large numbers and the central limit theorem are
-#'   simulated with `seed` (5000 draws, 3 paths, 2000 samples per size);
-#'   without a Monte Carlo check one is added.
+#'   simulated with `seed` (5000 draws, 3 paths, 2000 samples per size).
+#'   The exact and simulated numbers come from a Monte Carlo check with the
+#'   parameter values of `dist`: one of `simulations` when its parameters
+#'   match, otherwise one run with `seed`.
 #' @param fit A [dl_fit()] result, or `NULL`. The report has a Fit section
 #'   when the family of `dist` is one of its candidates, also when its fit
 #'   failed.
@@ -186,12 +195,18 @@ sim_kind <- function(x) {
   NA_character_
 }
 
-# Monte Carlo check of a dl_mc_check() table: its code, run with its seed,
-# gives back the draws and the distribution; without a seed only the table.
+# Monte Carlo check of a dl_mc_check() table, with its distribution, number
+# of draws and level; a seed gives the draws back, drawn as the check drew
+# them. Tables without a `dist` attribute rebuild it by running their code.
 mc_from_table <- function(tab) {
   seed <- attr(tab, "seed") %||% NA_integer_
-  out <- list(table = tab, sample = NULL, seed = seed, code = attr(tab, "code"), dist = NULL)
+  out <- list(table = tab, sample = NULL, seed = seed, code = attr(tab, "code"),
+              dist = attr(tab, "dist"), n = attr(tab, "n"), level = attr(tab, "level") %||% 0.95)
   if (is.na(seed)) return(out)
+  if (inherits(out$dist, "dl_dist") && !is.null(out$n)) {
+    out$sample <- with_seed(seed, dl_sample(out$dist, out$n))
+    return(out)
+  }
   env <- tryCatch(run_code(out$code, seed), error = function(err) NULL)
   if (!is.null(env) && inherits(env$d, "dl_dist")) {
     out$sample <- env$x
@@ -199,6 +214,11 @@ mc_from_table <- function(tab) {
     out$n <- length(env$x)
   }
   out
+}
+
+# TRUE when a record simulates `dist` with the same parameter values.
+same_params <- function(rec, dist) {
+  !is.null(rec$dist) && isTRUE(all.equal(rec$dist$params, dist$params, tolerance = 0))
 }
 
 # One record per simulation: list(kind, res, dist), where `res` may be an
@@ -237,8 +257,18 @@ report_simulations <- function(dist, simulations, seed, relations) {
       run("lln", dl_lln(dist, .dl_report_n, paths = .dl_report_paths, seed = seed)),
       run("clt", dl_clt(dist, sizes = .dl_clt_sizes, reps = .dl_report_reps, seed = seed))))
   }
-  if (!"mc_check" %in% kinds) {
-    recs <- c(list(run("mc_check", mc_check_run(dist, .dl_report_n, seed))), recs)
+  # Numbers shows a check of `dist` itself: the session's when it has the
+  # same parameters, else a default one, kept out of the Simulations section
+  # when the session has checks of other parameter values.
+  mc <- which(kinds == "mc_check")
+  own <- mc[vapply(recs[mc], same_params, logical(1), dist = dist)]
+  if (length(own)) {
+    recs[[own[1]]]$numbers <- TRUE
+  } else {
+    rec <- run("mc_check", mc_check_run(dist, .dl_report_n, seed))
+    rec$numbers <- TRUE
+    rec$hidden <- length(mc) > 0L
+    recs <- c(list(rec), recs)
   }
   if (relations) {
     done <- unlist(lapply(recs, function(r) if (r$kind == "relation") r$res$edge$id))
@@ -300,16 +330,19 @@ code_ref <- function(ctx, n) {
   shiny::tags$p(class = "dl-report-ref", Reduce(function(a, b) shiny::tagList(a, " \u00b7 ", b), links))
 }
 
-# Interactive figure with a title; a note when the plot cannot be drawn.
-# `expr` is evaluated here, so its errors become the note.
-report_plot <- function(ctx, expr, title = NULL, height = 320) {
+# Interactive figure with its title, which also names the plot for screen
+# readers; a note when the plot cannot be drawn. `expr` is evaluated here, so
+# its errors become the note.
+report_plot <- function(ctx, expr, title, height = 320) {
   w <- tryCatch({
     ctx$plots <- ctx$plots + 1L
-    report_widget(expr, sprintf("dl-plot-%d", ctx$plots), height)
+    b <- report_widget(expr, sprintf("dl-plot-%d", ctx$plots), height)
+    htmltools::tagQuery(htmltools::as.tags(b))$filter(".html-widget")$
+      addAttrs(role = "img", `aria-label` = title)$allTags()
   }, error = function(err) NULL)
   shiny::tags$figure(
     class = "dl-report-plot",
-    if (!is.null(title)) shiny::tags$figcaption(class = "dl-report-plot-title", title),
+    shiny::tags$figcaption(class = "dl-report-plot-title", title),
     w %||% shiny::tags$p(class = "dl-calc-note", tr("report.plot_unavailable", ctx$lang))
   )
 }
@@ -362,9 +395,10 @@ report_html <- function(dist, lang, calcs, sims, fit, seed) {
     report_references(ctx, dist)
   )
   sections <- Filter(Negate(is.null), sections)
-  seeds <- sort(unique(c(seed, unlist(lapply(sims, function(r) {
+  # Seeds of the results in the report, not the default when it was unused.
+  seeds <- sort(unique(unlist(lapply(sims, function(r) {
     if (!inherits(r$res, "error")) r$res$seed
-  })))))
+  }))))
   toc <- shiny::tags$nav(
     class = "dl-report-toc", `aria-label` = tr("report.toc", lang),
     shiny::tags$h2(tr("report.toc", lang)),
@@ -499,7 +533,7 @@ report_numbers <- function(ctx, dist, sims) {
   lang <- ctx$lang
   b_dist <- add_block(ctx, tr("report.code.dist", lang), dist_code(dist), "dist")
   m <- tryCatch(dl_moments(dist), error = function(err) NULL)
-  mc <- Filter(function(r) r$kind == "mc_check", sims)[[1]]
+  mc <- Filter(function(r) isTRUE(r$numbers), sims)[[1]]
   res <- mc$res
   body <- if (inherits(res, "error")) {
     shiny::tagList(moments_table(m, lang),
@@ -509,12 +543,15 @@ report_numbers <- function(ctx, dist, sims) {
     ctx$sim_blocks[[as.character(mc$index)]] <- block
     n <- res$n %||% length(res$sample)
     shiny::tagList(sim_caption(ctx, mc$dist, if (length(n)) n, res$seed),
-                   mc_table_tag(res$table, lang))
+                   mc_table_tag(res$table, lang, res$level %||% 0.95))
   }
-  missing <- !is.null(m) && any(!is.finite(m))
+  # The note follows the exact moments in the table shown.
+  exact <- if (inherits(res, "error")) m else res$table$exact[1:5]
+  missing <- !is.null(exact) && any(!is.finite(exact))
   report_section(
     "numbers", tr("report.section.numbers", lang),
-    shiny::tags$p(tr("report.numbers.intro", lang)),
+    shiny::tags$p(tr("report.numbers.intro", lang,
+                     level = format_num(100 * (if (inherits(res, "error")) 0.95 else res$level %||% 0.95), lang))),
     body,
     report_notes(if (missing) tr("report.numbers.missing", lang),
                  if (identical(dist$entry$type, "discrete")) tr("report.numbers.discrete", lang)),
@@ -572,7 +609,7 @@ report_plots <- function(ctx, dist, sims) {
     report_plot(ctx, explore_cdf_plot(curve, dist, lang, th), tr("explorer.cdf", lang)),
     report_plot(ctx, quantile_plot(dist, lang, th), tr("report.quantile", lang))
   )
-  blocks <- lapply(Filter(function(r) r$kind != "relation", sims), function(r) {
+  blocks <- lapply(Filter(function(r) r$kind != "relation" && !isTRUE(r$hidden), sims), function(r) {
     report_sim_block(ctx, r)
   })
   report_section(
@@ -625,7 +662,8 @@ report_sweep <- function(ctx, dist) {
     lab <- paste(sw$param, "=", format_value(v, lang))
     if (isTRUE(all.equal(v, sw$current))) paste0(lab, " (", tr("report.plots.current", lang), ")") else lab
   }, "")
-  fig <- report_plot(ctx, sweep_plot(curves, discrete, labels, lang, ctx$th), height = 380)
+  fig <- report_plot(ctx, sweep_plot(curves, discrete, labels, lang, ctx$th),
+                     tr("report.fig.sweep", lang), height = 380)
   fn <- sprintf("distlab::dl_density(distlab::dl_dist(\"%s\", %s), x)", dist$id,
                 paste(vapply(names(dist$params), function(nm) {
                   paste(nm, "=", if (nm == sw$param) "v" else code_num(dist$params[[nm]], exact = TRUE))
@@ -698,12 +736,13 @@ report_sim_block <- function(ctx, r) {
     lln = {
       add_data(ctx, title, res$paths, paste0(name, "-lln"))
       shiny::tagList(report_plot(ctx, lln_plot(res, TRUE, lang, th, lower = dl_support(d)$lower),
-                                 height = 360),
+                                 tr("report.fig.lln", lang), height = 360),
                      lln_note(res, lang))
     },
     clt = {
       add_data(ctx, title, res$means, paste0(name, "-clt"))
-      shiny::tagList(report_plot(ctx, clt_plot(res, d, lang, th), height = 420),
+      shiny::tagList(report_plot(ctx, clt_plot(res, d, lang, th), tr("report.fig.clt", lang),
+                                 height = 420),
                      clt_note(res, discrete, lang),
                      if (res$standardized) clt_table_tag(res, lang))
     },
@@ -711,7 +750,7 @@ report_sim_block <- function(ctx, r) {
       add_data(ctx, title, data.frame(y = res$sample), paste0(name, "-transform"))
       v <- tryCatch(tf_view_of(res, d), error = function(err) NULL)
       shiny::tagList(shiny::tags$p(class = "dl-sim-law", transform_text(res, lang)),
-                     report_plot(ctx, tf_plot(res, v, lang, th)),
+                     report_plot(ctx, tf_plot(res, v, lang, th), tr("sim.transform.title", lang)),
                      tf_summary_tag(res, d, v, lang))
     },
     memoryless = {
@@ -731,9 +770,10 @@ report_sim_block <- function(ctx, r) {
               lln = max(res$paths$k), clt = NULL, transform = length(res$sample) + res$dropped,
               memoryless = res$n)
   extra <- if (r$kind == "clt") {
-    paste(tr("sim.clt.reps", lang), format_count(nrow(res$means) / nrow(res$distance), lang))
+    tr("report.sim.reps", lang, n = format_count(nrow(res$means) / nrow(res$distance), lang))
   } else if (r$kind == "lln") {
-    paste(tr("sim.lln.paths", lang), max(res$paths$path))
+    paths <- max(res$paths$path)
+    if (paths == 1) tr("report.sim.paths_one", lang) else tr("report.sim.paths", lang, n = paths)
   }
   block <- ctx$sim_blocks[[as.character(r$index)]] %||% add_block(ctx, title, res$code, r$kind)
   shiny::tags$div(class = "dl-report-block", shiny::tags$h4(title),
@@ -833,7 +873,8 @@ report_demo <- function(ctx, demo, label) {
                   paste(c(paste(tr("sim.rel.params", lang), demo$params),
                           if (!is.na(demo$seed)) tr("report.sim.seed", lang, seed = demo$seed)),
                         collapse = " \u00b7 ")),
-    report_plot(ctx, rel_plot(demo, lang, ctx$th), height = 420),
+    report_plot(ctx, rel_plot(demo, lang, ctx$th), tr("report.fig.demo", lang, edge = label),
+                height = 420),
     rel_note(demo, lang),
     rel_table_tag(demo, lang),
     code_ref(ctx, block)
@@ -862,14 +903,16 @@ report_fit <- function(ctx, dist, part) {
       report_plot(ctx, fit_diagnostic_plot(diag, v, lang, th), tr(views[[v]], lang))
     }))
   }
-  code <- paste(c(fit$code,
+  data <- report_fit_data(fit, lang)
+  code <- paste(c(data$code,
                   if (!is.null(model)) c(sprintf("fit$fits[[\"%s\"]]$estimates", id),
                                          sprintf("distlab::dl_fit_diagnostics(fit, id = \"%s\")$gof", id))),
                 collapse = "\n")
   block <- add_block(ctx, tr("report.code.fit", lang), code, "fit")
+  intro <- if (nrow(fit$ranking) > 1L) "report.fit.intro" else "report.fit.intro_one"
   report_section(
     "fit", tr("report.section.fit", lang),
-    shiny::tags$p(tr("report.fit.intro", lang, name = name, n = format_count(fit$data$n, lang),
+    shiny::tags$p(tr(intro, lang, name = name, n = format_count(fit$data$n, lang),
                      kind = tr(paste0("fit.", fit$data$type), lang))),
     shiny::tags$h3(tr("fit.ranking", lang)),
     fit_ranking_tag(fit, lang),
@@ -892,8 +935,37 @@ report_fit <- function(ctx, dist, part) {
       report_notes(tr("report.fit.failed", lang, name = name,
                       message = fit_message_text(part$failure, lang)))
     },
-    code_ref(ctx, block)
+    code_ref(ctx, block),
+    data$note
   )
+}
+
+# Data of the fit code: a literal for small tables; larger ones are read
+# from distlab-data.csv, embedded here with 17 significant digits (so the
+# doubles read back exactly) up to .dl_report_fit_csv rows, and otherwise
+# the table saved by the Fit page.
+report_fit_data <- function(fit, lang) {
+  data <- fit$data
+  tab <- fit_data_table(data)
+  rows <- nrow(tab)
+  if (rows <= .dl_report_fit_literal) return(list(code = fit$code, note = NULL))
+  file <- "distlab-data.csv"
+  read <- switch(data$type,
+    raw = "data <- distlab::dl_fit_data(x = rep(tab$value, tab$frequency))",
+    frequency = "data <- distlab::dl_fit_data(x = tab$value, frequency = tab$frequency)",
+    grouped = "data <- distlab::dl_fit_data(lower = tab$lower, upper = tab$upper, frequency = tab$frequency)")
+  code <- sub(fit_data_code(data), paste(c(sprintf("tab <- read.csv(\"%s\")", file), read),
+                                         collapse = "\n"), fit$code, fixed = TRUE)
+  n <- format_count(rows, lang)
+  note <- if (rows <= .dl_report_fit_csv) {
+    shiny::tags$p(class = "dl-calc-note", tr("report.fit.data_file", lang, n = n), " ",
+                  shiny::tags$a(href = text_data_uri(csv_text(tab, digits = 17), "text/csv"),
+                                download = file, file))
+  } else {
+    report_notes(tr("report.fit.data_large", lang, n = n, file = file,
+                    button = tr("fit.download_data", lang)))
+  }
+  list(code = code, note = note)
 }
 
 # Code appendix: every block in order, the whole script and the simulated
@@ -959,12 +1031,12 @@ csv_allocate <- function(sizes, total = .dl_report_csv_max, cap = .dl_report_csv
   out
 }
 
-# CSV text: a header and one row per observation, numbers with 15
+# CSV text: a header and one row per observation, numbers with `digits`
 # significant digits.
-csv_text <- function(df) {
+csv_text <- function(df, digits = 15) {
   cols <- lapply(df, function(v) {
     if (!is.numeric(v)) return(as.character(v))
-    out <- trimws(formatC(v, digits = 15, format = "g"))
+    out <- trimws(formatC(v, digits = digits, format = "g"))
     out[is.na(v)] <- "NA"
     out
   })

@@ -42,8 +42,10 @@ other parameter values.}
 \code{dist}, and of \code{\link[=dl_relation_demo]{dl_relation_demo()}} for edges that start or end at it.
 Without a simulation of \code{dist} itself (relation demos aside), a Monte
 Carlo check, the law of large numbers and the central limit theorem are
-simulated with \code{seed} (5000 draws, 3 paths, 2000 samples per size);
-without a Monte Carlo check one is added.}
+simulated with \code{seed} (5000 draws, 3 paths, 2000 samples per size).
+The exact and simulated numbers come from a Monte Carlo check with the
+parameter values of \code{dist}: one of \code{simulations} when its parameters
+match, otherwise one run with \code{seed}.}
 
 \item{fit}{A \code{\link[=dl_fit]{dl_fit()}} result, or \code{NULL}. The report has a Fit section
 when the family of \code{dist} is one of its candidates, also when its fit
@@ -70,13 +72,16 @@ inlined, so the file opens offline in a browser, without a folder of
 assets and without 'pandoc'.
 }
 \details{
-Text is in \code{lang}, and numbers use its decimal mark. Exact moments that
-are infinite show as the infinity sign, and those that do not exist are
-named so. Each
-block of the appendix runs on its own in a fresh R session; blocks with
-random draws start with \code{\link[=set.seed]{set.seed()}}. Simulated values are also embedded
-as CSV download links, up to 50,000 rows over the whole report (25,000
-per file); the code regenerates all of them.
+Text is in \code{lang}, and numbers use its decimal mark, with at most 4
+decimal places. Exact moments that are infinite show as the infinity
+sign, and those that do not exist are named so.
+
+Each block of the appendix runs on its own in a fresh R session; blocks
+with random draws start with \code{\link[=set.seed]{set.seed()}}. Fit data longer than 2000 rows
+are read from a CSV file, embedded in the page up to 25,000 rows.
+Simulated values are also embedded as CSV download links, up to 50,000
+rows over the whole report (25,000 per file); the code regenerates all
+of them.
 }
 \examples{
 g <- dl_dist("gamma", shape = 2, rate = 1)

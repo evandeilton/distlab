@@ -89,7 +89,9 @@ mod_fit_ui <- function(id, lang) {
           shiny::uiOutput(ns("fit_notes")),
           shiny::actionButton(ns("open_explorer"), i18n_span("fit.open_explorer", lang),
                                class = "btn-sm btn-outline-primary"),
-          report_button(ns("report"), lang),
+          # The report needs a fit; the button shows once there is one.
+          shiny::conditionalPanel("output.fitted", ns = ns, style = "display: inline;",
+                                  report_button(ns("report"), lang)),
           shiny::downloadButton(ns("download_estimates"), i18n_span("fit.download_estimates", lang),
                                  class = "btn-sm btn-outline-primary"))),
       tab("diagnostics",
@@ -500,6 +502,9 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
       shiny::req(d)
       fit_data_table(d)
     })
+    # Shows the report button once a fit exists; the empty text is false.
+    output$fitted <- shiny::renderText(if (!is.null(result()) && length(result()$fits)) "yes" else "")
+    shiny::outputOptions(output, "fitted", suspendWhenHidden = FALSE)
     # Study report of the selected family, at its estimates.
     output$report <- report_download(store, function() selected_fit()$dist, lang_r, fit = result)
     output$download_code <- shiny::downloadHandler(filename = function() "distlab-fit.R",
@@ -634,6 +639,9 @@ fit_diagnostic_plot <- function(diagnostics, view, lang, th) {
       th, lang, ylim = ylim), bargap = 0), th))
   }
   if (view == "cdf") {
+    # About 2000 evenly spaced steps draw the same staircase on screen, also
+    # for samples with one step per observation.
+    if (nrow(d) > 2000L) d <- d[unique(round(seq(1, nrow(d), length.out = 2000L))), , drop = FALSE]
     # The fitted CDF is known only at the finite limits; the empirical step
     # of an open last class is drawn at the right end.
     p <- plotly::add_trace(p, x = fit_finite_steps(d$x, d$x), y = d$empirical, type = "scatter",

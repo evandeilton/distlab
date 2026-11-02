@@ -103,8 +103,8 @@ dist_choices <- function(lang) {
 # `select` is a reactive navigation request from other pages (Home,
 # Compendium, Simulation): list(tab, id, params); requests for the Explorer
 # open distribution `id`, with `params` when given.
-# `store` is the session record of study_store(), which gets the parameters
-# shown and feeds the study report.
+# `store` is the session record of study_store(), which feeds the study
+# report.
 # Returns the reactives of the current entry, parameter values and
 # distribution, and `route`, a request to open the Calculator, Compare or the
 # Simulation.
@@ -197,7 +197,6 @@ mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
       lg <- lang_r()
       # An engine error shows a dash; NA from the engine means "does not exist".
       m <- tryCatch(dl_moments(d), error = function(err) NULL)
-      store$set_params(d$id, d$params)
       moment_boxes(m, lg)
     })
 

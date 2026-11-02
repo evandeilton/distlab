@@ -408,7 +408,7 @@ calc.note.tiny: >-
 calc.note.outside: >-
   Um valor está fora do suporte de X, onde a distribuição não põe
   probabilidade.
-calc.complement: "Complementar: 1 − P = {p}"
+calc.complement: "Complemento: 1 − P = {p}"
 calc.coverage: "cobre {p}"
 calc.code: Código R
 calc.copy: Copiar
@@ -515,7 +515,7 @@ sim.col.quantity: Grandeza
 sim.col.exact: Exato
 sim.col.estimate: Estimativa
 sim.col.se: Erro-padrão
-sim.col.interval: Intervalo de 95%
+sim.col.interval: "Intervalo de {level}%"
 sim.col.covered: Contém o valor exato
 sim.covered.yes: sim
 sim.covered.no: não
@@ -694,10 +694,10 @@ report.param_note: >-
   capa; os símbolos são os das fórmulas.
 report.numbers.intro: >-
   Os valores exatos vêm de fórmulas fechadas. Os valores simulados vêm de
-  sorteios com semente, com erros padrão de Monte Carlo e intervalos de 95%
-  onde a teoria assintótica vale.
+  sorteios com semente, com erros-padrão de Monte Carlo e intervalos de
+  {level}% onde a teoria assintótica vale.
 report.numbers.missing: >-
-  Um momento infinito ou inexistente não tem erro padrão: seu valor amostral
+  Um momento infinito ou inexistente não tem erro-padrão: seu valor amostral
   não se estabiliza quando o número de sorteios cresce.
 report.numbers.discrete: >-
   Em uma distribuição discreta, a probabilidade exata em um quartil q é F(q),
@@ -707,17 +707,25 @@ report.quantile: Função quantil
 report.plots.functions: Funções densidade, de distribuição e quantil
 report.plots.sweep: "Variação de parâmetro: {param}"
 report.plots.sweep_help: >-
-  Clique em reproduzir ou arraste o controle para ver como a forma muda com
-  {param}; os outros parâmetros mantêm seus valores.
+  Clique em reproduzir ou arraste o controle para ver a distribuição para
+  cada valor deste parâmetro; os outros parâmetros mantêm seus valores.
 report.plots.current: atual
 report.plots.simulations: Simulações
 report.plots.simulations_help: >-
   Simulações com semente desta sessão (ou um conjunto padrão): a mesma
   semente dá os mesmos sorteios, e o código R de cada uma está no apêndice.
 report.plot_unavailable: Este gráfico não está disponível para estes valores dos parâmetros.
+report.fig.lln: Médias acumuladas de cada trajetória
+report.fig.clt: Médias amostrais padronizadas e a N(0, 1)
+report.fig.sweep: A distribuição para cada valor do parâmetro
+report.fig.demo: "Simulação da relação {edge}"
+report.failed: Não foi possível montar o relatório de estudo. Tente de novo ou baixe-o de outra página.
 report.sim.draws: "{n} sorteios"
 report.sim.seed: "semente {seed}"
 report.sim.no_seed: sem semente (os sorteios não podem ser repetidos)
+report.sim.paths: "{n} trajetórias"
+report.sim.paths_one: "1 trajetória"
+report.sim.reps: "{n} amostras por tamanho"
 report.sim.failed: "Não foi possível fazer esta simulação: {message}"
 report.sim.no_draws: >-
   Os sorteios não foram guardados porque a verificação não tinha semente; a
@@ -730,6 +738,15 @@ report.rel.no_demo: Esta relação não tem demonstração neste relatório.
 report.fit.intro: >-
   Ajuste por máxima verossimilhança da {name} e das outras famílias
   candidatas aos dados do laboratório de Ajuste: {n} observações ({kind}).
+report.fit.intro_one: >-
+  Ajuste por máxima verossimilhança da {name} aos dados do laboratório de
+  Ajuste: {n} observações ({kind}).
+report.fit.data_file: "O código R lê a tabela de dados ({n} linhas) deste arquivo; salve-o junto do script:"
+report.fit.data_large: >-
+  A tabela de dados ({n} linhas) é grande demais para esta página. O código
+  R a lê de {file}, o arquivo que o botão "{button}" da página de Ajuste
+  salva; seus números têm 15 algarismos significativos, então os resultados
+  podem diferir dos mostrados nos últimos dígitos.
 report.fit.diagnostics: Gráficos de diagnóstico
 report.fit.gof_note: >-
   Descritivo: os parâmetros foram estimados com os mesmos dados, então estes

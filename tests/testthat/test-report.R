@@ -165,7 +165,8 @@ test_that("given simulations are reported, and a seeded check gets its draws bac
                                          "relation"))
   expect_match(html, distlab:::tr("sim.hist.density", "pt-BR"), fixed = TRUE)
   expect_match(html, distlab:::tr("sim.mem.verdict.yes", "pt-BR"), fixed = TRUE)
-  expect_match(html, "<dd>2, 3, 4, 5, 2026</dd>", fixed = TRUE)
+  # Seeds of the results shown; the default seed was not used.
+  expect_match(html, "<dd>2, 3, 4, 5</dd>", fixed = TRUE)
   # Its simulated values are offered as CSV files.
   expect_gte(lengths(regmatches(html, gregexpr("href=\"data:text/csv", html, fixed = TRUE))), 4L)
   # Without a seed the draws of a check cannot be rebuilt.
@@ -195,6 +196,8 @@ test_that("the Fit section appears for a fitted family, also when its fit failed
   html <- dl_report(g, fit = fit, simulations = small(g), relations = FALSE)
   expect_match(html, '<section class="dl-report-section" id="fit">', fixed = TRUE)
   expect_match(html, distlab:::tr("report.fit.gof_note", "en-US"), fixed = TRUE)
+  expect_match(html, "Best fit: Gamma — lowest AIC", fixed = TRUE)
+  expect_match(html, "Maximum likelihood fit of the Gamma and the other candidate families", fixed = TRUE)
   blocks <- report_code_blocks(html)
   env <- eval_block(blocks$code[blocks$kind == "fit"])
   est <- env$fit$fits$gamma$estimates$estimate
@@ -280,4 +283,93 @@ test_that("every distribution of the catalog gets a report", {
     expect_match(html, "</html>", fixed = TRUE, info = id)
     expect_no_match(html, distlab:::tr("report.plot_unavailable", "en-US"), fixed = TRUE, info = id)
   }
+})
+
+# One section of a report page.
+report_section_html <- function(html, id) {
+  regmatches(html, regexpr(sprintf('<section class="dl-report-section" id="%s">[\\s\\S]*?</section>', id),
+                           html, perl = TRUE))
+}
+
+test_that("the numbers come from a check with the parameters of the report", {
+  g2 <- dl_dist("gamma", shape = 2, rate = 1)
+  other <- distlab:::mc_check_run(dl_dist("gamma", shape = 5, rate = 1), 500, 1)
+  html <- dl_report(g2, simulations = list(other), relations = FALSE)
+  numbers <- report_section_html(html, "numbers")
+  expect_match(numbers, "Gamma(shape = 2, rate = 1) · 5,000 draws · seed 2026", fixed = TRUE)
+  expect_match(numbers, '<td class="dl-cell-num">2</td>', fixed = TRUE)
+  expect_no_match(numbers, "shape = 5", fixed = TRUE)
+  # The session's check of other values stays in the Simulations section.
+  plots <- report_section_html(html, "plots")
+  expect_match(plots, "Gamma(shape = 5, rate = 1) · 500 draws · seed 1", fixed = TRUE)
+  expect_no_match(plots, "Gamma(shape = 2, rate = 1) · 5,000 draws", fixed = TRUE)
+  expect_match(html, "<dd>1, 2026</dd>", fixed = TRUE)
+  # With the same values the session's check is used and no other is run.
+  same <- dl_report(g2, simulations = list(dl_mc_check(g2, n = 300, seed = 4, level = 0.9)),
+                    relations = FALSE)
+  expect_match(report_section_html(same, "numbers"), "300 draws · seed 4", fixed = TRUE)
+  expect_identical(sum(report_code_blocks(same)$kind == "mc_check"), 1L)
+  expect_match(same, "<dd>4</dd>", fixed = TRUE)
+  # Its level labels the intervals.
+  expect_match(same, "90% interval", fixed = TRUE)
+  expect_match(same, "90% intervals", fixed = TRUE)
+})
+
+test_that("an unseeded check keeps its distribution and number of draws", {
+  g9 <- dl_dist("gamma", shape = 9, rate = 1)
+  html <- dl_report(g9, simulations = list(dl_mc_check(g9, n = 300)), relations = FALSE)
+  expect_match(html, "Gamma(shape = 9, rate = 1) · 300 draws · no seed", fixed = TRUE)
+  expect_error(dl_report(dl_dist("normal"), simulations = list(dl_mc_check(g9, n = 30))),
+               "simulates 'gamma', not 'normal'")
+})
+
+test_that("large fits stay small: a thinned CDF and data read from a CSV", {
+  x <- distlab:::with_seed(1, stats::rnorm(1e5, 50, 3))
+  fit <- dl_fit(x, "normal")
+  d <- dl_dist("normal")
+  small <- list(dl_mc_check(d, n = 100, seed = 1))
+  html <- dl_report(d, fit = fit, simulations = small, relations = FALSE)
+  expect_lt(nchar(html, type = "bytes"), 8e6)
+  blocks <- report_code_blocks(html)
+  fit_code <- blocks$code[blocks$kind == "fit"]
+  expect_match(fit_code, 'tab <- read.csv("distlab-data.csv")', fixed = TRUE)
+  expect_lt(nchar(fit_code), 2000)
+  expect_match(html, "100,000 rows", fixed = TRUE)
+  expect_match(html, "Maximum likelihood fit of the Normal to the data", fixed = TRUE)
+  cdf <- plotly::plotly_build(distlab:::fit_diagnostic_plot(dl_fit_diagnostics(fit), "cdf", "en-US",
+                                                             distlab:::plot_theme()))
+  expect_true(all(vapply(cdf$x$data, function(t) length(t$x), 1L) <= 2000L))
+  # A middle-sized table is embedded with digits that read back exactly.
+  y <- round(x[1:5000], 4)
+  fit2 <- dl_fit(y, "normal")
+  html2 <- dl_report(d, fit = fit2, simulations = small, relations = FALSE)
+  link <- regmatches(html2, regexpr('data:text/csv;charset=utf-8;base64,[^"]+(?=" download="distlab-data.csv")',
+                                    html2, perl = TRUE))
+  expect_length(link, 1L)
+  dir <- tempfile()
+  dir.create(dir)
+  on.exit(unlink(dir, recursive = TRUE))
+  writeBin(jsonlite::base64_dec(sub("^.*base64,", "", link)), file.path(dir, "distlab-data.csv"))
+  blocks2 <- report_code_blocks(html2)
+  old <- setwd(dir)
+  env <- eval_block(blocks2$code[blocks2$kind == "fit"])
+  setwd(old)
+  expect_identical(env$fit$fits$normal$estimates, fit2$fits$normal$estimates)
+})
+
+test_that("figures are captioned and named for screen readers", {
+  html <- cached_report("gamma", "en-US", report_cases$gamma)
+  count <- function(p) lengths(regmatches(html, gregexpr(p, html, perl = TRUE)))
+  widgets <- count('class="plotly html-widget')
+  expect_identical(count('<figure class="dl-report-plot">\\s*<figcaption'), count("<figure"))
+  expect_identical(count('class="plotly html-widget"[^>]*role="img" aria-label="[^"]+"|role="img" aria-label="[^"]+"[^>]*class="plotly html-widget'),
+                   widgets)
+  expect_match(html, distlab:::tr("report.fig.clt", "en-US"), fixed = TRUE)
+  expect_match(html, "3 paths", fixed = TRUE)
+  expect_match(html, "2,000 samples per size", fixed = TRUE)
+  pt <- cached_report("gamma", "pt-BR", report_cases$gamma)
+  expect_match(pt, "3 trajetórias", fixed = TRUE)
+  expect_match(pt, "2.000 amostras por tamanho", fixed = TRUE)
+  expect_match(pt, "Complemento: 1 − P", fixed = TRUE)
+  expect_no_match(pt, "Complementar", fixed = TRUE)
 })

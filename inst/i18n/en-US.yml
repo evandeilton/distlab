@@ -513,7 +513,7 @@ sim.col.quantity: Quantity
 sim.col.exact: Exact
 sim.col.estimate: Estimate
 sim.col.se: Std. error
-sim.col.interval: 95% interval
+sim.col.interval: "{level}% interval"
 sim.col.covered: Holds the exact value
 sim.covered.yes: "yes"
 sim.covered.no: "no"
@@ -686,7 +686,7 @@ report.param_note: >-
   the symbols are those of the formulas.
 report.numbers.intro: >-
   Exact values come from closed forms. Simulated values come from seeded
-  draws, with Monte Carlo standard errors and 95% intervals where the
+  draws, with Monte Carlo standard errors and {level}% intervals where the
   asymptotics hold.
 report.numbers.missing: >-
   A moment that is infinite or does not exist has no standard error: its
@@ -699,17 +699,25 @@ report.quantile: Quantile function
 report.plots.functions: Density, distribution and quantile functions
 report.plots.sweep: "Parameter sweep: {param}"
 report.plots.sweep_help: >-
-  Press play or drag the slider to see how the shape changes with {param};
-  the other parameters keep their values.
+  Press play or drag the slider to see the distribution for each value of
+  this parameter; the other parameters keep their values.
 report.plots.current: current
 report.plots.simulations: Simulations
 report.plots.simulations_help: >-
   Seeded simulations of this session (or a default set): the same seed gives
   the same draws, and the R code of each one is in the appendix.
 report.plot_unavailable: This plot is not available for these parameter values.
+report.fig.lln: Running means of each path
+report.fig.clt: Standardized sample means against N(0, 1)
+report.fig.sweep: The distribution for each value of the parameter
+report.fig.demo: "Simulation of the relationship {edge}"
+report.failed: The study report could not be built. Try again, or download it from another page.
 report.sim.draws: "{n} draws"
 report.sim.seed: "seed {seed}"
 report.sim.no_seed: no seed (draws cannot be repeated)
+report.sim.paths: "{n} paths"
+report.sim.paths_one: "1 path"
+report.sim.reps: "{n} samples per size"
 report.sim.failed: "This simulation could not be run: {message}"
 report.sim.no_draws: >-
   The draws were not kept because the check had no seed; the table above
@@ -722,6 +730,15 @@ report.rel.no_demo: This relationship has no demonstration in this report.
 report.fit.intro: >-
   Maximum likelihood fit of the {name} and the other candidate families to
   the data of the Fit lab: {n} observations ({kind}).
+report.fit.intro_one: >-
+  Maximum likelihood fit of the {name} to the data of the Fit lab: {n}
+  observations ({kind}).
+report.fit.data_file: "The R code reads the data table ({n} rows) from this file; save it next to the script:"
+report.fit.data_large: >-
+  The data table ({n} rows) is too large for this page. The R code reads it
+  from {file}, the file that the Fit page's "{button}" button saves; its
+  numbers have 15 significant digits, so results may differ from those
+  shown in the last digits.
 report.fit.diagnostics: Diagnostic plots
 report.fit.gof_note: >-
   Descriptive: the parameters were estimated from the same data, so these

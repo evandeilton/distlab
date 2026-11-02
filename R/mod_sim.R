@@ -350,7 +350,7 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
       v <- sample_view()
       if (is.list(v) && !inherits(v, "error")) outside_note(v$outside, lang_r())
     })
-    output$mc_table <- shiny::renderUI(mc_table_tag(mc_val()$table, lang_r()))
+    output$mc_table <- shiny::renderUI(mc_table_tag(mc_val()$table, lang_r(), mc_val()$level))
     # Code card of a result, which is also recorded for the study report.
     code_out <- function(res, code_id) {
       store$add_sim(res)
@@ -717,9 +717,9 @@ interval_text <- function(lo, hi, lang) {
   paste0("[", format_num(lo, lang), sep, format_num(hi, lang), "]")
 }
 
-# Table of the Monte Carlo check: exact value, estimate, standard error, 95%
-# interval and whether it holds the exact value.
-mc_table_tag <- function(tab, lang) {
+# Table of the Monte Carlo check: exact value, estimate, standard error,
+# interval at `level` and whether it holds the exact value.
+mc_table_tag <- function(tab, lang, level = 0.95) {
   th <- function(text) shiny::tags$th(scope = "col", text)
   label <- function(i) {
     qn <- tab$quantity[i]
@@ -763,7 +763,8 @@ mc_table_tag <- function(tab, lang) {
       shiny::tags$thead(shiny::tags$tr(
         th(tr("sim.col.quantity", lang)), th(tr("sim.col.exact", lang)),
         th(tr("sim.col.estimate", lang)), th(tr("sim.col.se", lang)),
-        th(tr("sim.col.interval", lang)), th(tr("sim.col.covered", lang))
+        th(tr("sim.col.interval", lang, level = format_num(100 * level, lang))),
+        th(tr("sim.col.covered", lang))
       )),
       shiny::tags$tbody(rows)
     )
@@ -847,15 +848,17 @@ lln_note <- function(res, lang) {
 }
 
 # Shared animation settings: short frames and transitions, a translated play
-# button, and slider steps labeled with the frame labels.
+# button, and slider steps labeled with the frame labels. Slider and button
+# sit below the x-axis title, so the current frame label never covers it.
 sim_animate <- function(p, labels, lang, th) {
   p <- plotly::animation_opts(p, frame = 700, transition = 150, redraw = TRUE)
   p <- plotly::animation_slider(
     p, currentvalue = list(prefix = "", font = list(color = th$text, size = 13)),
-    font = list(color = th$muted)
+    font = list(color = th$muted), pad = list(t = 64)
   )
   p <- plotly::animation_button(p, label = tr("sim.play", lang), font = list(color = th$text),
-                                bgcolor = th$hover_bg, bordercolor = th$grid)
+                                bgcolor = th$hover_bg, bordercolor = th$grid,
+                                pad = list(t = 84, r = 5))
   steps <- p$x$layout$sliders[[1]]$steps
   for (i in seq_along(steps)) p$x$layout$sliders[[1]]$steps[[i]]$label <- labels[i]
   p
