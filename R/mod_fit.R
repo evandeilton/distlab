@@ -426,23 +426,8 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
                     lang_r(), tr("fit.eligibility", lang_r()))
     })
     output$ranking <- shiny::renderUI(fit_ranking_tag(result(), lang_r()))
-    output$estimates <- shiny::renderUI({
-      f <- selected_fit()
-      df <- f$estimates
-      df$fixed <- vapply(df$fixed, function(v) tr(if (v) "fit.yes" else "fit.no", lang_r()), "")
-      fit_table_tag(df, vapply(names(df), function(k) tr(paste0("fit.col_", k), lang_r()), ""),
-                    lang_r(), tr("fit.estimates", lang_r()))
-    })
-    output$fit_notes <- shiny::renderUI({
-      f <- selected_fit()
-      shiny::tagList(
-        if (isTRUE(f$boundary)) fit_error_tag("fit.boundary", lang_r()),
-        if (!identical(as.integer(f$convergence), 0L)) fit_error_tag("fit.nonconvergence", lang_r()),
-        if (any(!is.finite(f$estimates$se) & !f$estimates$fixed)) fit_error_tag("fit.no_se", lang_r()),
-        if (length(f$warnings)) shiny::tags$details(
-          shiny::tags$summary(tr("fit.technical_notes", lang_r())),
-          shiny::tags$ul(lapply(f$warnings, function(s) shiny::tags$li(fit_message_text(s, lang_r()))))))
-    })
+    output$estimates <- shiny::renderUI(fit_estimates_tag(selected_fit(), lang_r()))
+    output$fit_notes <- shiny::renderUI(fit_notes_tag(selected_fit(), lang_r()))
     output$code <- shiny::renderUI({ shiny::req(result()); code_tag(result()$code, ns("fit-code"), lang_r()) })
     shiny::observeEvent(input$open_explorer, {
       f <- selected_fit()
@@ -489,21 +474,8 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
       view <- key
       output[[view]] <- plotly::renderPlotly(fit_diagnostic_plot(diagnostics(), view, lang_r(), plot_theme(dark())))
     })
-    output$gof <- shiny::renderUI({
-      d <- diagnostics()
-      df <- d$gof
-      if ("label" %in% names(df)) df$label <- tr(
-        if (selected_fit()$k > 0) "fit.gof_descriptive" else "fit.gof_fixed", lang_r())
-      if ("test" %in% names(df)) df$test[df$test == "Chi-square"] <- tr("fit.chi_square", lang_r())
-      fit_table_tag(df, vapply(names(df), function(k) tr(paste0("fit.gof_", k), lang_r()), ""),
-                    lang_r(), tr("fit.gof", lang_r()))
-    })
-    output$diagnostic_notes <- shiny::renderUI({
-      d <- diagnostics()
-      shiny::tagList(lapply(unique(d$notes), function(k) {
-          shiny::tags$p(class = "dl-muted", tr(k, lang_r()))
-        }))
-    })
+    output$gof <- shiny::renderUI(fit_gof_tag(diagnostics(), selected_fit(), lang_r()))
+    output$diagnostic_notes <- shiny::renderUI(fit_diagnostic_notes_tag(diagnostics(), lang_r()))
     csv_download <- function(name, fn) shiny::downloadHandler(
       filename = function() paste0("distlab-", name, ".csv"),
       content = function(file) utils::write.csv(fn(), file, row.names = FALSE, na = ""))
@@ -519,6 +491,41 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
       content = function(file) { shiny::req(result()); writeLines(result()$code, file, useBytes = TRUE) })
     list(data = shiny::reactive(loaded()), fit = shiny::reactive(result()), route = shiny::reactive(route()))
   })
+}
+
+# Estimates of one fitted family, with translated column names.
+fit_estimates_tag <- function(f, lang) {
+  df <- f$estimates
+  df$fixed <- vapply(df$fixed, function(v) tr(if (v) "fit.yes" else "fit.no", lang), "")
+  fit_table_tag(df, vapply(names(df), function(k) tr(paste0("fit.col_", k), lang), ""),
+                lang, tr("fit.estimates", lang))
+}
+
+# Boundary, convergence and standard-error notes of one fitted family, with
+# its technical warnings translated.
+fit_notes_tag <- function(f, lang) {
+  shiny::tagList(
+    if (isTRUE(f$boundary)) fit_error_tag("fit.boundary", lang),
+    if (!identical(as.integer(f$convergence), 0L)) fit_error_tag("fit.nonconvergence", lang),
+    if (any(!is.finite(f$estimates$se) & !f$estimates$fixed)) fit_error_tag("fit.no_se", lang),
+    if (length(f$warnings)) shiny::tags$details(
+      shiny::tags$summary(tr("fit.technical_notes", lang)),
+      shiny::tags$ul(lapply(f$warnings, function(s) shiny::tags$li(fit_message_text(s, lang))))))
+}
+
+# Descriptive goodness-of-fit table of dl_fit_diagnostics() for fit `f`.
+fit_gof_tag <- function(d, f, lang) {
+  df <- d$gof
+  if ("label" %in% names(df)) df$label <- tr(
+    if (f$k > 0) "fit.gof_descriptive" else "fit.gof_fixed", lang)
+  if ("test" %in% names(df)) df$test[df$test == "Chi-square"] <- tr("fit.chi_square", lang)
+  fit_table_tag(df, vapply(names(df), function(k) tr(paste0("fit.gof_", k), lang), ""),
+                lang, tr("fit.gof", lang))
+}
+
+# Notes of dl_fit_diagnostics(), translated.
+fit_diagnostic_notes_tag <- function(d, lang) {
+  shiny::tagList(lapply(unique(d$notes), function(k) shiny::tags$p(class = "dl-muted", tr(k, lang))))
 }
 
 # Weighted views do not expand a frequency table into n observations.

@@ -331,7 +331,7 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
       d <- dist_now()
       res <- mc()
       if (inherits(res, "error")) return(res)
-      sim_run(sim_view(res$sample, d, mode = if (is_discrete()) "law" else "none"))
+      sim_run(sample_view_of(res$sample, d))
     })
     output$sample_hist <- plotly::renderPlotly({
       mc_val()
@@ -380,20 +380,7 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
     output$clt_plot <- plotly::renderPlotly({
       clt_plot(clt_val(), dist_now(), lang_r(), plot_theme(dark()))
     })
-    output$clt_note <- shiny::renderUI({
-      res <- clt_val()
-      lg <- lang_r()
-      notes <- if (res$standardized) {
-        c(tr("sim.clt.note", lg), if (is_discrete()) tr("sim.clt.note.discrete", lg))
-      } else if (is.na(res$mean)) {
-        tr("sim.clt.note.no_mean", lg)
-      } else if (is.infinite(res$mean)) {
-        tr("sim.clt.note.infinite_mean", lg)
-      } else {
-        tr("sim.clt.note.infinite_var", lg)
-      }
-      note_list(notes)
-    })
+    output$clt_note <- shiny::renderUI(clt_note(clt_val(), is_discrete(), lang_r()))
     output$clt_table <- shiny::renderUI({
       res <- clt_val()
       if (!res$standardized) return(NULL)
@@ -428,16 +415,12 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
     tf_view <- shiny::reactive({
       res <- tf()
       if (inherits(res, "error")) return(res)
-      ref <- res$target %||% res$approx
-      mode <- transform_bin_mode(dist_now(), res$op, res$a, res$b)
-      sim_run(sim_view(res$sample, ref, mode = mode, total = length(res$sample) + res$dropped))
+      sim_run(tf_view_of(res, dist_now()))
     })
     output$tf_plot <- plotly::renderPlotly({
       res <- tf_val()
       lg <- lang_r()
-      v <- sim_value(tf_view(), lg)
-      label <- if (!is.null(res$target)) tr("sim.exact", lg) else tr("sim.approx", lg)
-      sim_hist_plot(v, lg, plot_theme(dark()), label, dashed = is.null(res$target), var = "y")
+      tf_plot(res, sim_value(tf_view(), lg), lg, plot_theme(dark()))
     })
     output$tf_summary <- shiny::renderUI({
       v <- tf_view()
@@ -533,11 +516,8 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
                                                           plot_theme(dark())))
     output$mem_hist <- plotly::renderPlotly({
       res <- mem_val()
-      d <- dist_now()
-      v <- sim_value(sim_run(sim_view(res$residual, d, mode = if (is_discrete()) "law" else "none")),
-                     lang_r())
-      sim_hist_plot(v, lang_r(), plot_theme(dark()), tr("sim.mem.law_x", lang_r()), var = "t",
-                    labels = list(prob = "P(X \u2212 s = t)", dens = "f(t)"))
+      v <- sim_value(sim_run(sample_view_of(res$residual, dist_now())), lang_r())
+      mem_hist_plot(v, lang_r(), plot_theme(dark()))
     })
 
     list(dist = dist, tab = shiny::reactive(input$tab), seed = seed, mc = mc_val, lln = lln_val,
@@ -598,6 +578,33 @@ sim_view <- function(x, ref, mode = "auto", total = length(x)) {
   curve <- if (!is.null(ref)) law_curve(ref, rng)
   list(bins = bins, curve = curve, range = rng, step = step, unit = isTRUE(step == 1),
        ref_discrete = ref_discrete, outside = sum(x < rng[1] | x > rng[2]) / total)
+}
+
+# Histogram view of draws of `dist` itself (the sample, or the residuals of
+# the memorylessness check): unit bars for discrete laws, continuous bins
+# otherwise.
+sample_view_of <- function(x, dist) {
+  sim_view(x, dist, mode = if (identical(dist$entry$type, "discrete")) "law" else "none")
+}
+
+# Histogram view of a dl_transform() result of `dist`, against its exact or
+# approximate law; non-finite values count in the shares.
+tf_view_of <- function(res, dist) {
+  ref <- res$target %||% res$approx
+  mode <- transform_bin_mode(dist, res$op, res$a, res$b)
+  sim_view(res$sample, ref, mode = mode, total = length(res$sample) + res$dropped)
+}
+
+# Histogram of Y against its exact law (solid) or Normal approximation (dashed).
+tf_plot <- function(res, v, lang, th) {
+  label <- if (!is.null(res$target)) tr("sim.exact", lang) else tr("sim.approx", lang)
+  sim_hist_plot(v, lang, th, label, dashed = is.null(res$target), var = "y")
+}
+
+# Histogram of the residuals X - s against the law of X.
+mem_hist_plot <- function(v, lang, th) {
+  sim_hist_plot(v, lang, th, tr("sim.mem.law_x", lang), var = "t",
+                labels = list(prob = "P(X \u2212 s = t)", dens = "f(t)"))
 }
 
 # Y limit that keeps an unbounded density (Chi-square with 1 df, Beta with a
@@ -870,6 +877,21 @@ clt_plot <- function(res, dist, lang, th) {
   p <- plotly::layout(p, legend = list(y = 1.02, yanchor = "bottom", x = 1, xanchor = "right"),
                       margin = list(l = 64, r = 12, t = 48, b = 40))
   sim_animate(p, paste("n =", sizes), lang, th)
+}
+
+# Notes under the CLT plot: how to read it, or why the means cannot be
+# standardized (no mean, infinite mean or infinite variance).
+clt_note <- function(res, discrete, lang) {
+  notes <- if (res$standardized) {
+    c(tr("sim.clt.note", lang), if (discrete) tr("sim.clt.note.discrete", lang))
+  } else if (is.na(res$mean)) {
+    tr("sim.clt.note.no_mean", lang)
+  } else if (is.infinite(res$mean)) {
+    tr("sim.clt.note.infinite_mean", lang)
+  } else {
+    tr("sim.clt.note.infinite_var", lang)
+  }
+  note_list(notes)
 }
 
 # Bars of each CLT frame on one range: bins 0.2 wide on [-4, 4] for
