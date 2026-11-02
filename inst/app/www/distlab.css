@@ -574,6 +574,26 @@ th[aria-sort="ascending"], th[aria-sort="descending"] { color: var(--dl-ink); }
 .dl-sim-unsupported .btn { margin-left: 0.25rem; }
 .dl-sim .dl-code { margin-top: 0.75rem; }
 
+/* Fit lab */
+.dl-fit { min-width: 0; }
+.dl-fit .bslib-sidebar-layout > .main, .dl-fit .card, .dl-fit .html-fill-container { min-width: 0; }
+.dl-fit .main > .card, .dl-fit .main > .bslib-grid { margin-bottom: 1rem; }
+.dl-fit-action { width: 100%; margin-top: 0.4rem; }
+.dl-fit .shiny-input-checkboxgroup .checkbox { margin-bottom: 0.35rem; }
+.dl-fit-fixed { border-left: 2px solid var(--dl-border); padding-left: 0.65rem; margin: 0.65rem 0; }
+.dl-fit-fixed > strong { display: block; margin-bottom: 0.4rem; font-size: 0.85rem; }
+.dl-fit-fixed .shiny-input-container { max-width: 100%; }
+.dl-fit-notice { border-left: 3px solid var(--dl-amber); background: var(--dl-surface);
+  padding: 0.75rem 1rem; border-radius: 0.35rem; margin: 0 0 1rem; }
+.dl-fit-table { margin-bottom: 0.5rem; }
+.dl-fit .btn + .btn { margin-left: 0.35rem; }
+.dl-fit .dl-code { margin-bottom: 0.75rem; }
+.dl-fit details { margin-top: 0.6rem; }
+.dl-fit .nav-underline { flex-wrap: nowrap; overflow-x: auto; margin-bottom: 1rem; }
+.dl-fit .nav-underline .nav-link { white-space: nowrap; }
+.dl-fit .dl-fit-summary { grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); }
+.dl-fit pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+
 /* Dark mode details */
 [data-bs-theme="dark"] .selectize-input, [data-bs-theme="dark"] .selectize-dropdown {
   background: var(--dl-bg); color: var(--dl-ink); border-color: var(--dl-border); }

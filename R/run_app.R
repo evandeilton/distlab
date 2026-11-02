@@ -30,7 +30,7 @@ run_app <- function(lang = "pt-BR", ...) {
   list(value = "calculator", icon = "calculator"),
   list(value = "compare", icon = "layer-group"),
   list(value = "simulation", icon = "shuffle"),
-  list(value = "fit", icon = "chart-line", upcoming = TRUE),
+  list(value = "fit", icon = "chart-line"),
   list(value = "about", icon = "circle-info")
 )
 
@@ -49,6 +49,7 @@ app_ui <- function(lang) {
            calculator = mod_calc_ui("calc", lang),
            compare = mod_compare_ui("compare", lang),
            simulation = mod_sim_ui("sim", lang),
+           fit = mod_fit_ui("fit", lang),
            about = about_panel(lang),
            upcoming_panel(s, lang))
   }
@@ -173,10 +174,12 @@ app_server <- function(lang) {
     calc <- mod_calc_server("calc", lang_r, dark = dark, select = route)
     compare <- mod_compare_server("compare", lang_r, dark = dark, select = route)
     sim <- mod_sim_server("sim", lang_r, dark = dark, select = route)
+    fit <- mod_fit_server("fit", lang_r, dark = dark, select = route)
     shiny::observeEvent(home(), route(c(home(), from = "home")))
     shiny::observeEvent(compendium(), route(c(compendium(), from = "compendium")))
     shiny::observeEvent(explore$route(), route(c(explore$route(), from = "explorer")))
     shiny::observeEvent(sim$route(), route(c(sim$route(), from = "simulation")))
+    shiny::observeEvent(fit$route(), route(c(fit$route(), from = "fit")))
 
     # Static texts are re-translated in the browser from the dictionary.
     shiny::observeEvent(lang_r(), {

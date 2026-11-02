@@ -72,3 +72,28 @@ test_that("resolved defaults satisfy every registry constraint", {
     expect_s3_class(do.call(dl_dist, c(list(did), res)), "dl_dist")
   }
 })
+
+test_that("valid fitted parameters extend initial slider windows", {
+  lim <- distlab:::slider_limits(dl_entry("normal"), list(mean = 70.8970588235, sd = 13.56996))
+  expect_equal(lim$mean, c(-10, 70.8970588235))
+  expect_equal(lim$sd, c(.1, 13.56996))
+  small <- distlab:::slider_limits(dl_entry("gamma"), list(shape = 2, rate = .001))
+  expect_equal(small$rate[1], .001)
+  # Coupled constraints still override an invalid structural value.
+  h <- distlab:::slider_limits(dl_entry("hypergeometric"), list(m = 100, n = 100, k = 150))
+  expect_equal(h$k[2], 150)
+})
+
+test_that("slider windows grow to show imported values with a margin", {
+  normal <- dl_entry("normal")$parameters
+  expect_equal(distlab:::slider_window(normal[[1]], NULL, 5), c(-10, 10))
+  expect_equal(distlab:::slider_window(normal[[1]], NULL, 70.8970588235), c(-10, 79))
+  # Earlier widening is kept for values inside it, and grows on the other side.
+  expect_equal(distlab:::slider_window(normal[[1]], c(-10, 79), 40), c(-10, 79))
+  expect_equal(distlab:::slider_window(normal[[1]], c(-10, 79), -70), c(-84.9, 79))
+  expect_equal(distlab:::slider_window(normal[[2]], NULL, 13.56996), c(.1, 15))
+  # No margin outside the domain; integer windows stay whole.
+  expect_equal(distlab:::slider_window(dl_entry("gamma")$parameters[[2]], NULL, .001), c(.001, 10))
+  expect_equal(distlab:::slider_window(dl_entry("binomial")$parameters[[2]], NULL, .995), c(.01, .995))
+  expect_equal(distlab:::slider_window(dl_entry("binomial")$parameters[[1]], NULL, 300), c(1, 330))
+})

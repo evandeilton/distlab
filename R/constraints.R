@@ -126,12 +126,40 @@ resolve_constraints <- function(entry, vals, prev = NULL) {
   vals
 }
 
+# Slider window that shows value `v`: the teaching window, any earlier
+# widening `current` and `v` with a margin of a tenth of the new span, on the
+# slider grid. The margin is dropped where it would leave the domain.
+slider_window <- function(par, current, v) {
+  w <- range(c(par$slider$min, par$slider$max), current)
+  if (v >= w[1] && v <= w[2]) return(w)
+  step <- par$slider$step
+  base <- par$slider$min
+  pad <- 0.1 * (max(w[2], v) - min(w[1], v))
+  if (v > w[2]) {
+    edge <- round(base + ceiling((v + pad - base) / step) * step, 10)
+    w[2] <- if (in_domain(edge, par)) edge else v
+  } else {
+    edge <- round(base + floor((v - pad - base) / step) * step, 10)
+    w[1] <- if (in_domain(edge, par)) edge else v
+  }
+  w
+}
+
 # Slider ranges given the current values: a parameter bounded by a sum of
 # other parameters (k <= m + n) gets that bound as its slider limit.
 slider_limits <- function(entry, vals) {
   par_names <- vapply(entry$parameters, `[[`, "", "name")
   lim <- lapply(entry$parameters, function(par) c(par$slider$min, par$slider$max))
   names(lim) <- par_names
+  # Teaching ranges are initial UI windows, not parameter domains. A fitted
+  # model may legitimately lie outside them; include its valid values before
+  # applying constraints such as k <= m + n.
+  for (par in entry$parameters) {
+    v <- vals[[par$name]]
+    if (!in_domain(v, par)) next
+    if (v < lim[[par$name]][1]) lim[[par$name]][1] <- v
+    if (v > lim[[par$name]][2]) lim[[par$name]][2] <- v
+  }
   env <- list2env(vals, parent = baseenv())
   for (cond in entry$constraints) {
     con <- parse_constraint(cond)
