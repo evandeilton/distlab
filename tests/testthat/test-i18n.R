@@ -46,11 +46,38 @@ test_that("numbers show at most 4 decimal places and tiny values as powers of te
   # Vectorized, with NA and infinite values as before.
   expect_identical(f(c(NA, Inf, 1.5), "pt-BR"), c("—", "—", "1,5"))
   expect_identical(v(c(Inf, -Inf, NA, 2e-6), "en-US"),
-                   c("∞", "-∞", "—", "2.0 × 10⁻⁶"))
+                   c("∞", "-∞", "—", "2.00 × 10⁻⁶"))
   expect_identical(distlab:::format_moment(1.3e-7, "pt-BR"), "1,3 × 10⁻⁷")
   # Text fields keep 15 digits so a value parses back; TeX gets its own form.
   expect_identical(distlab:::format_input(1.959963984540054, "pt-BR"), "1,95996398454005")
   expect_identical(distlab:::format_input(Inf, "en-US"), "Inf")
-  expect_identical(distlab:::tex_num(1.3e-40, "pt-BR"), "1{,}3 \\times 10^{-40}")
+  expect_identical(distlab:::tex_num(1.3e-40, "pt-BR"), "1{,}30 \\times 10^{-40}")
   expect_identical(distlab:::tex_num(1.959964, "en-US"), "1.96")
+})
+
+test_that("values that name a point or a parameter keep 3 significant digits", {
+  v <- distlab:::format_value
+  expect_identical(v(c(0.0123, 0.00999, 0.00012, -0.00012), "en-US"),
+                   c("0.0123", "9.99 × 10⁻³", "1.20 × 10⁻⁴",
+                     "-1.20 × 10⁻⁴"))
+  expect_identical(v(0.000128155, "pt-BR"), "1,28 × 10⁻⁴")
+  expect_identical(v(123456.789, "en-US"), "123457")
+  # Normal(0, 1e-4): the Calculator states the event it computed.
+  d <- dl_dist("normal", mean = 0, sd = 1e-4)
+  le <- distlab:::calc_result(d, "le", x = 0.00012)
+  q <- distlab:::calc_result(d, "quantile", p = 0.9)
+  expect_identical(distlab:::calc_tex(le, "en-US"), "P(X \\le 1.20 \\times 10^{-4})")
+  expect_identical(distlab:::calc_tex(q, "pt-BR"), "Q(0{,}9) = 1{,}28 \\times 10^{-4}")
+  expect_match(distlab:::calc_sentence(le, d, "en-US"), "equal to 1.20 × 10⁻⁴ is 0.8849",
+               fixed = TRUE)
+  expect_match(distlab:::calc_sentence(q, d, "pt-BR"), "O quantil de ordem 0,9 é 1,28 × 10⁻⁴",
+               fixed = TRUE)
+  html <- as.character(distlab:::calc_result_tag(q, d, "en-US", code_id = NULL))
+  expect_match(html, "1.28 × 10⁻⁴", fixed = TRUE)
+  # Labels of nearby parameter values stay distinct.
+  for (lang in dl_languages()) {
+    a <- distlab:::series_label(dl_dist("normal", sd = 0.00012), lang)
+    b <- distlab:::series_label(dl_dist("normal", sd = 0.00014), lang)
+    expect_false(identical(a, b), info = lang)
+  }
 })

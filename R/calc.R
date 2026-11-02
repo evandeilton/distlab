@@ -66,10 +66,16 @@ parse_num_list <- function(x, lang) {
   vapply(parts, function(p) as.vector(parse_num(p, lang)), numeric(1), USE.NAMES = FALSE)
 }
 
-# Value for a sentence or a label: format_num() with up to `digits`
-# significant digits (at most 4 decimal places); infinite values as the sign.
+# Value that identifies a point, a parameter or an answer (Calculator
+# fields and results, labels, legends): format_num() with up to `digits`
+# significant digits from 0.01 up, where 4 decimal places keep at least 3
+# significant digits; smaller nonzero values as powers of ten with 3
+# significant digits, so nearby values stay distinct. Infinite values as the
+# sign.
 format_value <- function(x, lang, digits = 6) {
   out <- format_num(x, lang, digits = digits)
+  small <- is.finite(x) & x != 0 & abs(x) < 0.01
+  out[small] <- format_power(x[small], if (match_lang(lang) == "pt-BR") "," else ".", digits = 3)
   inf <- is.infinite(x)
   out[inf] <- ifelse(x[inf] > 0, "\u221e", "-\u221e")
   out
@@ -162,13 +168,13 @@ code_value <- function(x) {
 }
 
 # Number inside TeX, as format_value() writes it, with the decimal comma of
-# pt-BR; tiny values as m \times 10^{e}.
+# pt-BR; values below 0.01 as m \times 10^{e} with 3 significant digits.
 tex_num <- function(x, lang) {
   if (is.infinite(x)) return(if (x > 0) "\\infty" else "-\\infty")
-  if (is.finite(x) && x != 0 && abs(x) < 5e-5) {
-    p <- power_parts(x)
+  if (is.finite(x) && x != 0 && abs(x) < 0.01) {
+    p <- power_parts(x, 3)
     tex <- sprintf("%s%s \\times 10^{%d}", if (p$negative) "-" else "",
-                   formatC(p$mantissa, digits = 1, format = "f"), as.integer(p$exponent))
+                   formatC(p$mantissa, digits = 2, format = "f"), as.integer(p$exponent))
     return(tex_decimal(tex, lang))
   }
   tex_decimal(format_num(x, "en-US", digits = 6), lang)

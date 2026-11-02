@@ -73,13 +73,13 @@ drop_zeros <- function(s, mark) {
   s
 }
 
-# Sign, mantissa rounded to 2 significant digits and exponent of nonzero
-# finite numbers; the mantissa is taken from log10, so subnormal values keep
-# their size.
-power_parts <- function(x) {
+# Sign, mantissa rounded to `digits` significant digits and exponent of
+# nonzero finite numbers; the mantissa is taken from log10, so subnormal
+# values keep their size.
+power_parts <- function(x, digits = 2) {
   l <- log10(abs(x))
   e <- floor(l)
-  m <- round(10^(l - e), 1)
+  m <- round(10^(l - e), digits - 1)
   # Rounding up to 10 moves to the next power.
   up <- m >= 10
   m[up] <- m[up] / 10
@@ -88,10 +88,10 @@ power_parts <- function(x) {
 }
 
 # Powers of ten in plain text, in the style of the Calculator.
-format_power <- function(x, mark) {
-  p <- power_parts(x)
+format_power <- function(x, mark, digits = 2) {
+  p <- power_parts(x, digits)
   paste0(ifelse(p$negative, "-", ""),
-         formatC(p$mantissa, digits = 1, format = "f", decimal.mark = mark),
+         formatC(p$mantissa, digits = digits - 1, format = "f", decimal.mark = mark),
          " \u00d7 10", sup_digits(formatC(p$exponent, format = "d")))
 }
 
