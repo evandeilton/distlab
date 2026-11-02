@@ -180,8 +180,10 @@ code_vec <- function(x) {
 #'   `"cdf_q3"`) and the columns `quantity`, `q` (the quartile of a
 #'   probability row), `exact`, `estimate`, `se`, `lower`, `upper` and
 #'   `covered` (whether the interval holds the exact value; `NA` without an
-#'   interval). Attributes `seed` (`NA` when `seed` is `NULL`) and `code` (R
-#'   code that reproduces the table exactly when a seed is given).
+#'   interval). Attributes `seed` (`NA` when `seed` is `NULL`), `code` (R
+#'   code that reproduces the table exactly when a seed is given), `dist`
+#'   (the distribution simulated, with each parameter at the value its
+#'   literal in `code` reads back as), `n` and `level`.
 #'
 #' @seealso [dl_moments()], [dl_lln()]
 #' @family simulation
@@ -195,11 +197,14 @@ dl_mc_check <- function(dist, n = 10000, seed = NULL, level = 0.95) {
   out <- res$table
   attr(out, "seed") <- res$seed
   attr(out, "code") <- res$code
+  attr(out, "dist") <- res$dist
+  attr(out, "n") <- res$n
+  attr(out, "level") <- res$level
   out
 }
 
 # Monte Carlo check with the sample kept, for plots and reports: list(table,
-# sample, seed, code, dist, n), `dist` with its parameters snapped.
+# sample, seed, code, dist, n, level), `dist` with its parameters snapped.
 mc_check_run <- function(dist, n = 10000, seed = NULL, level = 0.95) {
   dist <- check_dist(dist)
   n <- check_whole(n, "n", 1, 1e7)
@@ -240,7 +245,7 @@ mc_check_run <- function(dist, n = 10000, seed = NULL, level = 0.95) {
     covered = unname(exact) >= lower & unname(exact) <= upper
   )
   code <- mc_check_code(dist, n, seed, level, nn >= 3, nn >= 4, se_mean, se_var)
-  list(table = table, sample = x, seed = seed, code = code, dist = dist, n = n)
+  list(table = table, sample = x, seed = seed, code = code, dist = dist, n = n, level = level)
 }
 
 # R code of dl_mc_check(); the flags say which skewness, kurtosis and

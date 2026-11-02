@@ -2,8 +2,7 @@
 # memorylessness and histogram data.
 
 strip_attrs <- function(x) {
-  attr(x, "seed") <- NULL
-  attr(x, "code") <- NULL
+  for (a in c("seed", "code", "dist", "n", "level")) attr(x, a) <- NULL
   x
 }
 
@@ -444,4 +443,14 @@ test_that("a discrete law wider than 5000 values takes its range from the draws"
   cv <- distlab:::law_curve(nb, r)
   expect_lte(nrow(cv), 2001L)
   expect_true(all(cv$x == round(cv$x)))
+})
+
+test_that("a Monte Carlo table keeps its distribution, draws and level", {
+  g <- dl_dist("gamma", shape = 9, rate = 2)
+  chk <- dl_mc_check(g, n = 50, seed = 1, level = 0.9)
+  expect_identical(attr(chk, "dist")$params, list(shape = 9, rate = 2))
+  expect_identical(attr(chk, "n"), 50)
+  expect_identical(attr(chk, "level"), 0.9)
+  expect_s3_class(attr(dl_mc_check(g, n = 20), "dist"), "dl_dist")
+  expect_identical(attr(dl_mc_check(g, n = 20), "seed"), NA_integer_)
 })
