@@ -373,3 +373,24 @@ test_that("figures are captioned and named for screen readers", {
   expect_match(pt, "Complemento: 1 − P", fixed = TRUE)
   expect_no_match(pt, "Complementar", fixed = TRUE)
 })
+
+test_that("a check table without its attributes is still reported", {
+  d <- dl_dist("exponential")
+  chk <- dl_mc_check(d, n = 100, seed = 3)
+  attr(chk, "dist") <- NULL
+  attr(chk, "n") <- NULL
+  attr(chk, "level") <- NULL
+  html <- dl_report(d, simulations = list(chk), relations = FALSE)
+  expect_match(html, "Exponential(rate = 1) · 100 draws · seed 3", fixed = TRUE)
+})
+
+test_that("the report advances a progress callback section by section", {
+  shares <- numeric(0)
+  old <- options(distlab.report_progress = function(s) shares <<- c(shares, s))
+  on.exit(options(old))
+  d <- dl_dist("poisson")
+  dl_report(d, simulations = list(dl_mc_check(d, n = 50, seed = 1)), relations = FALSE)
+  expect_gt(length(shares), 5L)
+  expect_false(is.unsorted(shares))
+  expect_identical(shares[length(shares)], 1)
+})

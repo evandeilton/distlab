@@ -95,7 +95,10 @@ report_download <- function(store, dist, lang, fit = function() NULL) {
       rec <- store$get(d$id)
       # Building takes a few seconds; the app shows its progress, and a
       # translated message when it fails.
-      shiny::withProgress(message = tr("report.building", lg), value = 0.2, {
+      # The bar advances as each section of the report is built.
+      old <- options(distlab.report_progress = function(share) shiny::setProgress(0.1 + 0.85 * share))
+      on.exit(options(old), add = TRUE)
+      shiny::withProgress(message = tr("report.building", lg), value = 0.1, {
         tryCatch(
           dl_report(d, file, lang = lg, calculations = rec$calculations,
                     simulations = rec$simulations, fit = fit() %||% rec$fit,

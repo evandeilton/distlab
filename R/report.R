@@ -113,7 +113,7 @@ dl_report <- function(dist, file = NULL, lang = "en-US", calculations = list(),
   }
   calcs <- report_calculations(dist, calculations)
   sims <- report_simulations(dist, simulations, seed, relations)
-  html <- report_html(dist, lang, calcs, sims, fit, seed)
+  html <- report_html(dist, lang, calcs, sims, fit, seed, progress = getOption("distlab.report_progress"))
   if (is.null(file)) return(html)
   con <- base::file(file, open = "wb")
   on.exit(close(con))
@@ -181,7 +181,7 @@ calc_question <- function(res, dist) {
 # Kind of a simulation result, from its structure; NA when unknown.
 sim_kind <- function(x) {
   if (is.data.frame(x)) {
-    ok <- identical(names(x)[1], "quantity") && !is.null(attr(x, "code"))
+    ok <- identical(names(x)[1], "quantity") && !is.null(attr(x, "code", exact = TRUE))
     return(if (ok) "mc_check" else NA_character_)
   }
   if (!is.list(x)) return(NA_character_)
@@ -199,9 +199,9 @@ sim_kind <- function(x) {
 # of draws and level; a seed gives the draws back, drawn as the check drew
 # them. Tables without a `dist` attribute rebuild it by running their code.
 mc_from_table <- function(tab) {
-  seed <- attr(tab, "seed") %||% NA_integer_
-  out <- list(table = tab, sample = NULL, seed = seed, code = attr(tab, "code"),
-              dist = attr(tab, "dist"), n = attr(tab, "n"), level = attr(tab, "level") %||% 0.95)
+  seed <- attr(tab, "seed", exact = TRUE) %||% NA_integer_
+  out <- list(table = tab, sample = NULL, seed = seed, code = attr(tab, "code", exact = TRUE),
+              dist = attr(tab, "dist", exact = TRUE), n = attr(tab, "n", exact = TRUE), level = attr(tab, "level", exact = TRUE) %||% 0.95)
   if (is.na(seed)) return(out)
   if (inherits(out$dist, "dl_dist") && !is.null(out$n)) {
     out$sample <- with_seed(seed, dl_sample(out$dist, out$n))
@@ -379,21 +379,28 @@ report_section <- function(id, title, ...) {
 
 # ---- Page --------------------------------------------------------------------
 
-report_html <- function(dist, lang, calcs, sims, fit, seed) {
+# `progress(share)` (optional) is called after each section with the share
+# of sections built, for the app's progress bar.
+report_html <- function(dist, lang, calcs, sims, fit, seed, progress = NULL) {
   ctx <- report_context(lang)
   name <- entry_text(dist$entry, "names", lang)
   fit_part <- report_fit_part(fit, dist$id)
-  sections <- list(
-    report_story(ctx, dist),
-    report_formulas(ctx, dist),
-    report_numbers(ctx, dist, sims),
-    report_plots(ctx, dist, sims),
-    report_calculations_section(ctx, calcs),
-    report_relations(ctx, dist, sims),
-    if (!is.null(fit_part)) report_fit(ctx, dist, fit_part),
-    report_code(ctx, dist),
-    report_references(ctx, dist)
+  builders <- list(
+    function() report_story(ctx, dist),
+    function() report_formulas(ctx, dist),
+    function() report_numbers(ctx, dist, sims),
+    function() report_plots(ctx, dist, sims),
+    function() report_calculations_section(ctx, calcs),
+    function() report_relations(ctx, dist, sims),
+    function() if (!is.null(fit_part)) report_fit(ctx, dist, fit_part),
+    function() report_code(ctx, dist),
+    function() report_references(ctx, dist)
   )
+  sections <- lapply(seq_along(builders), function(i) {
+    s <- builders[[i]]()
+    if (is.function(progress)) progress(i / length(builders))
+    s
+  })
   sections <- Filter(Negate(is.null), sections)
   # Seeds of the results in the report, not the default when it was unused.
   seeds <- sort(unique(unlist(lapply(sims, function(r) {
