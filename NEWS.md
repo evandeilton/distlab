@@ -99,6 +99,10 @@
   samples of 100,000 values fit in seconds.
 * Parameter sliders widen to show values opened from a fit and keep that
   range while you drag.
+* The Explorer, Simulation and Fit pages download a study report of the open
+  distribution, built from the session: the questions answered in the
+  Calculator, the latest result of each Simulation tab, the relation demos
+  opened and the fit.
 * New `dl_report()` writes a study report of a distribution: one HTML file
   with the story, the formula sheet, exact moments against a seeded Monte
   Carlo check, interactive plots (density, CDF, quantile function, a

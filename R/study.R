@@ -1,0 +1,110 @@
+# What the student did in one app session, per distribution id, for the study
+# report: the Explorer parameters, the last Calculator questions, the latest
+# result of each Simulation tab, every relation demo opened and the latest
+# fit that included the distribution. Plain environments, not reactive
+# values, so recording never invalidates an output or repeats a computation.
+
+# Store of one session. Calculator questions keep the last `max_calc` per
+# distribution; a question in the same mode within `window` seconds of the
+# previous one replaces it, so typing a number or dragging a slider leaves
+# one question, not one per keystroke.
+study_store <- function(max_calc = 10L, window = 2) {
+  env <- new.env(parent = emptyenv())
+  reset <- function() {
+    env$params <- list()
+    env$calc <- list()
+    env$sims <- list()
+    env$demos <- list()
+    env$fits <- list()
+    env$seed <- NULL
+  }
+  reset()
+
+  # Parameters last shown in the Explorer.
+  set_params <- function(id, params) {
+    env$params[[id]] <- params
+    invisible()
+  }
+
+  # A question as taken by dl_report(), with its `dist`; repeats are ignored.
+  add_calc <- function(question, now = Sys.time()) {
+    id <- question$dist$id
+    recs <- env$calc[[id]] %||% list()
+    if (any(vapply(recs, function(r) identical(r$question, question), logical(1)))) {
+      return(invisible(FALSE))
+    }
+    rec <- list(question = question, time = now)
+    n <- length(recs)
+    recent <- n > 0L && identical(recs[[n]]$question$mode, question$mode) &&
+      as.numeric(difftime(now, recs[[n]]$time, units = "secs")) < window
+    if (recent) recs[[n]] <- rec else recs[[n + 1L]] <- rec
+    if (length(recs) > max_calc) recs <- utils::tail(recs, max_calc)
+    env$calc[[id]] <- recs
+    invisible(TRUE)
+  }
+
+  # The latest result of each kind of simulation; demos by relation edge.
+  add_sim <- function(res) {
+    kind <- sim_kind(res)
+    if (is.na(kind)) return(invisible(FALSE))
+    if (kind == "relation") {
+      env$demos[[res$edge$id]] <- res
+    } else {
+      id <- res$dist$id
+      sims <- env$sims[[id]] %||% list()
+      sims[[kind]] <- res
+      env$sims[[id]] <- sims
+    }
+    if (!is.null(res$seed) && !is.na(res$seed)) env$seed <- res$seed
+    invisible(TRUE)
+  }
+
+  # A fit is kept for every family among its candidates.
+  add_fit <- function(fit) {
+    for (id in fit$ranking$id) env$fits[[id]] <- fit
+    invisible()
+  }
+
+  # Everything recorded for `id`, in the arguments of dl_report().
+  get <- function(id) {
+    sims <- env$sims[[id]] %||% list()
+    sims <- unname(sims[intersect(.dl_report_kinds, names(sims))])
+    demos <- Filter(function(d) id %in% c(d$edge$from, d$edge$to), env$demos)
+    list(params = env$params[[id]],
+         calculations = lapply(env$calc[[id]], `[[`, "question"),
+         simulations = c(sims, unname(demos)),
+         fit = env$fits[[id]],
+         seed = env$seed)
+  }
+
+  list(set_params = set_params, add_calc = add_calc, add_sim = add_sim,
+       add_fit = add_fit, get = get, clear = reset)
+}
+
+# Download of the study report of `dist()` in `lang()`, built from what
+# `store` recorded for it; `fit()` (when not NULL) replaces the recorded fit.
+report_download <- function(store, dist, lang, fit = function() NULL) {
+  shiny::downloadHandler(
+    filename = function() {
+      sprintf("distlab-%s-%s.html", dist()$id, format(Sys.Date(), "%Y-%m-%d"))
+    },
+    content = function(file) {
+      d <- dist()
+      lg <- lang()
+      rec <- store$get(d$id)
+      # Building takes a few seconds; the app shows its progress message.
+      shiny::withProgress(message = tr("report.building", lg), value = 0.2, {
+        dl_report(d, file, lang = lg, calculations = rec$calculations,
+                  simulations = rec$simulations, fit = fit() %||% rec$fit,
+                  seed = rec$seed %||% 2026)
+      })
+    }
+  )
+}
+
+# Button that downloads the study report, labeled in `lang`.
+report_button <- function(id, lang) {
+  shiny::downloadButton(id, i18n_span("report.download", lang),
+                        class = "btn-sm btn-outline-primary dl-report-button",
+                        icon = shiny::icon("file-arrow-down", `aria-hidden` = "true"))
+}

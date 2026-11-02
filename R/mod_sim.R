@@ -61,7 +61,8 @@ mod_sim_ui <- function(id, lang) {
       shiny::selectInput(ns("n"), i18n_span("sim.draws", lang),
                          choices = count_choices(.dl_sim_n, lang),
                          selected = as.character(.dl_sim_n_default)),
-      shiny::tags$p(class = "dl-muted dl-field-help dl-sim-help", i18n_span("sim.seed_help", lang))
+      shiny::tags$p(class = "dl-muted dl-field-help dl-sim-help", i18n_span("sim.seed_help", lang)),
+      shiny::tags$div(class = "dl-side-actions", report_button(ns("report"), lang))
     ),
     shiny::conditionalPanel("input.tab != 'relations'", ns = ns, shiny::uiOutput(ns("header"))),
     bslib::navset_card_underline(
@@ -223,11 +224,14 @@ sim_value <- function(res, lang) {
 # `lang` may be fixed or reactive; `dark` a reactive logical; `select` a
 # reactive navigation request list(tab, id, params, edge) from other pages:
 # `id` (with `params`) opens a distribution, `edge` a relation demo.
+# `store` is the session record of study_store(): each tab records the result
+# it shows when its code renders, so recording never runs a simulation.
 # Returns a reactive request list(tab, id, params, n) that opens an end of a
 # relation in the Explorer.
 mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
-                           select = shiny::reactive(NULL)) {
+                           select = shiny::reactive(NULL), store = NULL) {
   lang_r <- if (shiny::is.reactive(lang)) lang else shiny::reactive(lang)
+  store <- store %||% study_store()
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
     entry <- shiny::reactive(dl_entry(shiny::req(input$dist)))
@@ -347,7 +351,12 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
       if (is.list(v) && !inherits(v, "error")) outside_note(v$outside, lang_r())
     })
     output$mc_table <- shiny::renderUI(mc_table_tag(mc_val()$table, lang_r()))
-    output$sample_code <- shiny::renderUI(code_tag(mc_val()$code, ns("sample-code"), lang_r()))
+    # Code card of a result, which is also recorded for the study report.
+    code_out <- function(res, code_id) {
+      store$add_sim(res)
+      code_tag(res$code, ns(code_id), lang_r())
+    }
+    output$sample_code <- shiny::renderUI(code_out(mc_val(), "sample-code"))
 
     # Law of large numbers.
     lln <- shiny::reactive({
@@ -365,7 +374,7 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
                lower = dl_support(dist_now())$lower)
     })
     output$lln_note <- shiny::renderUI(lln_note(lln_val(), lang_r()))
-    output$lln_code <- shiny::renderUI(code_tag(lln_val()$code, ns("lln-code"), lang_r()))
+    output$lln_code <- shiny::renderUI(code_out(lln_val(), "lln-code"))
 
     # Central limit theorem.
     clt <- shiny::reactive({
@@ -386,7 +395,7 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
       if (!res$standardized) return(NULL)
       clt_table_tag(res, lang_r())
     })
-    output$clt_code <- shiny::renderUI(code_tag(clt_val()$code, ns("clt-code"), lang_r()))
+    output$clt_code <- shiny::renderUI(code_out(clt_val(), "clt-code"))
 
     # Sums and transformations.
     op <- shiny::reactive({
@@ -426,7 +435,7 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
       v <- tf_view()
       tf_summary_tag(tf_val(), dist_now(), if (!inherits(v, "error")) v, lang_r())
     })
-    output$tf_code <- shiny::renderUI(code_tag(tf_val()$code, ns("tf-code"), lang_r()))
+    output$tf_code <- shiny::renderUI(code_out(tf_val(), "tf-code"))
 
     # Relations.
     edge <- shiny::reactive({
@@ -450,7 +459,7 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
     output$rel_plot <- plotly::renderPlotly(rel_plot(demo_val(), lang_r(), plot_theme(dark())))
     output$rel_note <- shiny::renderUI(rel_note(demo_val(), lang_r()))
     output$rel_table <- shiny::renderUI(rel_table_tag(demo_val(), lang_r()))
-    output$rel_code <- shiny::renderUI(code_tag(demo_val()$code, ns("rel-code"), lang_r()))
+    output$rel_code <- shiny::renderUI(code_out(demo_val(), "rel-code"))
     # Either end opens in the Explorer with the parameters of the recipe.
     shiny::observeEvent(input$open_end, {
       e <- edge()
@@ -511,7 +520,7 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
     output$mem_note <- shiny::renderUI({
       if (is_discrete()) note_list(tr("sim.mem.note.discrete", lang_r()))
     })
-    output$mem_code <- shiny::renderUI(code_tag(mem_val()$code, ns("mem-code"), lang_r()))
+    output$mem_code <- shiny::renderUI(code_out(mem_val(), "mem-code"))
     output$mem_surv <- plotly::renderPlotly(mem_surv_plot(mem_val(), dist_now(), lang_r(),
                                                           plot_theme(dark())))
     output$mem_hist <- plotly::renderPlotly({
@@ -519,6 +528,9 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
       v <- sim_value(sim_run(sample_view_of(res$residual, dist_now())), lang_r())
       mem_hist_plot(v, lang_r(), plot_theme(dark()))
     })
+
+    # Study report of the open distribution, with what the session recorded.
+    output$report <- report_download(store, dist_now, lang_r)
 
     list(dist = dist, tab = shiny::reactive(input$tab), seed = seed, mc = mc_val, lln = lln_val,
          clt = clt_val, tf = tf_val, demo = demo_val, mem = mem_val, route = route)

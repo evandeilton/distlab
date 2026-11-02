@@ -88,10 +88,12 @@ mod_calc_ui <- function(id, lang) {
 }
 
 # `lang` may be fixed or reactive; `dark` a reactive logical; `select` a
-# reactive navigation request list(tab, id, params) from other pages.
+# reactive navigation request list(tab, id, params) from other pages; `store`
+# the session record of study_store(), which gets each result shown.
 mod_calc_server <- function(id, lang, dark = shiny::reactive(FALSE),
-                            select = shiny::reactive(NULL)) {
+                            select = shiny::reactive(NULL), store = NULL) {
   lang_r <- if (shiny::is.reactive(lang)) lang else shiny::reactive(lang)
+  store <- store %||% study_store()
   shiny::moduleServer(id, function(input, output, session) {
     entry <- shiny::reactive(dl_entry(shiny::req(input$dist)))
     sliders <- param_sliders(input, output, session, entry, "params")
@@ -281,6 +283,8 @@ mod_calc_server <- function(id, lang, dark = shiny::reactive(FALSE),
         tr("calc.note.thousands", lg, text = input[[f]],
            value = format_value(values()[[f]], lg, digits = 15))
       })
+      # Recorded as shown, so the report holds the questions the student saw.
+      store$add_calc(calc_question(r, dist_now()))
       calc_result_tag(r, dist_now(), lg, session$ns("code"), read = read)
     })
 

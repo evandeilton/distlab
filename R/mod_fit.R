@@ -89,6 +89,7 @@ mod_fit_ui <- function(id, lang) {
           shiny::uiOutput(ns("fit_notes")),
           shiny::actionButton(ns("open_explorer"), i18n_span("fit.open_explorer", lang),
                                class = "btn-sm btn-outline-primary"),
+          report_button(ns("report"), lang),
           shiny::downloadButton(ns("download_estimates"), i18n_span("fit.download_estimates", lang),
                                  class = "btn-sm btn-outline-primary"))),
       tab("diagnostics",
@@ -194,9 +195,12 @@ fit_message_text <- function(message, lang) {
   paste(vapply(found, function(key) tr(paste0("fit.", key), lang, value = value), ""), collapse = " ")
 }
 
+# `store` is the session record of study_store(), which keeps each fit for
+# the study report.
 mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
-                           select = shiny::reactive(NULL)) {
+                           select = shiny::reactive(NULL), store = NULL) {
   lang_r <- if (shiny::is.reactive(lang)) lang else shiny::reactive(lang)
+  store <- store %||% study_store()
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
     loaded <- shiny::reactiveVal(NULL)
@@ -351,6 +355,7 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
       }, error = function(e) e)
       if (inherits(got, "error")) fit_error(conditionMessage(got)) else {
         result(got)
+        store$add_fit(got)
         fitted_serial(serial())
         bslib::nav_select("tab", "results", session = session)
       }
@@ -487,6 +492,8 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
       shiny::req(d)
       fit_data_table(d)
     })
+    # Study report of the selected family, at its estimates.
+    output$report <- report_download(store, function() selected_fit()$dist, lang_r, fit = result)
     output$download_code <- shiny::downloadHandler(filename = function() "distlab-fit.R",
       content = function(file) { shiny::req(result()); writeLines(result()$code, file, useBytes = TRUE) })
     list(data = shiny::reactive(loaded()), fit = shiny::reactive(result()), route = shiny::reactive(route()))

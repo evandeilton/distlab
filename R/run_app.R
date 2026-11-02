@@ -168,13 +168,15 @@ app_server <- function(lang) {
     # One navigation request at a time, from any page: list(tab, id, params,
     # group, edge).
     route <- shiny::reactiveVal(NULL)
+    # What the student does, per distribution, for the study report.
+    store <- study_store()
     home <- mod_home_server("home", lang_r)
     compendium <- mod_compendium_server("compendium", lang_r, dark = dark, request = route)
-    explore <- mod_explore_server("explore", lang_r, dark = dark, select = route)
-    calc <- mod_calc_server("calc", lang_r, dark = dark, select = route)
+    explore <- mod_explore_server("explore", lang_r, dark = dark, select = route, store = store)
+    calc <- mod_calc_server("calc", lang_r, dark = dark, select = route, store = store)
     compare <- mod_compare_server("compare", lang_r, dark = dark, select = route)
-    sim <- mod_sim_server("sim", lang_r, dark = dark, select = route)
-    fit <- mod_fit_server("fit", lang_r, dark = dark, select = route)
+    sim <- mod_sim_server("sim", lang_r, dark = dark, select = route, store = store)
+    fit <- mod_fit_server("fit", lang_r, dark = dark, select = route, store = store)
     shiny::observeEvent(home(), route(c(home(), from = "home")))
     shiny::observeEvent(compendium(), route(c(compendium(), from = "compendium")))
     shiny::observeEvent(explore$route(), route(c(explore$route(), from = "explorer")))
