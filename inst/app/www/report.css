@@ -147,6 +147,20 @@ tbody th { font-weight: 600; }
 .dl-calc-pct { background: var(--dl-chip-amber); color: var(--dl-amber-text); }
 .dl-calc-notes { color: var(--dl-muted); font-size: 0.9rem; margin: 0.2rem 0; padding-left: 1.2rem; }
 
+/* Best fit of the Fit section. */
+.dl-fit-best { border-left: 4px solid var(--dl-teal); background: var(--dl-formula-bg);
+  border-radius: 0.6rem; padding: 0.6rem 0.9rem; margin: 0.4rem 0 0.9rem; }
+.dl-fit-best-group + .dl-fit-best-group { border-top: 1px dashed var(--dl-border); margin-top: 0.45rem;
+  padding-top: 0.45rem; }
+.dl-fit-best-label { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--dl-muted); margin: 0; }
+.dl-fit-best-line { margin: 0.15rem 0 0; }
+.dl-fit-best-note { font-size: 0.85rem; color: var(--dl-muted); margin: 0.5rem 0 0; }
+.dl-best-row > td { font-weight: 700; background: var(--dl-chip-teal); }
+.dl-best-badge { background: transparent; color: var(--dl-accent-text); border: 1px solid currentColor;
+  font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.04em; padding: 0.1em 0.5em;
+  vertical-align: middle; }
+
 /* R code. */
 .dl-code { border: 1px solid var(--dl-border); border-radius: 0.6rem; background: var(--dl-formula-bg);
   margin: 0.5rem 0 1rem; overflow: hidden; }
