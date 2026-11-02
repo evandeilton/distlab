@@ -31,9 +31,9 @@ A list with
 \item \code{target}: a \code{dl_dist} with the exact law of \eqn{Y}, or \code{NULL};
 \item \code{approx}: the Normal approximation (a \code{dl_dist}) for sums and means
 without an exact law, or \code{NULL};
-\item \code{op}, \code{k}, \code{a}, \code{b}, \code{seed}, and \code{code} (R code that reproduces the
-sample, its mean and standard deviation, and the moments of the
-reference law, exactly when a seed is given).
+\item \code{op}, \code{k}, \code{a}, \code{b}, \code{dist} (as in \code{\link[=dl_lln]{dl_lln()}}), \code{seed}, and \code{code} (R
+code that reproduces the sample, its mean and standard deviation, and
+the moments of the reference law, exactly when a seed is given).
 }
 }
 \description{

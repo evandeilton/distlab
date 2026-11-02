@@ -99,3 +99,6 @@
   samples of 100,000 values fit in seconds.
 * Parameter sliders widen to show values opened from a fit and keep that
   range while you drag.
+* `dl_lln()`, `dl_clt()`, `dl_transform()` and `dl_memoryless()` also return
+  the simulated distribution as `dist`; `dl_memoryless()` returns the number
+  of draws as `n`.

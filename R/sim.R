@@ -198,8 +198,8 @@ dl_mc_check <- function(dist, n = 10000, seed = NULL, level = 0.95) {
   out
 }
 
-# Monte Carlo check with the sample kept, for plots: list(table, sample,
-# seed, code).
+# Monte Carlo check with the sample kept, for plots and reports: list(table,
+# sample, seed, code, dist, n), `dist` with its parameters snapped.
 mc_check_run <- function(dist, n = 10000, seed = NULL, level = 0.95) {
   dist <- check_dist(dist)
   n <- check_whole(n, "n", 1, 1e7)
@@ -240,7 +240,7 @@ mc_check_run <- function(dist, n = 10000, seed = NULL, level = 0.95) {
     covered = unname(exact) >= lower & unname(exact) <= upper
   )
   code <- mc_check_code(dist, n, seed, level, nn >= 3, nn >= 4, se_mean, se_var)
-  list(table = table, sample = x, seed = seed, code = code)
+  list(table = table, sample = x, seed = seed, code = code, dist = dist, n = n)
 }
 
 # R code of dl_mc_check(); the flags say which skewness, kurtosis and
@@ -293,6 +293,8 @@ mc_check_code <- function(dist, n, seed, level, has_skew, has_kurt, se_mean, se_
 #'     mean after `k` draws);
 #'   * `mean`, `sd`: exact mean and standard deviation (`Inf` when infinite,
 #'     `NA` when they do not exist);
+#'   * `dist`: the distribution simulated, with each parameter at the value
+#'     its literal in `code` reads back as;
 #'   * `seed`: the seed used, or `NA`;
 #'   * `code`: R code that reproduces the running means exactly when a seed
 #'     is given.
@@ -334,7 +336,7 @@ dl_lln <- function(dist, n = 1000, paths = 1, seed = NULL) {
   list(paths = data.frame(path = rep(seq_len(paths), each = n),
                           k = rep(seq_len(n), times = paths),
                           mean = as.vector(running)),
-       mean = m[["mean"]], sd = m[["sd"]], seed = seed, code = code)
+       mean = m[["mean"]], sd = m[["sd"]], dist = dist, seed = seed, code = code)
 }
 
 #' Central limit theorem: sample means of growing size
@@ -361,7 +363,7 @@ dl_lln <- function(dist, n = 1000, paths = 1, seed = NULL) {
 #'   * `distance`: data frame with columns `size` and `ks`, the Kolmogorov
 #'     distance to the standard Normal (`NA` when not standardized);
 #'   * `mean`, `sd`: exact mean and standard deviation;
-#'   * `seed`, `code`: as in [dl_lln()].
+#'   * `dist`, `seed`, `code`: as in [dl_lln()].
 #'
 #' @seealso [dl_lln()], [dl_transform()]
 #' @family simulation
@@ -417,7 +419,7 @@ dl_clt <- function(dist, sizes = c(1, 2, 5, 10, 30, 100), reps = 2000, seed = NU
   list(means = data.frame(size = rep(sizes, each = reps), value = unlist(values)),
        standardized = standardized,
        distance = data.frame(size = sizes, ks = ks),
-       mean = mu, sd = sigma, seed = seed, code = paste(code, collapse = "\n"))
+       mean = mu, sd = sigma, dist = dist, seed = seed, code = paste(code, collapse = "\n"))
 }
 
 #' Memorylessness: the residual after a threshold
@@ -450,8 +452,9 @@ dl_clt <- function(dist, sizes = c(1, 2, 5, 10, 30, 100), reps = 2000, seed = NU
 #'     `residual` (the conditional survival of the residual);
 #'   * `memoryless`: `TRUE` for the Exponential, the Geometric and the
 #'     parameter values that make another law one of them;
-#'   * `s`, `seed`, `code` (R code that reproduces the residuals, both
-#'     survival curves and their largest gap exactly when a seed is given).
+#'   * `s`, `n`, `dist` (as in [dl_lln()]), `seed` and `code` (R code that
+#'     reproduces the residuals, both survival curves and their largest gap
+#'     exactly when a seed is given).
 #'
 #' @details The distribution must have support \eqn{[0, \infty)}.
 #'
@@ -525,7 +528,7 @@ dl_memoryless <- function(dist, s, n = 10000, seed = NULL) {
   list(residual = residual, kept = length(residual),
        exact = data.frame(t = t, survival = survival, residual = conditional),
        memoryless = is_memoryless(dist),
-       s = s, seed = seed, code = code)
+       s = s, n = n, dist = dist, seed = seed, code = code)
 }
 
 # TRUE for the memoryless laws: the Exponential, the Geometric, and the

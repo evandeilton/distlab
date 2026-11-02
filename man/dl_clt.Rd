@@ -26,7 +26,7 @@ raw sample means);
 \item \code{distance}: data frame with columns \code{size} and \code{ks}, the Kolmogorov
 distance to the standard Normal (\code{NA} when not standardized);
 \item \code{mean}, \code{sd}: exact mean and standard deviation;
-\item \code{seed}, \code{code}: as in \code{\link[=dl_lln]{dl_lln()}}.
+\item \code{dist}, \code{seed}, \code{code}: as in \code{\link[=dl_lln]{dl_lln()}}.
 }
 }
 \description{

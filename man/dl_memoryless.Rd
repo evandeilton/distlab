@@ -27,8 +27,9 @@ otherwise an error asks for a smaller \code{s} or more draws);
 \code{residual} (the conditional survival of the residual);
 \item \code{memoryless}: \code{TRUE} for the Exponential, the Geometric and the
 parameter values that make another law one of them;
-\item \code{s}, \code{seed}, \code{code} (R code that reproduces the residuals, both
-survival curves and their largest gap exactly when a seed is given).
+\item \code{s}, \code{n}, \code{dist} (as in \code{\link[=dl_lln]{dl_lln()}}), \code{seed} and \code{code} (R code that
+reproduces the residuals, both survival curves and their largest gap
+exactly when a seed is given).
 }
 }
 \description{
