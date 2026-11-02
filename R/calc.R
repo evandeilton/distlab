@@ -66,18 +66,22 @@ parse_num_list <- function(x, lang) {
   vapply(parts, function(p) as.vector(parse_num(p, lang)), numeric(1), USE.NAMES = FALSE)
 }
 
-# Value for a text input or a sentence: up to `digits` significant digits
-# with the decimal mark of the language; infinite values as the sign.
+# Value for a sentence or a label: format_num() with up to `digits`
+# significant digits (at most 4 decimal places); infinite values as the sign.
 format_value <- function(x, lang, digits = 6) {
-  if (is.infinite(x)) return(if (x > 0) "\u221e" else "-\u221e")
-  format_num(x, lang, digits = digits)
+  out <- format_num(x, lang, digits = digits)
+  inf <- is.infinite(x)
+  out[inf] <- ifelse(x[inf] > 0, "\u221e", "-\u221e")
+  out
 }
 
 # Value for a text input: 15 significant digits so a typed value survives a
 # language or distribution switch, and "Inf", so the text parses back.
 format_input <- function(x, lang) {
+  if (is.na(x)) return("\u2014")
   if (is.infinite(x)) return(if (x > 0) "Inf" else "-Inf")
-  format_num(x, lang, digits = 15)
+  mark <- if (match_lang(lang) == "pt-BR") "," else "."
+  trimws(formatC(x, digits = 15, format = "fg", decimal.mark = mark, big.mark = ""))
 }
 
 # Digits as Unicode superscripts, for powers of ten in plain text.
@@ -157,9 +161,16 @@ code_value <- function(x) {
   x
 }
 
-# Number inside TeX, with the decimal comma of pt-BR.
+# Number inside TeX, as format_value() writes it, with the decimal comma of
+# pt-BR; tiny values as m \times 10^{e}.
 tex_num <- function(x, lang) {
   if (is.infinite(x)) return(if (x > 0) "\\infty" else "-\\infty")
+  if (is.finite(x) && x != 0 && abs(x) < 5e-5) {
+    p <- power_parts(x)
+    tex <- sprintf("%s%s \\times 10^{%d}", if (p$negative) "-" else "",
+                   formatC(p$mantissa, digits = 1, format = "f"), as.integer(p$exponent))
+    return(tex_decimal(tex, lang))
+  }
   tex_decimal(format_num(x, "en-US", digits = 6), lang)
 }
 

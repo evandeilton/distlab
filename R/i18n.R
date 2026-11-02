@@ -45,12 +45,54 @@ match_lang <- function(lang) {
   lang
 }
 
-# Format numbers with the decimal mark of the language.
+# Numbers for display, with the decimal mark of the language: up to
+# `digits` significant digits and never more than 4 decimal places. A nonzero
+# value that would round to 0 there (|x| < 0.00005) shows as a power of ten
+# with 2 significant digits, such as 1.3 x 10^-40 written with the times sign
+# and superscripts. NA and infinite values show as a dash.
 format_num <- function(x, lang, digits = 4) {
   mark <- if (match_lang(lang) == "pt-BR") "," else "."
-  out <- trimws(formatC(x, digits = digits, format = "fg", decimal.mark = mark,
-                        big.mark = ""))
-  ifelse(is.finite(x), out, "\u2014")
+  out <- rep("\u2014", length(x))
+  ok <- is.finite(x)
+  tiny <- ok & x != 0 & abs(x) < 5e-5
+  # Decimal places the significant digits need; beyond 4, round at 4.
+  wide <- ok & !tiny & x != 0 & digits - 1 - floor(log10(abs(x))) > 4
+  plain <- ok & !tiny & !wide
+  out[plain] <- trimws(formatC(x[plain] + 0, digits = digits, format = "fg",
+                               decimal.mark = mark, big.mark = ""))
+  out[wide] <- drop_zeros(formatC(x[wide], digits = 4, format = "f", decimal.mark = mark),
+                          mark)
+  out[tiny] <- format_power(x[tiny], mark)
+  out
+}
+
+# Fixed-point text without trailing zeros after the decimal mark.
+drop_zeros <- function(s, mark) {
+  has <- grepl(mark, s, fixed = TRUE)
+  s[has] <- sub(paste0("\\", mark, "$"), "", sub("0+$", "", s[has]))
+  s
+}
+
+# Sign, mantissa rounded to 2 significant digits and exponent of nonzero
+# finite numbers; the mantissa is taken from log10, so subnormal values keep
+# their size.
+power_parts <- function(x) {
+  l <- log10(abs(x))
+  e <- floor(l)
+  m <- round(10^(l - e), 1)
+  # Rounding up to 10 moves to the next power.
+  up <- m >= 10
+  m[up] <- m[up] / 10
+  e[up] <- e[up] + 1
+  list(negative = x < 0, mantissa = m, exponent = e)
+}
+
+# Powers of ten in plain text, in the style of the Calculator.
+format_power <- function(x, mark) {
+  p <- power_parts(x)
+  paste0(ifelse(p$negative, "-", ""),
+         formatC(p$mantissa, digits = 1, format = "f", decimal.mark = mark),
+         " \u00d7 10", sup_digits(formatC(p$exponent, format = "d")))
 }
 
 # Format a moment for display: an infinite moment shows as the infinity sign,
