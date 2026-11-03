@@ -157,30 +157,84 @@ sweep_param_choices <- function(entry) {
   stats::setNames(nm, nm)
 }
 
-# Four values around the default of a parameter, inside its slider range
-# and valid with the other parameters at `others` (the defaults unless
-# given), so a sweep never starts with a domain or constraint error.
+# Values to sweep a parameter over, around its current value in `others`
+# (the defaults unless given) and on the scale of the distribution, each one
+# valid with the other parameters, so a sweep never starts with a domain or
+# constraint error. Steps are tried from the current value outward, on both
+# sides, and the first four valid values are kept:
+# * whole-number parameters: steps of about a quarter of the current value;
+# * location parameters: steps of the scale (a positive scale parameter of
+#   the entry, the width max - min, or the interquartile range), so `min`
+#   moves down and `max` up when the other end blocks a side;
+# * probabilities: even steps on the logit scale, inside the slider range;
+# * other positive parameters: 0.5, 1, 2 and 4 times the current value.
+# Rules on the slider scale are the fallback when these give fewer than two.
 sweep_defaults <- function(entry, param, others = default_params(entry)) {
   par <- param_spec(entry, param)
   d <- par$default
-  v <- if (isTRUE(par$integer)) d + c(-2, 0, 3, 8) * max(1, round(d / 4)) else
-    signif(d * c(0.5, 1, 2, 4), 3)
-  if (par$slider$min < 0 && !isTRUE(par$integer)) v <- d + c(-2, -1, 0, 2) * par$slider$step * 10
-  valid <- function(v) {
-    v <- v[v >= par$slider$min & v <= par$slider$max]
-    ok <- vapply(v, function(x) {
-      vals <- others
-      vals[[param]] <- x
-      !is.null(tryCatch(do.call(dl_dist, c(list(entry$id), vals)), error = function(e) NULL))
-    }, logical(1))
-    unique(round(v[ok], 10))
+  cur <- others[[param]]
+  ok_value <- function(x) {
+    vals <- others
+    vals[[param]] <- x
+    !is.null(tryCatch(do.call(dl_dist, c(list(entry$id), vals)), error = function(e) NULL))
   }
-  out <- valid(v)
+  valid <- function(v, slider = FALSE) {
+    v <- v[is.finite(v)]
+    if (slider) v <- v[v >= par$slider$min & v <= par$slider$max]
+    # Twelve significant digits drop rounding noise at any scale.
+    unique(signif(v[vapply(v, ok_value, logical(1))], 12))
+  }
+  # The first four valid values of `v`, given nearest first, in order.
+  pick <- function(v, slider = FALSE) sort(utils::head(valid(v, slider), 4L))
+  # Offsets from the current value, nearest first and alternating sides.
+  near <- c(0, -1, 2, -2, 1, 3, -3, 4, -4)
+  out <- numeric(0)
+  if (is.numeric(cur) && length(cur) == 1L && is.finite(cur)) {
+    if (isTRUE(par$integer)) {
+      out <- pick(cur + c(0, -1, 1, 2, -2, 3, -3, 4) * max(1, round(abs(cur) / 4)))
+    } else if (is.infinite(par$lower)) {
+      step <- sweep_scale(entry, param, others)
+      if (!is.null(step)) out <- pick(cur + near * signif(step, 2))
+    } else if (is.finite(par$upper) && cur > par$lower && cur < par$upper) {
+      # Logit steps of 0.7 put values on both sides of the current one.
+      z <- stats::qlogis((cur - par$lower) / (par$upper - par$lower))
+      u <- stats::plogis(z + c(0, -1, 1, -2, 2) * 0.7)
+      out <- pick(signif(par$lower + u * (par$upper - par$lower), 2), slider = TRUE)
+      if (!cur %in% out) out <- sort(unique(c(out, cur)))
+    } else if (cur > 0) {
+      out <- valid(signif(cur * c(0.5, 1, 2, 4), 3))
+    }
+  }
+  if (length(out) < 2L) {
+    v <- if (isTRUE(par$integer)) d + c(-2, 0, 3, 8) * max(1, round(d / 4)) else
+      signif(d * c(0.5, 1, 2, 4), 3)
+    if (par$slider$min < 0 && !isTRUE(par$integer)) v <- d + c(-2, -1, 0, 2) * par$slider$step * 10
+    out <- valid(v, slider = TRUE)
+  }
   # Other parameters far from their defaults: step away from the current value.
-  if (length(out) < 2L && is.numeric(others[[param]])) {
-    out <- valid(others[[param]] + par$slider$step * c(-10, -5, 0, 5, 10, 20))
+  if (length(out) < 2L && is.numeric(cur)) {
+    out <- valid(cur + par$slider$step * c(-10, -5, 0, 5, 10, 20), slider = TRUE)
   }
   out
+}
+
+# Scale for stepping a location parameter: the first positive, unbounded,
+# non-integer parameter of the entry (sd, scale, sdlog, ...), the width
+# max - min, or the interquartile range; NULL when none is positive.
+sweep_scale <- function(entry, param, others) {
+  for (p in entry$parameters) {
+    if (p$name == param || isTRUE(p$integer)) next
+    v <- others[[p$name]]
+    if (isTRUE(p$lower == 0) && is.infinite(p$upper) && is.numeric(v) && is.finite(v) && v > 0) return(v)
+  }
+  if (all(c("min", "max") %in% names(others))) {
+    w <- others$max - others$min
+    if (is.finite(w) && w > 0) return(w)
+  }
+  q <- tryCatch(dl_quantile(do.call(dl_dist, c(list(entry$id), others)), c(0.25, 0.75)),
+                error = function(e) c(NA, NA))
+  iqr <- q[2] - q[1]
+  if (is.finite(iqr) && iqr > 0) iqr
 }
 
 # Numbers as one text field: "; " between values, decimal mark of `lang`.

@@ -206,3 +206,60 @@ test_that("sweep defaults respect constraints with the other parameters", {
   expect_gte(length(v), 2L)
   expect_true(all(v > 9))
 })
+
+test_that("sweeps follow the scale of the distribution", {
+  sw <- distlab:::sweep_defaults
+  n <- dl_entry("normal")
+  # Tiny scale: the mean moves by multiples of sd, sd by factors.
+  expect_equal(sw(n, "mean", list(mean = 0, sd = 1e-4)), c(-2e-4, -1e-4, 0, 2e-4))
+  expect_equal(sw(n, "sd", list(mean = 0, sd = 1e-4)), c(5e-5, 1e-4, 2e-4, 4e-4))
+  # Large scale, and a large rate.
+  expect_equal(sw(n, "mean", list(mean = 5e4, sd = 1e4)), c(3e4, 4e4, 5e4, 7e4))
+  expect_equal(sw(dl_entry("exponential"), "rate", list(rate = 1e3)), c(500, 1000, 2000, 4000))
+  # Teaching defaults keep their sweeps.
+  expect_identical(sw(n, "mean"), c(-2, -1, 0, 2))
+  expect_identical(sw(dl_entry("gamma"), "rate"), c(0.5, 1, 2, 4))
+  # Whole-number parameters step around their current value, within the
+  # linked constraints.
+  b <- dl_entry("binomial")
+  expect_identical(sw(b, "size"), c(8, 10, 12, 14))
+  expect_identical(sw(b, "size", list(size = 100, prob = 0.5)), c(75, 100, 125, 150))
+  du <- dl_entry("discrete_uniform")
+  expect_identical(sw(du, "min", list(min = 1e4, max = 6e4)), c(7500, 10000, 12500, 15000))
+  expect_identical(sw(du, "max", list(min = 1e4, max = 6e4)), c(45000, 60000, 75000, 90000))
+  h <- dl_entry("hypergeometric")
+  expect_identical(sw(h, "k", list(m = 3, n = 4, k = 2)), c(1, 2, 3, 4))
+  expect_true(all(sw(h, "k", list(m = 3, n = 4, k = 7)) <= 7))
+  # Uniform ends move away from each other: four values each.
+  u <- dl_entry("uniform")
+  expect_identical(sw(u, "min"), c(-3, -2, -1, 0))
+  expect_identical(sw(u, "max"), c(1, 2, 3, 4))
+  expect_equal(sw(u, "min", list(min = 0, max = 1e-4)), c(-3e-4, -2e-4, -1e-4, 0))
+  expect_equal(sw(u, "max", list(min = 0, max = 1e-4)), c(1e-4, 2e-4, 3e-4, 4e-4))
+  # Probabilities fall on both sides of the current value, inside the slider.
+  expect_identical(sw(b, "prob"), c(0.2, 0.33, 0.5, 0.67))
+  p9 <- sw(b, "prob", list(size = 10, prob = 0.9))
+  expect_true(any(p9 < 0.9) && any(p9 > 0.9) && 0.9 %in% p9)
+  expect_true(all(p9 >= 0.01 & p9 <= 0.99))
+  # Every entry and parameter, with its scale parameters shrunk or grown,
+  # still sweeps over valid values.
+  for (id in dl_ids()) {
+    e <- dl_entry(id)
+    for (f in c(1e-4, 1, 1e4)) {
+      vals <- distlab:::default_params(e)
+      for (q in e$parameters) {
+        if (!isTRUE(q$integer) && is.infinite(q$upper) && isTRUE(q$lower == 0)) vals[[q$name]] <- vals[[q$name]] * f
+      }
+      if (is.null(tryCatch(do.call(dl_dist, c(list(id), vals)), error = function(err) NULL))) next
+      for (par in e$parameters) {
+        v <- sw(e, par$name, vals)
+        expect_gte(length(v), 2L)
+        for (x in v) {
+          vals2 <- vals
+          vals2[[par$name]] <- x
+          expect_s3_class(do.call(dl_dist, c(list(id), vals2)), "dl_dist")
+        }
+      }
+    }
+  }
+})
