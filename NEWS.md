@@ -116,6 +116,10 @@
 * Numbers on every page and in the report have at most 4 decimal places;
   values that would round to 0 show as powers of ten ("1.3 × 10⁻⁴⁰"), as in
   the Calculator.
+* Parameter sweeps (Compare and the study report) step around the current
+  values on the scale of the distribution: locations by multiples of its
+  scale, positive parameters by factors of their value, so a Normal with
+  sd = 0.0001 no longer sweeps its mean over whole numbers.
 * The Fit page names the best fit of each likelihood group (lowest AIC, with
   its Akaike weight, and the BIC choice when it differs), marks its row in
   the ranking and opens the diagnostics on it.

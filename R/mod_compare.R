@@ -157,30 +157,74 @@ sweep_param_choices <- function(entry) {
   stats::setNames(nm, nm)
 }
 
-# Four values around the default of a parameter, inside its slider range
-# and valid with the other parameters at `others` (the defaults unless
-# given), so a sweep never starts with a domain or constraint error.
+# Values to sweep a parameter over, around its current value in `others`
+# (the defaults unless given) and on the scale of the distribution, each one
+# valid with the other parameters, so a sweep never starts with a domain or
+# constraint error:
+# * whole-number parameters: steps around the default, as on the slider;
+# * location parameters: the current value plus -2, -1, 0 and 2 times the
+#   scale (a positive scale parameter of the entry, the width max - min, or
+#   the interquartile range);
+# * positive parameters: 0.5, 1, 2 and 4 times the current value, inside the
+#   slider range when the parameter is bounded above (probabilities).
+# Rules on the slider scale are the fallback when these give fewer than two.
 sweep_defaults <- function(entry, param, others = default_params(entry)) {
   par <- param_spec(entry, param)
   d <- par$default
-  v <- if (isTRUE(par$integer)) d + c(-2, 0, 3, 8) * max(1, round(d / 4)) else
-    signif(d * c(0.5, 1, 2, 4), 3)
-  if (par$slider$min < 0 && !isTRUE(par$integer)) v <- d + c(-2, -1, 0, 2) * par$slider$step * 10
-  valid <- function(v) {
-    v <- v[v >= par$slider$min & v <= par$slider$max]
+  cur <- others[[param]]
+  valid <- function(v, slider = FALSE) {
+    v <- v[is.finite(v)]
+    if (slider) v <- v[v >= par$slider$min & v <= par$slider$max]
     ok <- vapply(v, function(x) {
       vals <- others
       vals[[param]] <- x
       !is.null(tryCatch(do.call(dl_dist, c(list(entry$id), vals)), error = function(e) NULL))
     }, logical(1))
-    unique(round(v[ok], 10))
+    # Twelve significant digits drop rounding noise at any scale.
+    unique(signif(v[ok], 12))
   }
-  out <- valid(v)
+  out <- numeric(0)
+  if (!isTRUE(par$integer) && is.numeric(cur) && length(cur) == 1L && is.finite(cur)) {
+    step <- sweep_scale(entry, param, others)
+    v <- if (is.infinite(par$lower) && !is.null(step)) {
+      cur + c(-2, -1, 0, 2) * signif(step, 2)
+    } else if (par$lower >= 0 && cur > 0) {
+      signif(cur * c(0.5, 1, 2, 4), 3)
+    }
+    # Bounded parameters (probabilities) keep to the slider, away from the
+    # degenerate ends.
+    out <- valid(v, slider = is.finite(par$upper))
+  }
+  if (length(out) < 2L) {
+    v <- if (isTRUE(par$integer)) d + c(-2, 0, 3, 8) * max(1, round(d / 4)) else
+      signif(d * c(0.5, 1, 2, 4), 3)
+    if (par$slider$min < 0 && !isTRUE(par$integer)) v <- d + c(-2, -1, 0, 2) * par$slider$step * 10
+    out <- valid(v, slider = TRUE)
+  }
   # Other parameters far from their defaults: step away from the current value.
-  if (length(out) < 2L && is.numeric(others[[param]])) {
-    out <- valid(others[[param]] + par$slider$step * c(-10, -5, 0, 5, 10, 20))
+  if (length(out) < 2L && is.numeric(cur)) {
+    out <- valid(cur + par$slider$step * c(-10, -5, 0, 5, 10, 20), slider = TRUE)
   }
   out
+}
+
+# Scale for stepping a location parameter: the first positive, unbounded,
+# non-integer parameter of the entry (sd, scale, sdlog, ...), the width
+# max - min, or the interquartile range; NULL when none is positive.
+sweep_scale <- function(entry, param, others) {
+  for (p in entry$parameters) {
+    if (p$name == param || isTRUE(p$integer)) next
+    v <- others[[p$name]]
+    if (isTRUE(p$lower == 0) && is.infinite(p$upper) && is.numeric(v) && is.finite(v) && v > 0) return(v)
+  }
+  if (all(c("min", "max") %in% names(others))) {
+    w <- others$max - others$min
+    if (is.finite(w) && w > 0) return(w)
+  }
+  q <- tryCatch(dl_quantile(do.call(dl_dist, c(list(entry$id), others)), c(0.25, 0.75)),
+                error = function(e) c(NA, NA))
+  iqr <- q[2] - q[1]
+  if (is.finite(iqr) && iqr > 0) iqr
 }
 
 # Numbers as one text field: "; " between values, decimal mark of `lang`.
