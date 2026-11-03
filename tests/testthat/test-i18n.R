@@ -39,9 +39,9 @@ test_that("numbers show at most 4 decimal places and tiny values as powers of te
   expect_identical(f(9.96e-6, "en-US"), "1.0 × 10⁻⁵")
   expect_identical(f(4.99e-5, "en-US"), "5.0 × 10⁻⁵")
   expect_identical(f(4.9e-324, "en-US"), "4.9 × 10⁻³²⁴")
-  # Values that round to exactly 0.0001, and zeros.
-  expect_identical(f(c(5e-5, 0.00009, 0.000123, -0.00005), "pt-BR"),
-                   c("0,0001", "0,0001", "0,0001", "-0,0001"))
+  # Below 0.0001 powers of ten; from 0.0001 on, 4 decimal places.
+  expect_identical(f(c(5e-5, 0.00009, 0.000123, -0.00005, 1e-4), "pt-BR"),
+                   c("5,0 × 10⁻⁵", "9,0 × 10⁻⁵", "0,0001", "-5,0 × 10⁻⁵", "0,0001"))
   expect_identical(f(c(0, -0), "en-US"), c("0", "0"))
   # Vectorized, with NA and infinite values as before.
   expect_identical(f(c(NA, Inf, 1.5), "pt-BR"), c("—", "—", "1,5"))

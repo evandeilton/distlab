@@ -47,14 +47,14 @@ match_lang <- function(lang) {
 
 # Numbers for display, with the decimal mark of the language: up to
 # `digits` significant digits and never more than 4 decimal places. A nonzero
-# value that would round to 0 there (|x| < 0.00005) shows as a power of ten
-# with 2 significant digits, such as 1.3 x 10^-40 written with the times sign
-# and superscripts. NA and infinite values show as a dash.
+# value below 0.0001, where 4 decimal places keep no significant digit, shows
+# as a power of ten with 2 significant digits, such as 1.3 x 10^-40 written
+# with the times sign and superscripts. NA and infinite values show as a dash.
 format_num <- function(x, lang, digits = 4) {
   mark <- if (match_lang(lang) == "pt-BR") "," else "."
   out <- rep("\u2014", length(x))
   ok <- is.finite(x)
-  tiny <- ok & x != 0 & abs(x) < 5e-5
+  tiny <- ok & x != 0 & abs(x) < 1e-4
   # Decimal places the significant digits need; beyond 4, round at 4.
   wide <- ok & !tiny & x != 0 & digits - 1 - floor(log10(abs(x))) > 4
   plain <- ok & !tiny & !wide
