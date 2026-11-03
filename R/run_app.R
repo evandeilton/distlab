@@ -173,7 +173,8 @@ app_server <- function(lang) {
     route <- shiny::reactiveVal(NULL)
     # What the student does, per distribution, for the study report.
     store <- study_store()
-    home <- mod_home_server("home", lang_r)
+    home <- mod_home_server("home", lang_r,
+                            active = shiny::reactive(identical(input$nav, "home")))
     compendium <- mod_compendium_server("compendium", lang_r, dark = dark, request = route)
     explore <- mod_explore_server("explore", lang_r, dark = dark, select = route, store = store)
     calc <- mod_calc_server("calc", lang_r, dark = dark, select = route, store = store)
@@ -186,17 +187,47 @@ app_server <- function(lang) {
     shiny::observeEvent(sim$route(), route(c(sim$route(), from = "simulation")))
     shiny::observeEvent(fit$route(), route(c(fit$route(), from = "fit")))
 
-    # The browser remembers the last distribution opened in the Explorer or the
-    # Calculator, for the Home resume strip; reported after a short pause.
+    # The browser remembers the last distribution the student opened or changed
+    # in the Explorer or the Calculator, for the Home resume strip. The values
+    # a page shows on its own are skipped; after a request, only the requested
+    # distribution is remembered.
     remember <- function(tab, pars) {
-      p <- pars()
-      if (!identical(input$nav, tab) || is.null(p) || !is_string(p$id)) return()
-      session$sendCustomMessage("dl-remember", list(tab = tab, id = p$id, params = p$vals))
+      seen <- FALSE
+      routed <- NULL
+      pars_d <- shiny::debounce(pars, 600)
+      send <- function(p) {
+        session$sendCustomMessage("dl-remember", list(tab = tab, id = p$id, params = p$vals))
+      }
+      shiny::observeEvent(route(), {
+        r <- route()
+        if (!identical(r$tab, tab) || !is_string(r$id) || !r$id %in% dl_ids()) return()
+        cur <- pars()
+        if (!is.null(cur) && identical(cur$id, r$id)) {
+          # Already open: no new distribution will be reported.
+          routed <<- NULL
+          seen <<- TRUE
+          send(cur)
+        } else {
+          routed <<- r$id
+        }
+      })
+      shiny::observeEvent(pars_d(), {
+        p <- pars_d()
+        if (!is_string(p$id)) return()
+        if (!is.null(routed)) {
+          if (!identical(p$id, routed)) return()
+          routed <<- NULL
+          seen <<- TRUE
+          send(p)
+          return()
+        }
+        first <- !seen
+        seen <<- TRUE
+        if (!first && identical(input$nav, tab)) send(p)
+      })
     }
-    explore_p <- shiny::debounce(explore$params, 600)
-    calc_p <- shiny::debounce(calc$params, 600)
-    shiny::observe(remember("explorer", explore_p))
-    shiny::observe(remember("calculator", calc_p))
+    remember("explorer", explore$params)
+    remember("calculator", calc$params)
 
     # Static texts are re-translated in the browser from the dictionary.
     shiny::observeEvent(lang_r(), {

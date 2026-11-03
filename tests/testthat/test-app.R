@@ -90,16 +90,36 @@ test_that("the Explorer and the Calculator report the last distribution", {
                       `explore-p_gamma_rate` = 2, nav = "home")
     session$elapse(800)
     expect_length(remembered(), 0L)
+    # Opening a page is not enough; changing a value is.
     session$setInputs(nav = "explorer")
+    session$elapse(800)
+    expect_length(remembered(), 0L)
+    session$setInputs(`explore-p_gamma_shape` = 4)
     session$elapse(800)
     m <- remembered()
     expect_identical(m[[length(m)]]$message,
-                     list(tab = "explorer", id = "gamma", params = list(shape = 3.5, rate = 2)))
-    session$setInputs(`calc-dist` = "poisson", `calc-p_poisson_lambda` = 4, nav = "calculator")
+                     list(tab = "explorer", id = "gamma", params = list(shape = 4, rate = 2)))
+    # The Calculator opened from the navbar keeps the remembered distribution.
+    session$setInputs(`calc-dist` = "binomial", `calc-p_binomial_size` = 10,
+                      `calc-p_binomial_prob` = 0.5, nav = "calculator")
+    session$elapse(800)
+    expect_length(remembered(), length(m))
+    session$setInputs(`calc-p_binomial_size` = 12)
     session$elapse(800)
     m <- remembered()
     expect_identical(m[[length(m)]]$message[c("tab", "id")],
-                     list(tab = "calculator", id = "poisson"))
+                     list(tab = "calculator", id = "binomial"))
+    # A request remembers the requested distribution, never the one before it.
+    n <- length(m)
+    session$setInputs(`home-pick` = "poisson", nav = "explorer")
+    session$elapse(800)
+    expect_length(remembered(), n)
+    session$setInputs(`explore-dist` = "poisson", `explore-p_poisson_lambda` = 3)
+    session$elapse(800)
+    m <- remembered()
+    expect_length(m, n + 1L)
+    expect_identical(m[[length(m)]]$message[c("tab", "id")],
+                     list(tab = "explorer", id = "poisson"))
   })
 })
 

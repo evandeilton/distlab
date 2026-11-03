@@ -215,6 +215,7 @@ nav.to_light: Mudar para o modo claro
 upcoming.note: Esta seção faz parte de uma próxima versão.
 home.search_label: Encontre uma distribuição
 home.search_placeholder: "Busque uma distribuição: Normal, Poisson, Beta…"
+home.search_placeholder_short: "Busque: Normal, Poisson, Beta…"
 home.count: "{n} distribuições"
 home.count_one: "1 distribuição"
 home.title: O que você quer fazer hoje?

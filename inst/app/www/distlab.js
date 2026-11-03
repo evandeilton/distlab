@@ -252,6 +252,11 @@
     }
   }
 
+  // Another tab of the app remembered a distribution: show it here too.
+  window.addEventListener("storage", function (ev) {
+    if (ev.key === lastKey) sendLast(readLast());
+  });
+
   // Put the cursor in the Home search on wide screens with a mouse, where an
   // open keyboard does not cover the page.
   function focusSearch() {

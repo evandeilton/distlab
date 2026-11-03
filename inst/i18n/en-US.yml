@@ -215,6 +215,7 @@ nav.to_light: Switch to light mode
 upcoming.note: This section is part of an upcoming release.
 home.search_label: Find a distribution
 home.search_placeholder: "Search for a distribution: Normal, Poisson, Beta…"
+home.search_placeholder_short: "Search: Normal, Poisson, Beta…"
 home.count: "{n} distributions"
 home.count_one: "1 distribution"
 home.title: What do you want to do today?

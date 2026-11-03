@@ -81,7 +81,15 @@ mod_home_ui <- function(id, lang) {
 # Selectize options of the search: translated placeholder; the list opens
 # when the student types, not on focus.
 home_search_options <- function(lang) {
-  list(placeholder = tr("home.search_placeholder", lang), openOnFocus = FALSE)
+  short <- encodeString(tr("home.search_placeholder_short", lang), quote = '"')
+  list(
+    placeholder = tr("home.search_placeholder", lang), openOnFocus = FALSE,
+    # Phones get a shorter placeholder that fits the box.
+    onInitialize = I(paste0(
+      "function() { if (window.matchMedia('(max-width: 575.98px)').matches) { ",
+      "this.settings.placeholder = ", short, "; this.updatePlaceholder(); } }"
+    ))
+  )
 }
 
 # Search choices: every distribution name in `lang`, sorted.
@@ -310,7 +318,8 @@ home_task_route <- function(key, last = NULL) {
 # Returns a reactive with the latest navigation request: list(tab, n) plus
 # id/params (Explorer, Calculator), group (Compendium), preset (Compare) or
 # edge/sim_tab (Simulation); `n` increases so repeated requests still fire.
-mod_home_server <- function(id, lang) {
+# `active` is a reactive that is TRUE while Home is the open page.
+mod_home_server <- function(id, lang, active = shiny::reactive(NULL)) {
   lang_r <- if (shiny::is.reactive(lang)) lang else shiny::reactive(lang)
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
@@ -326,6 +335,8 @@ mod_home_server <- function(id, lang) {
       status(if (is_string(r$id) && r$tab %in% c("explorer", "calculator")) r[c("tab", "id")])
     }
     last <- shiny::reactive(home_last(input$last))
+    # The "opening" message belongs to the last request; clear it on return.
+    shiny::observeEvent(active(), if (isTRUE(active())) status(NULL))
 
     output$resume <- shiny::renderUI(resume_tag(last(), lang_r(), ns("resume")))
     # The last distribution changes while other pages are open; keep it current.
@@ -374,7 +385,7 @@ mod_home_server <- function(id, lang) {
     })
     shiny::observeEvent(input$resume, {
       l <- last()
-      if (!is.null(l)) go(l)
+      if (!is.null(l) && identical(input$resume, l$id)) go(l)
     })
 
     route

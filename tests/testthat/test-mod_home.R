@@ -130,6 +130,8 @@ test_that("the resume strip reopens the last distribution", {
     expect_match(html, "Gama")
     expect_match(html, "\\alpha = 2{,}5;\\ \\beta = 1", fixed = TRUE)
     expect_match(html, "na Calculadora")
+    session$setInputs(resume = "beta")
+    expect_null(session$returned())
     session$setInputs(resume = "gamma")
     expect_identical(session$returned()[c("tab", "id", "params")],
                      list(tab = "calculator", id = "gamma", params = list(shape = 2.5, rate = 1)))
@@ -152,4 +154,25 @@ test_that("chips and the resume strip follow the language", {
     # Without stored values, the strip shows the defaults.
     expect_match(output$resume$html, "\\alpha = 2,\\ \\beta = 1", fixed = TRUE)
   })
+})
+
+test_that("the opening message clears when Home is open again", {
+  active <- shiny::reactiveVal(TRUE)
+  shiny::testServer(distlab:::mod_home_server, args = list(lang = "en-US", active = active), {
+    session$setInputs(pick = "gamma")
+    expect_identical(output$status, "Opening Gamma in the Explorer…")
+    active(FALSE)
+    session$flushReact()
+    expect_identical(output$status, "Opening Gamma in the Explorer…")
+    active(TRUE)
+    session$flushReact()
+    expect_identical(output$status, "")
+  })
+})
+
+test_that("phones get a shorter search placeholder", {
+  opts <- distlab:::home_search_options("pt-BR")
+  expect_identical(opts$openOnFocus, FALSE)
+  expect_match(opts$onInitialize, "max-width: 575.98px", fixed = TRUE)
+  expect_match(opts$onInitialize, '"Busque: Normal, Poisson, Beta…"', fixed = TRUE)
 })
