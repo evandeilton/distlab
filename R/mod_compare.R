@@ -418,7 +418,7 @@ compare_table <- function(series, lang) {
 }
 
 # `lang` may be fixed or reactive; `dark` a reactive logical; `select` a
-# reactive navigation request list(tab, id, params) from other pages.
+# reactive navigation request list(tab, id, params, preset) from other pages.
 mod_compare_server <- function(id, lang, dark = shiny::reactive(FALSE),
                                select = shiny::reactive(NULL)) {
   lang_r <- if (shiny::is.reactive(lang)) lang else shiny::reactive(lang)
@@ -554,11 +554,16 @@ mod_compare_server <- function(id, lang, dark = shiny::reactive(FALSE),
       }
     }, ignoreInit = TRUE)
 
-    # Other pages open a distribution here: slot 1 gets it (with the
-    # parameters of the Explorer, when given) and slot 2 a related one.
+    # Other pages open a preset by name, or a distribution: slot 1 gets it
+    # (with the parameters of the Explorer, when given) and slot 2 a related one.
     shiny::observeEvent(select(), {
       r <- select()
-      if (!identical(r$tab, "compare") || !is_string(r$id) || !r$id %in% dl_ids()) return()
+      if (!identical(r$tab, "compare")) return()
+      if (is_string(r$preset) && r$preset %in% names(.dl_compare_presets)) {
+        apply_preset(r$preset)
+        return()
+      }
+      if (!is_string(r$id) || !r$id %in% dl_ids()) return()
       shiny::updateRadioButtons(session, "mode", selected = "overlay")
       fill_slot(1L, r$id, r$params %||% list())
       rel <- related_edges(r$id)

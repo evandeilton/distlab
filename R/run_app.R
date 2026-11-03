@@ -144,6 +144,7 @@ about_panel <- function(lang) {
                           height = "56"),
           shiny::tags$div(
             shiny::tags$h1(class = "dl-page-title", "distlab"),
+            shiny::tags$p(class = "dl-about-tagline", i18n_span("app.tagline", lang)),
             shiny::tags$p(class = "dl-muted",
                           shiny::tags$span(`data-i18n` = "about.version",
                                            `data-i18n-version` = version,
@@ -166,7 +167,7 @@ app_server <- function(lang) {
     dark <- shiny::reactive(identical(input$dark_mode, "dark"))
 
     # One navigation request at a time, from any page: list(tab, id, params,
-    # group, edge).
+    # group, edge, preset, sim_tab).
     route <- shiny::reactiveVal(NULL)
     # What the student does, per distribution, for the study report.
     store <- study_store()
@@ -183,13 +184,25 @@ app_server <- function(lang) {
     shiny::observeEvent(sim$route(), route(c(sim$route(), from = "simulation")))
     shiny::observeEvent(fit$route(), route(c(fit$route(), from = "fit")))
 
+    # The browser remembers the last distribution opened in the Explorer or the
+    # Calculator, for the Home resume strip; reported after a short pause.
+    remember <- function(tab, pars) {
+      p <- pars()
+      if (!identical(input$nav, tab) || is.null(p) || !is_string(p$id)) return()
+      session$sendCustomMessage("dl-remember", list(tab = tab, id = p$id, params = p$vals))
+    }
+    explore_p <- shiny::debounce(explore$params, 600)
+    calc_p <- shiny::debounce(calc$params, 600)
+    shiny::observe(remember("explorer", explore_p))
+    shiny::observe(remember("calculator", calc_p))
+
     # Static texts are re-translated in the browser from the dictionary.
     shiny::observeEvent(lang_r(), {
       session$sendCustomMessage("dl-lang", list(lang = lang_r(),
                                                 dict = dl_dictionary(lang_r())))
     }, ignoreInit = TRUE)
 
-    # Navigation requested by Home (search, chips, quick start), by the
+    # Navigation requested by Home (search, chips, tiles and cards), by the
     # Compendium, by the Explorer (open the Calculator, Compare or the
     # Simulation) or by the Simulation (open an end of a relation).
     shiny::observeEvent(route(), {

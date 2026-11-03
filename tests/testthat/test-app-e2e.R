@@ -14,7 +14,23 @@ test_that("the language switch keeps tab, distribution and parameters", {
     app$stop()
     try(chromote::default_chromote_object()$close(), silent = TRUE)
   }, add = TRUE)
-  app$run_js("document.querySelector('.dl-goto[data-dist=\"gamma\"]').click()")
+  # Home: a data-type tile opens its panel, Esc closes it; one panel at a time.
+  expanded <- "document.querySelector('#home-tile_positive').getAttribute('aria-expanded')"
+  app$run_js("document.querySelector('#home-tile_positive').click()")
+  expect_identical(app$get_js(expanded), "true")
+  expect_false(app$get_js("document.querySelector('#home-panel_positive').hidden"))
+  app$run_js("document.querySelector('#home-tile_counts').click()")
+  expect_identical(app$get_js(expanded), "false")
+  app$run_js("document.querySelector('#home-tile_counts').dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}))")
+  expect_true(app$get_js("document.querySelector('#home-panel_counts').hidden"))
+  app$run_js("document.querySelector('#home-tile_positive').click()")
+  app$wait_for_js("document.querySelector('#home-panel_positive .dl-goto[data-dist=\"gamma\"]') !== null")
+  # On a phone the Home page fits the screen width.
+  app$set_window_size(375, 812)
+  app$wait_for_idle()
+  expect_lte(app$get_js("document.documentElement.scrollWidth"), app$get_js("window.innerWidth"))
+  app$set_window_size(1200, 800)
+  app$run_js("document.querySelector('#home-panel_positive .dl-goto[data-dist=\"gamma\"]').click()")
   app$wait_for_idle()
   expect_identical(app$get_value(input = "nav"), "explorer")
   expect_identical(app$get_value(input = "explore-dist"), "gamma")
@@ -28,6 +44,10 @@ test_that("the language switch keeps tab, distribution and parameters", {
   expect_identical(app$get_js("document.querySelector('[data-i18n=\"nav.home\"]').textContent"),
                    "Home")
   expect_identical(app$get_js("document.documentElement.lang"), "en-US")
+  # The browser remembers the open distribution; Home offers to resume it.
+  app$wait_for_js("document.querySelector('.dl-resume-btn') !== null", timeout = 5000)
+  expect_match(app$get_js("document.querySelector('.dl-resume-btn').textContent"), "Gamma")
+  expect_match(app$get_js("window.localStorage.getItem('distlab.last')"), '"id":"gamma"', fixed = TRUE)
   dark_label <- "document.querySelector('bslib-input-dark-mode').shadowRoot.querySelector('button').getAttribute('aria-label')"
   expect_match(app$get_js(dark_label), "^Switch to (dark|light) mode$")
   # Formulas are typeset by KaTeX in the browser.

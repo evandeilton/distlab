@@ -123,3 +123,10 @@
 * The Fit page names the best fit of each likelihood group (lowest AIC, with
   its Akaike weight, and the BIC choice when it differs), marks its row in
   the ranking and opens the diagnostics on it.
+* The Home page starts from what the student wants to do: a large search
+  with popular distributions, six task tiles, a picker by data type that
+  opens one group at a time, and exam-prep cards that open the Binomial to
+  Poisson limit, the Central Limit Theorem and two Compare presets. The
+  browser remembers the last distribution opened in the Explorer or the
+  Calculator and offers to continue it. Compare and the Simulation accept
+  requests for a preset or a tab by name.

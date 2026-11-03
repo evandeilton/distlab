@@ -214,13 +214,47 @@ nav.to_dark: Mudar para o modo escuro
 nav.to_light: Mudar para o modo claro
 upcoming.note: Esta seção faz parte de uma próxima versão.
 home.search_label: Encontre uma distribuição
-home.search_placeholder: Digite um nome, como Normal ou Poisson
-home.quick_start: Para começar
-home.explore_normal: Explorar a Normal
-home.fit_data: Ajustar meus dados
-home.browse: Navegue por tipo de dado
+home.search_placeholder: "Busque uma distribuição: Normal, Poisson, Beta…"
 home.count: "{n} distribuições"
 home.count_one: "1 distribuição"
+home.title: O que você quer fazer hoje?
+home.popular: "Populares:"
+home.opening.explorer: "Abrindo {name} no Explorador…"
+home.opening.calculator: "Abrindo {name} na Calculadora…"
+home.resume: "Continuar:"
+home.resume_in.explorer: no Explorador
+home.resume_in.calculator: na Calculadora
+home.tasks: Tarefas
+home.task.explore: Explorar uma distribuição
+home.task.explore.ex: Mexa nos parâmetros e veja a curva
+home.task.calc: Calcular uma probabilidade
+home.task.calc.ex: "P(X ≤ 3), quantis, intervalos"
+home.task.compare: Comparar distribuições
+home.task.compare.ex: Lado a lado ou variando um parâmetro
+home.task.simulate: Simular e ver teoremas
+home.task.simulate.ex: Lei dos grandes números, TCL, relações
+home.task.fit: Ajustar meus dados
+home.task.fit.ex: Cole, envie ou use um exemplo
+home.task.map: Ver o mapa de relações
+home.task.map.ex: Todas as distribuições e como se ligam
+home.bytype: Não sabe qual usar? Escolha pelo tipo do seu dado
+home.example.binary: "Ex.: acertar ou errar uma questão"
+home.example.counts: "Ex.: nº de clientes por hora"
+home.example.bounded: "Ex.: proporção de acertos numa prova"
+home.example.positive: "Ex.: tempo de espera numa fila"
+home.example.real_line: "Ex.: erro de uma medição"
+home.start_here: comece por aqui
+home.see_all: "Ver as {n} no Compêndio →"
+home.see_one: "Ver no Compêndio →"
+home.exam: "Para a prova: veja acontecer"
+home.exam.binom_pois: Binomial vira Poisson
+home.exam.binom_pois.ex: "n grande, p pequeno e np fixo"
+home.exam.clt: Teorema Central do Limite
+home.exam.clt.ex: Médias de amostras ficam normais
+home.exam.t_normal: t se aproxima da Normal
+home.exam.t_normal.ex: Mais graus de liberdade, caudas mais leves
+home.exam.beta_shapes: Formas da Beta
+home.exam.beta_shapes.ex: "Em U, sino ou assimétrica, sempre em [0, 1]"
 group.binary: Binárias
 group.binary.desc: Resultados com dois valores, como sucesso e fracasso.
 group.counts: Contagens
@@ -296,8 +330,6 @@ about.details: >-
   controlada, e as fórmulas seguem a notação dos livros-texto de referência.
 about.version: "Versão {version}"
 about.license: Código distribuído sob a licença MIT.
-home.in_compendium: Ver no Compêndio
-home.in_compendium_group: "Ver o grupo {group} no Compêndio"
 tier.1: Essencial
 tier.2: Ampliado
 tier.3: Avançado

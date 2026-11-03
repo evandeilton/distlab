@@ -1,5 +1,6 @@
 /* distlab client script: KaTeX rendering, live language switch,
-   distribution buttons, copy buttons and the sortable, filterable tables. */
+   distribution buttons, Home panels and last-distribution memory, copy
+   buttons and the sortable, filterable tables. */
 (function () {
   "use strict";
 
@@ -177,6 +178,12 @@
       window.Shiny.setInputValue("lang", lang);
       return;
     }
+    // Home data-type tiles open their panel and close any other one.
+    var gt = ev.target.closest(".dl-group-tile");
+    if (gt) {
+      toggleGroup(gt, gt.getAttribute("aria-expanded") !== "true");
+      return;
+    }
     // Distribution buttons (Home chips, related card, Compendium) send their id.
     var b = ev.target.closest(".dl-goto");
     if (b && window.Shiny) {
@@ -202,6 +209,58 @@
     }
     if (ev.target.closest(".dl-print")) window.print();
   });
+
+  // Open or close the panel of a Home data-type tile; one is open at a time.
+  function toggleGroup(tile, open) {
+    var grid = tile.closest(".dl-group-grid");
+    if (open && grid) {
+      grid.querySelectorAll('.dl-group-tile[aria-expanded="true"]').forEach(function (t) {
+        if (t !== tile) toggleGroup(t, false);
+      });
+    }
+    tile.setAttribute("aria-expanded", open ? "true" : "false");
+    var panel = document.getElementById(tile.getAttribute("aria-controls"));
+    if (panel) panel.hidden = !open;
+  }
+
+  // Esc closes the open data-type panel and returns focus to its tile.
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key !== "Escape" || !ev.target.closest) return;
+    var grid = ev.target.closest(".dl-group-grid");
+    var tile = grid && grid.querySelector('.dl-group-tile[aria-expanded="true"]');
+    if (!tile) return;
+    toggleGroup(tile, false);
+    tile.focus();
+  });
+
+  // Last distribution opened in the Explorer or the Calculator, kept in the
+  // browser for the Home resume strip. Storage may be blocked; then it is
+  // simply not remembered.
+  var lastKey = "distlab.last";
+  function readLast() {
+    try {
+      var v = JSON.parse(window.localStorage.getItem(lastKey));
+      return v && typeof v === "object" && typeof v.id === "string" ? v : null;
+    } catch (e) {
+      return null;
+    }
+  }
+  function sendLast(v) {
+    var home = document.querySelector("[data-last-input]");
+    if (v && home && window.Shiny) {
+      window.Shiny.setInputValue(home.getAttribute("data-last-input"), v);
+    }
+  }
+
+  // Put the cursor in the Home search on wide screens with a mouse, where an
+  // open keyboard does not cover the page.
+  function focusSearch() {
+    var home = document.querySelector(".dl-home");
+    if (!home || !home.offsetParent) return;
+    if (!window.matchMedia("(min-width: 992px) and (pointer: fine)").matches) return;
+    var box = home.querySelector(".dl-home-search .selectize-input input");
+    if (box) box.focus();
+  }
 
   // Copy text to the clipboard and confirm on the button for a moment.
   function copyText(text, btn) {
@@ -286,6 +345,12 @@
         if (el) el.hidden = true;
       });
     });
+    window.Shiny.addCustomMessageHandler("dl-remember", function (msg) {
+      try {
+        window.localStorage.setItem(lastKey, JSON.stringify(msg));
+      } catch (e) { /* storage blocked or full */ }
+      sendLast(msg);
+    });
     // Mark the pressed button of a group (Compare presets).
     window.Shiny.addCustomMessageHandler("dl-pressed", function (msg) {
       document.querySelectorAll('.dl-goto[data-input="' + msg.group + '"]').forEach(function (b) {
@@ -298,5 +363,15 @@
     addHandlers();
   } else {
     document.addEventListener("shiny:connected", addHandlers);
+  }
+  // Once connected, report the remembered distribution and focus the search.
+  function onConnected() {
+    sendLast(readLast());
+    setTimeout(focusSearch, 100);
+  }
+  if (window.jQuery) {
+    window.jQuery(document).one("shiny:connected", onConnected);
+  } else {
+    document.addEventListener("shiny:connected", onConnected, { once: true });
   }
 })();

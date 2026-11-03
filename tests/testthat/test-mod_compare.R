@@ -171,6 +171,29 @@ test_that("requests from other pages fill the first slot and a related one", {
   })
 })
 
+test_that("requests from other pages can open a preset by name", {
+  req <- shiny::reactiveVal(NULL)
+  sess <- recording_session()
+  shiny::testServer(distlab:::mod_compare_server, args = list(lang = "en-US", select = req),
+                    session = sess, {
+    do.call(session$setInputs, overlay_inputs)
+    req(list(tab = "compare", preset = "beta_shapes", n = 1))
+    session$flushReact()
+    expect_identical(preset(), "beta_shapes")
+    expect_identical(active(), 1:4)
+    d4 <- input_messages(sess, "s4_dist")
+    expect_identical(d4[[length(d4)]]$message$value, "beta")
+    pressed <- Filter(function(m) identical(m$type, "dl-pressed"), attr(sess, "log")$custom)
+    expect_identical(pressed[[length(pressed)]]$message$value, "beta_shapes")
+    # Unknown presets and requests for other pages change nothing.
+    req(list(tab = "compare", preset = "nope", n = 2))
+    session$flushReact()
+    req(list(tab = "simulation", preset = "t_normal", n = 3))
+    session$flushReact()
+    expect_identical(preset(), "beta_shapes")
+  })
+})
+
 test_that("support text and labels follow the language", {
   expect_identical(distlab:::support_text(dl_dist("binomial", size = 10, prob = 0.5), "pt-BR"),
                    "{0; 1; …; 10}")

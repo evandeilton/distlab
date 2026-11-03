@@ -222,8 +222,9 @@ sim_value <- function(res, lang) {
 }
 
 # `lang` may be fixed or reactive; `dark` a reactive logical; `select` a
-# reactive navigation request list(tab, id, params, edge) from other pages:
-# `id` (with `params`) opens a distribution, `edge` a relation demo.
+# reactive navigation request list(tab, id, params, edge, sim_tab) from other
+# pages: `id` (with `params`) opens a distribution, `edge` a relation demo and
+# `sim_tab` a tab by name.
 # `store` is the session record of study_store(): each tab records the result
 # it shows when its code renders, so recording never runs a simulation.
 # Returns a reactive request list(tab, id, params, n) that opens an end of a
@@ -255,8 +256,8 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
                                selected = shiny::isolate(input$reps))
     }, ignoreInit = TRUE)
 
-    # Requests from other pages: a distribution (with the Explorer's values)
-    # or a relation of the Compendium.
+    # Requests from other pages: a distribution (with the Explorer's values),
+    # a relation of the Compendium or a tab.
     shiny::observeEvent(select(), {
       r <- select()
       if (!identical(r$tab, "simulation")) return()
@@ -265,11 +266,16 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
         bslib::nav_select("tab", "relations", session = session)
         return()
       }
-      if (!is_string(r$id) || !r$id %in% dl_ids()) return()
-      if (length(r$params)) sliders$set(r$id, r$params)
-      shiny::updateSelectInput(session, "dist", selected = r$id)
-      if (identical(shiny::isolate(input$tab), "relations")) {
-        bslib::nav_select("tab", "sample", session = session)
+      if (is_string(r$id) && r$id %in% dl_ids()) {
+        if (length(r$params)) sliders$set(r$id, r$params)
+        shiny::updateSelectInput(session, "dist", selected = r$id)
+        if (identical(shiny::isolate(input$tab), "relations") && is.null(r$sim_tab)) {
+          bslib::nav_select("tab", "sample", session = session)
+        }
+      }
+      # A tab by name, such as "clt" from the Home exam-prep cards.
+      if (is_string(r$sim_tab) && r$sim_tab %in% .dl_sim_tabs) {
+        bslib::nav_select("tab", r$sim_tab, session = session)
       }
     })
 
