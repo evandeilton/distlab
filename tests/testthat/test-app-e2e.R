@@ -14,6 +14,23 @@ test_that("the language switch keeps tab, distribution and parameters", {
     app$stop()
     try(chromote::default_chromote_object()$close(), silent = TRUE)
   }, add = TRUE)
+  # The navbar stays on one line at every desktop width, in both languages;
+  # where labels do not fit, it shows icons with labels for screen readers.
+  # Spread of the vertical centers of brand, links and toggles: one line is
+  # a few pixels, a wrapped navbar is a whole row.
+  spread <- paste0(
+    "(function () { var c = Array.prototype.map.call(document.querySelectorAll(",
+    "'.navbar-brand, .bslib-page-navbar > .navbar .nav-link, .dl-lang-toggle'), ",
+    "function (e) { var r = e.getBoundingClientRect(); return r.top + r.height / 2; });",
+    " return Math.max.apply(null, c) - Math.min.apply(null, c); })()")
+  for (w in c(1000, 1200, 1400)) {
+    app$set_window_size(w, 800)
+    app$wait_for_idle()
+    expect_lt(app$get_js(spread), 10, label = paste("navbar spread at", w))
+  }
+  app$set_window_size(1200, 800)
+  expect_identical(app$get_js("document.querySelector('[data-value=\"compendium\"] .dl-nav-label').title"),
+                   "Compêndio")
   # Home: a data-type tile opens its panel, Esc closes it; one panel at a time.
   expanded <- "document.querySelector('#home-tile_positive').getAttribute('aria-expanded')"
   app$run_js("document.querySelector('#home-tile_positive').click()")

@@ -56,6 +56,8 @@ app_ui <- function(lang) {
   panels <- lapply(.dl_sections, function(s) {
     bslib::nav_panel(
       title = shiny::tags$span(class = "dl-nav-label",
+                               title = tr(paste0("nav.", s$value), lang),
+                               `data-i18n-title` = paste0("nav.", s$value),
                                shiny::icon(s$icon, `aria-hidden` = "true"),
                                i18n_span(paste0("nav.", s$value), lang)),
       value = s$value,
