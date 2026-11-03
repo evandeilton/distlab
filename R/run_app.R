@@ -202,8 +202,11 @@ app_server <- function(lang) {
         r <- route()
         if (!identical(r$tab, tab) || !is_string(r$id) || !r$id %in% dl_ids()) return()
         cur <- pars()
-        if (!is.null(cur) && identical(cur$id, r$id)) {
-          # Already open: no new distribution will be reported.
+        # New values for the open distribution arrive through the sliders.
+        moved <- !is.null(r$params) && !is.null(cur) && !isTRUE(all.equal(
+          unlist(cur$vals[names(r$params)]), unlist(r$params), check.attributes = FALSE))
+        if (!is.null(cur) && identical(cur$id, r$id) && !moved) {
+          # Already open with these values: no new report will come.
           routed <<- NULL
           seen <<- TRUE
           send(cur)
