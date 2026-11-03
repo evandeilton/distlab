@@ -222,6 +222,29 @@ test_that("requests open a distribution with its values, or a relation", {
   })
 })
 
+test_that("requests can open a tab by name", {
+  req <- shiny::reactiveVal(NULL)
+  sess <- recording_session()
+  shiny::testServer(distlab:::mod_sim_server, args = list(lang = "en-US", select = req),
+                    session = sess, {
+    do.call(session$setInputs, sim_inputs)
+    req(list(tab = "simulation", sim_tab = "clt", n = 1))
+    session$flushReact()
+    tabs <- input_messages(sess, "tab")
+    expect_identical(tabs[[length(tabs)]]$message$value, "clt")
+    n_dist <- length(input_messages(sess, "dist"))
+    # Unknown tabs are ignored; a distribution with a tab opens both.
+    req(list(tab = "simulation", sim_tab = "nope", n = 2))
+    session$flushReact()
+    expect_length(input_messages(sess, "tab"), length(tabs))
+    req(list(tab = "simulation", id = "poisson", sim_tab = "lln", n = 3))
+    session$flushReact()
+    tabs <- input_messages(sess, "tab")
+    expect_identical(tabs[[length(tabs)]]$message$value, "lln")
+    expect_length(input_messages(sess, "dist"), n_dist + 1L)
+  })
+})
+
 test_that("a language switch relabels the selectors and the numbers", {
   lang <- shiny::reactiveVal("en-US")
   sess <- recording_session()

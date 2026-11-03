@@ -65,9 +65,61 @@ test_that("Home navigation opens the Explorer with the chosen distribution", {
     expect_identical(nav[[length(nav)]]$message$value, "explorer")
     sel <- input_messages(sess, "dist")
     expect_identical(sel[[length(sel)]]$message$value, "cauchy")
-    session$setInputs(`home-go_fit` = 1)
+    session$setInputs(`home-task` = "fit")
     nav <- input_messages(sess, "nav")
     expect_identical(nav[[length(nav)]]$message$value, "fit")
+    # Exam cards reach the Compare presets and the Simulation tabs.
+    session$setInputs(`home-exam` = "beta_shapes")
+    nav <- input_messages(sess, "nav")
+    expect_identical(nav[[length(nav)]]$message$value, "compare")
+    s4 <- input_messages(sess, "s4_dist")
+    expect_identical(s4[[length(s4)]]$message$value, "beta")
+    session$setInputs(`home-exam` = "clt")
+    tabs <- input_messages(sess, "tab")
+    expect_identical(tabs[[length(tabs)]]$message$value, "clt")
+  })
+})
+
+test_that("the Explorer and the Calculator report the last distribution", {
+  sess <- recording_session()
+  shiny::testServer(app_for_test("en-US"), session = sess, {
+    remembered <- function() {
+      Filter(function(m) identical(m$type, "dl-remember"), attr(sess, "log")$custom)
+    }
+    session$setInputs(`explore-dist` = "gamma", `explore-p_gamma_shape` = 3.5,
+                      `explore-p_gamma_rate` = 2, nav = "home")
+    session$elapse(800)
+    expect_length(remembered(), 0L)
+    # Opening a page is not enough; changing a value is.
+    session$setInputs(nav = "explorer")
+    session$elapse(800)
+    expect_length(remembered(), 0L)
+    session$setInputs(`explore-p_gamma_shape` = 4)
+    session$elapse(800)
+    m <- remembered()
+    expect_identical(m[[length(m)]]$message,
+                     list(tab = "explorer", id = "gamma", params = list(shape = 4, rate = 2)))
+    # The Calculator opened from the navbar keeps the remembered distribution.
+    session$setInputs(`calc-dist` = "binomial", `calc-p_binomial_size` = 10,
+                      `calc-p_binomial_prob` = 0.5, nav = "calculator")
+    session$elapse(800)
+    expect_length(remembered(), length(m))
+    session$setInputs(`calc-p_binomial_size` = 12)
+    session$elapse(800)
+    m <- remembered()
+    expect_identical(m[[length(m)]]$message[c("tab", "id")],
+                     list(tab = "calculator", id = "binomial"))
+    # A request remembers the requested distribution, never the one before it.
+    n <- length(m)
+    session$setInputs(`home-pick` = "poisson", nav = "explorer")
+    session$elapse(800)
+    expect_length(remembered(), n)
+    session$setInputs(`explore-dist` = "poisson", `explore-p_poisson_lambda` = 3)
+    session$elapse(800)
+    m <- remembered()
+    expect_length(m, n + 1L)
+    expect_identical(m[[length(m)]]$message[c("tab", "id")],
+                     list(tab = "explorer", id = "poisson"))
   })
 })
 
