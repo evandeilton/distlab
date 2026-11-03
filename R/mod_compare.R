@@ -160,40 +160,50 @@ sweep_param_choices <- function(entry) {
 # Values to sweep a parameter over, around its current value in `others`
 # (the defaults unless given) and on the scale of the distribution, each one
 # valid with the other parameters, so a sweep never starts with a domain or
-# constraint error:
-# * whole-number parameters: steps around the default, as on the slider;
-# * location parameters: the current value plus -2, -1, 0 and 2 times the
-#   scale (a positive scale parameter of the entry, the width max - min, or
-#   the interquartile range);
-# * positive parameters: 0.5, 1, 2 and 4 times the current value, inside the
-#   slider range when the parameter is bounded above (probabilities).
+# constraint error. Steps are tried from the current value outward, on both
+# sides, and the first four valid values are kept:
+# * whole-number parameters: steps of about a quarter of the current value;
+# * location parameters: steps of the scale (a positive scale parameter of
+#   the entry, the width max - min, or the interquartile range), so `min`
+#   moves down and `max` up when the other end blocks a side;
+# * probabilities: even steps on the logit scale, inside the slider range;
+# * other positive parameters: 0.5, 1, 2 and 4 times the current value.
 # Rules on the slider scale are the fallback when these give fewer than two.
 sweep_defaults <- function(entry, param, others = default_params(entry)) {
   par <- param_spec(entry, param)
   d <- par$default
   cur <- others[[param]]
+  ok_value <- function(x) {
+    vals <- others
+    vals[[param]] <- x
+    !is.null(tryCatch(do.call(dl_dist, c(list(entry$id), vals)), error = function(e) NULL))
+  }
   valid <- function(v, slider = FALSE) {
     v <- v[is.finite(v)]
     if (slider) v <- v[v >= par$slider$min & v <= par$slider$max]
-    ok <- vapply(v, function(x) {
-      vals <- others
-      vals[[param]] <- x
-      !is.null(tryCatch(do.call(dl_dist, c(list(entry$id), vals)), error = function(e) NULL))
-    }, logical(1))
     # Twelve significant digits drop rounding noise at any scale.
-    unique(signif(v[ok], 12))
+    unique(signif(v[vapply(v, ok_value, logical(1))], 12))
   }
+  # The first four valid values of `v`, given nearest first, in order.
+  pick <- function(v, slider = FALSE) sort(utils::head(valid(v, slider), 4L))
+  # Offsets from the current value, nearest first and alternating sides.
+  near <- c(0, -1, 2, -2, 1, 3, -3, 4, -4)
   out <- numeric(0)
-  if (!isTRUE(par$integer) && is.numeric(cur) && length(cur) == 1L && is.finite(cur)) {
-    step <- sweep_scale(entry, param, others)
-    v <- if (is.infinite(par$lower) && !is.null(step)) {
-      cur + c(-2, -1, 0, 2) * signif(step, 2)
-    } else if (par$lower >= 0 && cur > 0) {
-      signif(cur * c(0.5, 1, 2, 4), 3)
+  if (is.numeric(cur) && length(cur) == 1L && is.finite(cur)) {
+    if (isTRUE(par$integer)) {
+      out <- pick(cur + c(0, -1, 1, 2, -2, 3, -3, 4) * max(1, round(abs(cur) / 4)))
+    } else if (is.infinite(par$lower)) {
+      step <- sweep_scale(entry, param, others)
+      if (!is.null(step)) out <- pick(cur + near * signif(step, 2))
+    } else if (is.finite(par$upper) && cur > par$lower && cur < par$upper) {
+      # Logit steps of 0.7 put values on both sides of the current one.
+      z <- stats::qlogis((cur - par$lower) / (par$upper - par$lower))
+      u <- stats::plogis(z + c(0, -1, 1, -2, 2) * 0.7)
+      out <- pick(signif(par$lower + u * (par$upper - par$lower), 2), slider = TRUE)
+      if (!cur %in% out) out <- sort(unique(c(out, cur)))
+    } else if (cur > 0) {
+      out <- valid(signif(cur * c(0.5, 1, 2, 4), 3))
     }
-    # Bounded parameters (probabilities) keep to the slider, away from the
-    # degenerate ends.
-    out <- valid(v, slider = is.finite(par$upper))
   }
   if (length(out) < 2L) {
     v <- if (isTRUE(par$integer)) d + c(-2, 0, 3, 8) * max(1, round(d / 4)) else
