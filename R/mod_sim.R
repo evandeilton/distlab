@@ -61,7 +61,8 @@ mod_sim_ui <- function(id, lang) {
       shiny::selectInput(ns("n"), i18n_span("sim.draws", lang),
                          choices = count_choices(.dl_sim_n, lang),
                          selected = as.character(.dl_sim_n_default)),
-      shiny::tags$p(class = "dl-muted dl-field-help dl-sim-help", i18n_span("sim.seed_help", lang))
+      shiny::tags$p(class = "dl-muted dl-field-help dl-sim-help", i18n_span("sim.seed_help", lang)),
+      shiny::tags$div(class = "dl-side-actions", report_button(ns("report"), lang))
     ),
     shiny::conditionalPanel("input.tab != 'relations'", ns = ns, shiny::uiOutput(ns("header"))),
     bslib::navset_card_underline(
@@ -223,11 +224,14 @@ sim_value <- function(res, lang) {
 # `lang` may be fixed or reactive; `dark` a reactive logical; `select` a
 # reactive navigation request list(tab, id, params, edge) from other pages:
 # `id` (with `params`) opens a distribution, `edge` a relation demo.
+# `store` is the session record of study_store(): each tab records the result
+# it shows when its code renders, so recording never runs a simulation.
 # Returns a reactive request list(tab, id, params, n) that opens an end of a
 # relation in the Explorer.
 mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
-                           select = shiny::reactive(NULL)) {
+                           select = shiny::reactive(NULL), store = NULL) {
   lang_r <- if (shiny::is.reactive(lang)) lang else shiny::reactive(lang)
+  store <- store %||% study_store()
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
     entry <- shiny::reactive(dl_entry(shiny::req(input$dist)))
@@ -331,7 +335,7 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
       d <- dist_now()
       res <- mc()
       if (inherits(res, "error")) return(res)
-      sim_run(sim_view(res$sample, d, mode = if (is_discrete()) "law" else "none"))
+      sim_run(sample_view_of(res$sample, d))
     })
     output$sample_hist <- plotly::renderPlotly({
       mc_val()
@@ -346,8 +350,13 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
       v <- sample_view()
       if (is.list(v) && !inherits(v, "error")) outside_note(v$outside, lang_r())
     })
-    output$mc_table <- shiny::renderUI(mc_table_tag(mc_val()$table, lang_r()))
-    output$sample_code <- shiny::renderUI(code_tag(mc_val()$code, ns("sample-code"), lang_r()))
+    output$mc_table <- shiny::renderUI(mc_table_tag(mc_val()$table, lang_r(), mc_val()$level))
+    # Code card of a result, which is also recorded for the study report.
+    code_out <- function(res, code_id) {
+      store$add_sim(res)
+      code_tag(res$code, ns(code_id), lang_r())
+    }
+    output$sample_code <- shiny::renderUI(code_out(mc_val(), "sample-code"))
 
     # Law of large numbers.
     lln <- shiny::reactive({
@@ -365,7 +374,7 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
                lower = dl_support(dist_now())$lower)
     })
     output$lln_note <- shiny::renderUI(lln_note(lln_val(), lang_r()))
-    output$lln_code <- shiny::renderUI(code_tag(lln_val()$code, ns("lln-code"), lang_r()))
+    output$lln_code <- shiny::renderUI(code_out(lln_val(), "lln-code"))
 
     # Central limit theorem.
     clt <- shiny::reactive({
@@ -380,26 +389,13 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
     output$clt_plot <- plotly::renderPlotly({
       clt_plot(clt_val(), dist_now(), lang_r(), plot_theme(dark()))
     })
-    output$clt_note <- shiny::renderUI({
-      res <- clt_val()
-      lg <- lang_r()
-      notes <- if (res$standardized) {
-        c(tr("sim.clt.note", lg), if (is_discrete()) tr("sim.clt.note.discrete", lg))
-      } else if (is.na(res$mean)) {
-        tr("sim.clt.note.no_mean", lg)
-      } else if (is.infinite(res$mean)) {
-        tr("sim.clt.note.infinite_mean", lg)
-      } else {
-        tr("sim.clt.note.infinite_var", lg)
-      }
-      note_list(notes)
-    })
+    output$clt_note <- shiny::renderUI(clt_note(clt_val(), is_discrete(), lang_r()))
     output$clt_table <- shiny::renderUI({
       res <- clt_val()
       if (!res$standardized) return(NULL)
       clt_table_tag(res, lang_r())
     })
-    output$clt_code <- shiny::renderUI(code_tag(clt_val()$code, ns("clt-code"), lang_r()))
+    output$clt_code <- shiny::renderUI(code_out(clt_val(), "clt-code"))
 
     # Sums and transformations.
     op <- shiny::reactive({
@@ -428,22 +424,18 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
     tf_view <- shiny::reactive({
       res <- tf()
       if (inherits(res, "error")) return(res)
-      ref <- res$target %||% res$approx
-      mode <- transform_bin_mode(dist_now(), res$op, res$a, res$b)
-      sim_run(sim_view(res$sample, ref, mode = mode, total = length(res$sample) + res$dropped))
+      sim_run(tf_view_of(res, dist_now()))
     })
     output$tf_plot <- plotly::renderPlotly({
       res <- tf_val()
       lg <- lang_r()
-      v <- sim_value(tf_view(), lg)
-      label <- if (!is.null(res$target)) tr("sim.exact", lg) else tr("sim.approx", lg)
-      sim_hist_plot(v, lg, plot_theme(dark()), label, dashed = is.null(res$target), var = "y")
+      tf_plot(res, sim_value(tf_view(), lg), lg, plot_theme(dark()))
     })
     output$tf_summary <- shiny::renderUI({
       v <- tf_view()
       tf_summary_tag(tf_val(), dist_now(), if (!inherits(v, "error")) v, lang_r())
     })
-    output$tf_code <- shiny::renderUI(code_tag(tf_val()$code, ns("tf-code"), lang_r()))
+    output$tf_code <- shiny::renderUI(code_out(tf_val(), "tf-code"))
 
     # Relations.
     edge <- shiny::reactive({
@@ -467,7 +459,7 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
     output$rel_plot <- plotly::renderPlotly(rel_plot(demo_val(), lang_r(), plot_theme(dark())))
     output$rel_note <- shiny::renderUI(rel_note(demo_val(), lang_r()))
     output$rel_table <- shiny::renderUI(rel_table_tag(demo_val(), lang_r()))
-    output$rel_code <- shiny::renderUI(code_tag(demo_val()$code, ns("rel-code"), lang_r()))
+    output$rel_code <- shiny::renderUI(code_out(demo_val(), "rel-code"))
     # Either end opens in the Explorer with the parameters of the recipe.
     shiny::observeEvent(input$open_end, {
       e <- edge()
@@ -528,17 +520,17 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
     output$mem_note <- shiny::renderUI({
       if (is_discrete()) note_list(tr("sim.mem.note.discrete", lang_r()))
     })
-    output$mem_code <- shiny::renderUI(code_tag(mem_val()$code, ns("mem-code"), lang_r()))
+    output$mem_code <- shiny::renderUI(code_out(mem_val(), "mem-code"))
     output$mem_surv <- plotly::renderPlotly(mem_surv_plot(mem_val(), dist_now(), lang_r(),
                                                           plot_theme(dark())))
     output$mem_hist <- plotly::renderPlotly({
       res <- mem_val()
-      d <- dist_now()
-      v <- sim_value(sim_run(sim_view(res$residual, d, mode = if (is_discrete()) "law" else "none")),
-                     lang_r())
-      sim_hist_plot(v, lang_r(), plot_theme(dark()), tr("sim.mem.law_x", lang_r()), var = "t",
-                    labels = list(prob = "P(X \u2212 s = t)", dens = "f(t)"))
+      v <- sim_value(sim_run(sample_view_of(res$residual, dist_now())), lang_r())
+      mem_hist_plot(v, lang_r(), plot_theme(dark()))
     })
+
+    # Study report of the open distribution, with what the session recorded.
+    output$report <- report_download(store, dist_now, lang_r)
 
     list(dist = dist, tab = shiny::reactive(input$tab), seed = seed, mc = mc_val, lln = lln_val,
          clt = clt_val, tf = tf_val, demo = demo_val, mem = mem_val, route = route)
@@ -598,6 +590,33 @@ sim_view <- function(x, ref, mode = "auto", total = length(x)) {
   curve <- if (!is.null(ref)) law_curve(ref, rng)
   list(bins = bins, curve = curve, range = rng, step = step, unit = isTRUE(step == 1),
        ref_discrete = ref_discrete, outside = sum(x < rng[1] | x > rng[2]) / total)
+}
+
+# Histogram view of draws of `dist` itself (the sample, or the residuals of
+# the memorylessness check): unit bars for discrete laws, continuous bins
+# otherwise.
+sample_view_of <- function(x, dist) {
+  sim_view(x, dist, mode = if (identical(dist$entry$type, "discrete")) "law" else "none")
+}
+
+# Histogram view of a dl_transform() result of `dist`, against its exact or
+# approximate law; non-finite values count in the shares.
+tf_view_of <- function(res, dist) {
+  ref <- res$target %||% res$approx
+  mode <- transform_bin_mode(dist, res$op, res$a, res$b)
+  sim_view(res$sample, ref, mode = mode, total = length(res$sample) + res$dropped)
+}
+
+# Histogram of Y against its exact law (solid) or Normal approximation (dashed).
+tf_plot <- function(res, v, lang, th) {
+  label <- if (!is.null(res$target)) tr("sim.exact", lang) else tr("sim.approx", lang)
+  sim_hist_plot(v, lang, th, label, dashed = is.null(res$target), var = "y")
+}
+
+# Histogram of the residuals X - s against the law of X.
+mem_hist_plot <- function(v, lang, th) {
+  sim_hist_plot(v, lang, th, tr("sim.mem.law_x", lang), var = "t",
+                labels = list(prob = "P(X \u2212 s = t)", dens = "f(t)"))
 }
 
 # Y limit that keeps an unbounded density (Chi-square with 1 df, Beta with a
@@ -698,9 +717,9 @@ interval_text <- function(lo, hi, lang) {
   paste0("[", format_num(lo, lang), sep, format_num(hi, lang), "]")
 }
 
-# Table of the Monte Carlo check: exact value, estimate, standard error, 95%
-# interval and whether it holds the exact value.
-mc_table_tag <- function(tab, lang) {
+# Table of the Monte Carlo check: exact value, estimate, standard error,
+# interval at `level` and whether it holds the exact value.
+mc_table_tag <- function(tab, lang, level = 0.95) {
   th <- function(text) shiny::tags$th(scope = "col", text)
   label <- function(i) {
     qn <- tab$quantity[i]
@@ -744,7 +763,8 @@ mc_table_tag <- function(tab, lang) {
       shiny::tags$thead(shiny::tags$tr(
         th(tr("sim.col.quantity", lang)), th(tr("sim.col.exact", lang)),
         th(tr("sim.col.estimate", lang)), th(tr("sim.col.se", lang)),
-        th(tr("sim.col.interval", lang)), th(tr("sim.col.covered", lang))
+        th(tr("sim.col.interval", lang, level = format_num(100 * level, lang))),
+        th(tr("sim.col.covered", lang))
       )),
       shiny::tags$tbody(rows)
     )
@@ -828,15 +848,17 @@ lln_note <- function(res, lang) {
 }
 
 # Shared animation settings: short frames and transitions, a translated play
-# button, and slider steps labeled with the frame labels.
+# button, and slider steps labeled with the frame labels. Slider and button
+# sit below the x-axis title, so the current frame label never covers it.
 sim_animate <- function(p, labels, lang, th) {
   p <- plotly::animation_opts(p, frame = 700, transition = 150, redraw = TRUE)
   p <- plotly::animation_slider(
     p, currentvalue = list(prefix = "", font = list(color = th$text, size = 13)),
-    font = list(color = th$muted)
+    font = list(color = th$muted), pad = list(t = 64)
   )
   p <- plotly::animation_button(p, label = tr("sim.play", lang), font = list(color = th$text),
-                                bgcolor = th$hover_bg, bordercolor = th$grid)
+                                bgcolor = th$hover_bg, bordercolor = th$grid,
+                                pad = list(t = 84, r = 5))
   steps <- p$x$layout$sliders[[1]]$steps
   for (i in seq_along(steps)) p$x$layout$sliders[[1]]$steps[[i]]$label <- labels[i]
   p
@@ -870,6 +892,21 @@ clt_plot <- function(res, dist, lang, th) {
   p <- plotly::layout(p, legend = list(y = 1.02, yanchor = "bottom", x = 1, xanchor = "right"),
                       margin = list(l = 64, r = 12, t = 48, b = 40))
   sim_animate(p, paste("n =", sizes), lang, th)
+}
+
+# Notes under the CLT plot: how to read it, or why the means cannot be
+# standardized (no mean, infinite mean or infinite variance).
+clt_note <- function(res, discrete, lang) {
+  notes <- if (res$standardized) {
+    c(tr("sim.clt.note", lang), if (discrete) tr("sim.clt.note.discrete", lang))
+  } else if (is.na(res$mean)) {
+    tr("sim.clt.note.no_mean", lang)
+  } else if (is.infinite(res$mean)) {
+    tr("sim.clt.note.infinite_mean", lang)
+  } else {
+    tr("sim.clt.note.infinite_var", lang)
+  }
+  note_list(notes)
 }
 
 # Bars of each CLT frame on one range: bins 0.2 wide on [-4, 4] for

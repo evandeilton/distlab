@@ -89,6 +89,9 @@ mod_fit_ui <- function(id, lang) {
           shiny::uiOutput(ns("fit_notes")),
           shiny::actionButton(ns("open_explorer"), i18n_span("fit.open_explorer", lang),
                                class = "btn-sm btn-outline-primary"),
+          # The report needs a fit; the button shows once there is one.
+          shiny::conditionalPanel("output.fitted", ns = ns, style = "display: inline;",
+                                  report_button(ns("report"), lang)),
           shiny::downloadButton(ns("download_estimates"), i18n_span("fit.download_estimates", lang),
                                  class = "btn-sm btn-outline-primary"))),
       tab("diagnostics",
@@ -110,16 +113,20 @@ mod_fit_ui <- function(id, lang) {
 
 # Accessible responsive tables shared by Fit cards; numeric data retain their
 # full precision in downloads, independently of the on-screen number format.
-fit_table_tag <- function(data, labels, lang, caption) {
+# Rows in `best` are marked as the best fit: bold, with a badge after the
+# first cell.
+fit_table_tag <- function(data, labels, lang, caption, best = integer(0)) {
   if (!nrow(data)) return(shiny::tags$p(class = "dl-muted", tr("fit.no_results", lang)))
-  rows <- lapply(seq_len(nrow(data)), function(i) shiny::tags$tr(
-    lapply(seq_along(data), function(j) {
+  rows <- lapply(seq_len(nrow(data)), function(i) {
+    win <- i %in% best
+    shiny::tags$tr(class = if (win) "dl-best-row", lapply(seq_along(data), function(j) {
       val <- data[[j]][i]
       numeric <- is.numeric(data[[j]])
+      text <- if (numeric) format_num(val, lang, digits = 5) else as.character(val)
       shiny::tags$td(class = if (numeric) "dl-cell-num",
-        if (numeric) format_num(val, lang, digits = 5) else as.character(val))
-    })
-  ))
+                     if (win && j == 1L) shiny::tagList(text, " ", fit_best_badge(lang)) else text)
+    }))
+  })
   shiny::tags$div(class = "table-responsive", shiny::tags$table(
     class = "table dl-table dl-compare-table dl-fit-table",
     shiny::tags$caption(class = "visually-hidden", caption),
@@ -194,9 +201,12 @@ fit_message_text <- function(message, lang) {
   paste(vapply(found, function(key) tr(paste0("fit.", key), lang, value = value), ""), collapse = " ")
 }
 
+# `store` is the session record of study_store(), which keeps each fit for
+# the study report.
 mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
-                           select = shiny::reactive(NULL)) {
+                           select = shiny::reactive(NULL), store = NULL) {
   lang_r <- if (shiny::is.reactive(lang)) lang else shiny::reactive(lang)
+  store <- store %||% study_store()
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
     loaded <- shiny::reactiveVal(NULL)
@@ -351,16 +361,21 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
       }, error = function(e) e)
       if (inherits(got, "error")) fit_error(conditionMessage(got)) else {
         result(got)
+        store$add_fit(got)
         fitted_serial(serial())
         bslib::nav_select("tab", "results", session = session)
       }
     }, ignoreInit = TRUE)
 
+    # A new fit opens its diagnostics on the best family of the first group;
+    # a language switch keeps the choice.
+    shown <- NULL
     shiny::observeEvent(list(result(), lang_r()), {
       r <- result()
       if (is.null(r)) return()
       ids <- intersect(r$ranking$id, names(r$fits)) %||% character()
-      preferred <- shiny::isolate(input$diagnostic_id)
+      preferred <- if (identical(r, shown)) shiny::isolate(input$diagnostic_id) else fit_winner(r$ranking)
+      shown <<- r
       if (!length(ids)) preferred <- character() else
         if (!length(preferred) || !preferred %in% ids) preferred <- ids[1]
       shiny::updateSelectInput(session, "diagnostic_id",
@@ -370,7 +385,7 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
     selected_fit <- shiny::reactive({
       r <- result()
       shiny::req(r, length(r$fits))
-      id <- input$diagnostic_id %||% names(r$fits)[1]
+      id <- input$diagnostic_id %||% fit_winner(r$ranking) %||% names(r$fits)[1]
       shiny::req(id %in% names(r$fits))
       r$fits[[id]]
     })
@@ -426,23 +441,8 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
                     lang_r(), tr("fit.eligibility", lang_r()))
     })
     output$ranking <- shiny::renderUI(fit_ranking_tag(result(), lang_r()))
-    output$estimates <- shiny::renderUI({
-      f <- selected_fit()
-      df <- f$estimates
-      df$fixed <- vapply(df$fixed, function(v) tr(if (v) "fit.yes" else "fit.no", lang_r()), "")
-      fit_table_tag(df, vapply(names(df), function(k) tr(paste0("fit.col_", k), lang_r()), ""),
-                    lang_r(), tr("fit.estimates", lang_r()))
-    })
-    output$fit_notes <- shiny::renderUI({
-      f <- selected_fit()
-      shiny::tagList(
-        if (isTRUE(f$boundary)) fit_error_tag("fit.boundary", lang_r()),
-        if (!identical(as.integer(f$convergence), 0L)) fit_error_tag("fit.nonconvergence", lang_r()),
-        if (any(!is.finite(f$estimates$se) & !f$estimates$fixed)) fit_error_tag("fit.no_se", lang_r()),
-        if (length(f$warnings)) shiny::tags$details(
-          shiny::tags$summary(tr("fit.technical_notes", lang_r())),
-          shiny::tags$ul(lapply(f$warnings, function(s) shiny::tags$li(fit_message_text(s, lang_r()))))))
-    })
+    output$estimates <- shiny::renderUI(fit_estimates_tag(selected_fit(), lang_r()))
+    output$fit_notes <- shiny::renderUI(fit_notes_tag(selected_fit(), lang_r()))
     output$code <- shiny::renderUI({ shiny::req(result()); code_tag(result()$code, ns("fit-code"), lang_r()) })
     shiny::observeEvent(input$open_explorer, {
       f <- selected_fit()
@@ -489,21 +489,8 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
       view <- key
       output[[view]] <- plotly::renderPlotly(fit_diagnostic_plot(diagnostics(), view, lang_r(), plot_theme(dark())))
     })
-    output$gof <- shiny::renderUI({
-      d <- diagnostics()
-      df <- d$gof
-      if ("label" %in% names(df)) df$label <- tr(
-        if (selected_fit()$k > 0) "fit.gof_descriptive" else "fit.gof_fixed", lang_r())
-      if ("test" %in% names(df)) df$test[df$test == "Chi-square"] <- tr("fit.chi_square", lang_r())
-      fit_table_tag(df, vapply(names(df), function(k) tr(paste0("fit.gof_", k), lang_r()), ""),
-                    lang_r(), tr("fit.gof", lang_r()))
-    })
-    output$diagnostic_notes <- shiny::renderUI({
-      d <- diagnostics()
-      shiny::tagList(lapply(unique(d$notes), function(k) {
-          shiny::tags$p(class = "dl-muted", tr(k, lang_r()))
-        }))
-    })
+    output$gof <- shiny::renderUI(fit_gof_tag(diagnostics(), selected_fit(), lang_r()))
+    output$diagnostic_notes <- shiny::renderUI(fit_diagnostic_notes_tag(diagnostics(), lang_r()))
     csv_download <- function(name, fn) shiny::downloadHandler(
       filename = function() paste0("distlab-", name, ".csv"),
       content = function(file) utils::write.csv(fn(), file, row.names = FALSE, na = ""))
@@ -515,10 +502,50 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
       shiny::req(d)
       fit_data_table(d)
     })
+    # Shows the report button once a fit exists; the empty text is false.
+    output$fitted <- shiny::renderText(if (!is.null(result()) && length(result()$fits)) "yes" else "")
+    shiny::outputOptions(output, "fitted", suspendWhenHidden = FALSE)
+    # Study report of the selected family, at its estimates.
+    output$report <- report_download(store, function() selected_fit()$dist, lang_r, fit = result)
     output$download_code <- shiny::downloadHandler(filename = function() "distlab-fit.R",
       content = function(file) { shiny::req(result()); writeLines(result()$code, file, useBytes = TRUE) })
     list(data = shiny::reactive(loaded()), fit = shiny::reactive(result()), route = shiny::reactive(route()))
   })
+}
+
+# Estimates of one fitted family, with translated column names.
+fit_estimates_tag <- function(f, lang) {
+  df <- f$estimates
+  df$fixed <- vapply(df$fixed, function(v) tr(if (v) "fit.yes" else "fit.no", lang), "")
+  fit_table_tag(df, vapply(names(df), function(k) tr(paste0("fit.col_", k), lang), ""),
+                lang, tr("fit.estimates", lang))
+}
+
+# Boundary, convergence and standard-error notes of one fitted family, with
+# its technical warnings translated.
+fit_notes_tag <- function(f, lang) {
+  shiny::tagList(
+    if (isTRUE(f$boundary)) fit_error_tag("fit.boundary", lang),
+    if (!identical(as.integer(f$convergence), 0L)) fit_error_tag("fit.nonconvergence", lang),
+    if (any(!is.finite(f$estimates$se) & !f$estimates$fixed)) fit_error_tag("fit.no_se", lang),
+    if (length(f$warnings)) shiny::tags$details(
+      shiny::tags$summary(tr("fit.technical_notes", lang)),
+      shiny::tags$ul(lapply(f$warnings, function(s) shiny::tags$li(fit_message_text(s, lang))))))
+}
+
+# Descriptive goodness-of-fit table of dl_fit_diagnostics() for fit `f`.
+fit_gof_tag <- function(d, f, lang) {
+  df <- d$gof
+  if ("label" %in% names(df)) df$label <- tr(
+    if (f$k > 0) "fit.gof_descriptive" else "fit.gof_fixed", lang)
+  if ("test" %in% names(df)) df$test[df$test == "Chi-square"] <- tr("fit.chi_square", lang)
+  fit_table_tag(df, vapply(names(df), function(k) tr(paste0("fit.gof_", k), lang), ""),
+                lang, tr("fit.gof", lang))
+}
+
+# Notes of dl_fit_diagnostics(), translated.
+fit_diagnostic_notes_tag <- function(d, lang) {
+  shiny::tagList(lapply(unique(d$notes), function(k) shiny::tags$p(class = "dl-muted", tr(k, lang))))
 }
 
 # Weighted views do not expand a frequency table into n observations.
@@ -612,6 +639,9 @@ fit_diagnostic_plot <- function(diagnostics, view, lang, th) {
       th, lang, ylim = ylim), bargap = 0), th))
   }
   if (view == "cdf") {
+    # About 2000 evenly spaced steps draw the same staircase on screen, also
+    # for samples with one step per observation.
+    if (nrow(d) > 2000L) d <- d[unique(round(seq(1, nrow(d), length.out = 2000L))), , drop = FALSE]
     # The fitted CDF is known only at the finite limits; the empirical step
     # of an open last class is drawn at the right end.
     p <- plotly::add_trace(p, x = fit_finite_steps(d$x, d$x), y = d$empirical, type = "scatter",
@@ -640,20 +670,81 @@ fit_diagnostic_plot <- function(diagnostics, view, lang, th) {
     tr(if (view == "qq") "fit.observed_quantile" else "fit.observed_probability", lang), th, lang)
 }
 
+# Best family of each likelihood group, in ranking order: the lowest AIC
+# among converged fits with its Akaike weight, and the lowest BIC (NA when no
+# family of the group converged).
+fit_best <- function(ranking) {
+  groups <- unique(ranking$likelihood_group)
+  rows <- lapply(groups, function(g) {
+    r <- ranking[ranking$likelihood_group == g & ranking$converged, , drop = FALSE]
+    a <- r[is.finite(r$AIC), , drop = FALSE]
+    b <- r[is.finite(r$BIC), , drop = FALSE]
+    data.frame(group = g,
+               aic = if (nrow(a)) a$id[which.min(a$AIC)] else NA_character_,
+               weight = if (nrow(a)) a$weight[which.min(a$AIC)] else NA_real_,
+               bic = if (nrow(b)) b$id[which.min(b$BIC)] else NA_character_,
+               stringsAsFactors = FALSE)
+  })
+  out <- do.call(rbind, rows)
+  if (is.null(out)) data.frame(group = character(), aic = character(), weight = numeric(),
+                               bic = character()) else out
+}
+
+# Family the diagnostics open on: the best fit of the first group, or NULL.
+fit_winner <- function(ranking) {
+  best <- fit_best(ranking)
+  if (nrow(best) && !is.na(best$aic[1])) best$aic[1]
+}
+
+# Badge of the best row of a ranking table.
+fit_best_badge <- function(lang) {
+  shiny::tags$span(class = "badge dl-best-badge", title = tr("fit.best_title", lang),
+                   tr("fit.best_badge", lang))
+}
+
+# Which family won in each likelihood group, by AIC and, when it disagrees,
+# by BIC; groups are never compared with each other.
+fit_best_tag <- function(ranking, lang) {
+  best <- fit_best(ranking)
+  if (!nrow(best)) return(NULL)
+  name <- function(id) entry_text(dl_entry(id), "names", lang)
+  mark <- if (lang == "pt-BR") "," else "."
+  items <- lapply(seq_len(nrow(best)), function(i) {
+    b <- best[i, ]
+    lines <- if (is.na(b$aic)) {
+      list(tr("fit.best_none", lang))
+    } else {
+      weight <- formatC(b$weight, format = "f", digits = 2, decimal.mark = mark)
+      c(list(shiny::tags$strong(tr("fit.best", lang, name = name(b$aic), weight = weight))),
+        if (!is.na(b$bic) && b$bic != b$aic) list(tr("fit.best_bic", lang, name = name(b$bic))))
+    }
+    shiny::tags$div(
+      class = "dl-fit-best-group",
+      shiny::tags$p(class = "dl-fit-best-label", tr(paste0("fit.group_", b$group), lang)),
+      lapply(lines, function(l) shiny::tags$p(class = "dl-fit-best-line", l))
+    )
+  })
+  shiny::tags$div(class = "dl-fit-best", role = "status", items,
+                  if (nrow(best) > 1L) shiny::tags$p(class = "dl-fit-best-note", tr("fit.best_groups", lang)))
+}
+
 fit_ranking_tag <- function(result, lang) {
   if (is.null(result)) return(shiny::tags$p(class = "dl-muted", tr("fit.run_first", lang)))
   rank <- result$ranking
+  best <- fit_best(rank)
   cols <- intersect(c("id", "logLik", "k", "AIC", "BIC", "delta_AIC", "weight", "converged", "message"), names(rank))
   tables <- lapply(unique(rank$likelihood_group), function(group) {
     df <- rank[rank$likelihood_group == group, cols, drop = FALSE]
+    win <- which(df$id %in% best$aic[best$group == group])
     df$id <- vapply(df$id, function(k) entry_text(dl_entry(k), "names", lang), "")
     df$converged <- vapply(df$converged, function(ok) tr(if (ok) "fit.yes" else "fit.no", lang), "")
     if ("message" %in% names(df)) df$message <- vapply(df$message, fit_message_text, "", lang = lang)
     shiny::tagList(shiny::tags$h3(class = "dl-sim-heading", tr(paste0("fit.group_", group), lang)),
-      fit_table_tag(df, vapply(cols, function(k) tr(paste0("fit.col_", k), lang), ""), lang, tr("fit.ranking", lang)))
+      fit_table_tag(df, vapply(cols, function(k) tr(paste0("fit.col_", k), lang), ""), lang,
+                    tr("fit.ranking", lang), best = win))
   })
   failures <- result$failures
-  shiny::tagList(tables,
+  shiny::tagList(fit_best_tag(rank, lang), tables,
     if (length(failures) && NROW(failures)) shiny::tags$details(
       shiny::tags$summary(tr("fit.failures", lang)),
       shiny::tags$ul(lapply(names(failures), function(id) shiny::tags$li(

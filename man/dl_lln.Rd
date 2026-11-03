@@ -24,6 +24,8 @@ A list with
 mean after \code{k} draws);
 \item \code{mean}, \code{sd}: exact mean and standard deviation (\code{Inf} when infinite,
 \code{NA} when they do not exist);
+\item \code{dist}: the distribution simulated, with each parameter at the value
+its literal in \code{code} reads back as;
 \item \code{seed}: the seed used, or \code{NA};
 \item \code{code}: R code that reproduces the running means exactly when a seed
 is given.

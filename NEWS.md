@@ -99,3 +99,23 @@
   samples of 100,000 values fit in seconds.
 * Parameter sliders widen to show values opened from a fit and keep that
   range while you drag.
+* The Explorer, Simulation and Fit pages download a study report of the open
+  distribution, built from the session: the questions answered in the
+  Calculator, the latest result of each Simulation tab, the relation demos
+  opened and the fit.
+* New `dl_report()` writes a study report of a distribution: one HTML file
+  with the story, the formula sheet, exact moments against a seeded Monte
+  Carlo check, interactive plots (density, CDF, quantile function, a
+  parameter sweep and every simulation), calculator results, a demo of each
+  relationship, an optional fit, and R code that reproduces every number.
+  The file opens offline, in Portuguese or English.
+* `dl_lln()`, `dl_clt()`, `dl_transform()` and `dl_memoryless()` also return
+  the simulated distribution as `dist`; `dl_memoryless()` returns the number
+  of draws as `n`. `dl_mc_check()` keeps `dist`, `n` and `level` as
+  attributes of its table.
+* Numbers on every page and in the report have at most 4 decimal places;
+  values that would round to 0 show as powers of ten ("1.3 × 10⁻⁴⁰"), as in
+  the Calculator.
+* The Fit page names the best fit of each likelihood group (lowest AIC, with
+  its Akaike weight, and the BIC choice when it differs), marks its row in
+  the ranking and opens the diagnostics on it.

@@ -22,8 +22,10 @@ A data frame with one row per quantity (\code{"mean"}, \code{"variance"},
 \code{"cdf_q3"}) and the columns \code{quantity}, \code{q} (the quartile of a
 probability row), \code{exact}, \code{estimate}, \code{se}, \code{lower}, \code{upper} and
 \code{covered} (whether the interval holds the exact value; \code{NA} without an
-interval). Attributes \code{seed} (\code{NA} when \code{seed} is \code{NULL}) and \code{code} (R
-code that reproduces the table exactly when a seed is given).
+interval). Attributes \code{seed} (\code{NA} when \code{seed} is \code{NULL}), \code{code} (R
+code that reproduces the table exactly when a seed is given), \code{dist}
+(the distribution simulated, with each parameter at the value its
+literal in \code{code} reads back as), \code{n} and \code{level}.
 }
 \description{
 Draws a seeded sample and compares its mean, variance, standard deviation,

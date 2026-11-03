@@ -39,3 +39,10 @@ dl_fit_diagnostics(fit, "poisson")$gof
 Goodness-of-fit p-values are descriptive when parameters are estimated from
 the same data. The Fit page also accepts grouped intervals and exports the
 tables and R code needed to reproduce a study.
+
+Write a self-contained HTML study report of a distribution, with
+interactive plots, seeded simulations and the R code behind every number:
+
+``` r
+dl_report(g, "gamma-report.html", lang = "en-US")
+```

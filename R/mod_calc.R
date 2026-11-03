@@ -88,10 +88,12 @@ mod_calc_ui <- function(id, lang) {
 }
 
 # `lang` may be fixed or reactive; `dark` a reactive logical; `select` a
-# reactive navigation request list(tab, id, params) from other pages.
+# reactive navigation request list(tab, id, params) from other pages; `store`
+# the session record of study_store(), which gets each result shown.
 mod_calc_server <- function(id, lang, dark = shiny::reactive(FALSE),
-                            select = shiny::reactive(NULL)) {
+                            select = shiny::reactive(NULL), store = NULL) {
   lang_r <- if (shiny::is.reactive(lang)) lang else shiny::reactive(lang)
+  store <- store %||% study_store()
   shiny::moduleServer(id, function(input, output, session) {
     entry <- shiny::reactive(dl_entry(shiny::req(input$dist)))
     sliders <- param_sliders(input, output, session, entry, "params")
@@ -281,6 +283,8 @@ mod_calc_server <- function(id, lang, dark = shiny::reactive(FALSE),
         tr("calc.note.thousands", lg, text = input[[f]],
            value = format_value(values()[[f]], lg, digits = 15))
       })
+      # Recorded as shown, so the report holds the questions the student saw.
+      store$add_calc(calc_question(r, dist_now()))
       calc_result_tag(r, dist_now(), lg, session$ns("code"), read = read)
     })
 
@@ -417,8 +421,9 @@ calc_cdf_plot <- function(d, res, dist, lang, th) {
 }
 
 # Result card: the event in math, the probability (or quantile) in large
-# type with its percentage, a sentence, the complement, notes and the R code.
-# `read` holds notes on how typed numbers were read.
+# type with its percentage, a sentence, the complement, notes and the R code
+# (left out when `code_id` is NULL). `read` holds notes on how typed numbers
+# were read.
 calc_result_tag <- function(res, dist, lang, code_id, read = list()) {
   discrete <- identical(dist$entry$type, "discrete")
   prob_mode <- res$mode %in% c("le", "gt", "between")
@@ -440,7 +445,6 @@ calc_result_tag <- function(res, dist, lang, code_id, read = list()) {
     if (outside_support(dist, res$region)) notes <- c(notes, list(tr("calc.note.outside", lang)))
   }
   if (res$mode == "quantile" && discrete) notes <- c(notes, list(tr("calc.note.quantile_discrete", lang)))
-  code <- calc_code(dist, res)
   shiny::tags$div(
     class = "dl-calc-out",
     shiny::tags$div(class = "dl-calc-event", math_tag(calc_tex(res, lang), display = TRUE)),
@@ -453,7 +457,7 @@ calc_result_tag <- function(res, dist, lang, code_id, read = list()) {
     if (length(notes)) {
       shiny::tags$ul(class = "dl-calc-notes", lapply(notes, shiny::tags$li))
     },
-    code_tag(code, code_id, lang)
+    if (!is.null(code_id)) code_tag(calc_code(dist, res), code_id, lang)
   )
 }
 

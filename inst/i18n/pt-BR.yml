@@ -173,6 +173,12 @@ fit.col_fixed: "Fixo"
 fit.group_density: "Densidades contínuas"
 fit.group_probability_mass: "Probabilidades discretas"
 fit.group_interval_probability: "Probabilidades dos intervalos"
+fit.best: "Melhor ajuste: {name} — menor AIC (peso de Akaike {weight})"
+fit.best_bic: "O BIC escolhe outra família: {name} tem o menor BIC."
+fit.best_none: "Nenhuma família convergiu neste grupo, então nenhuma é apontada como melhor."
+fit.best_groups: "Famílias de grupos diferentes não são comparadas entre si: densidades, probabilidades pontuais e probabilidades de intervalos estão em escalas diferentes."
+fit.best_badge: "melhor"
+fit.best_title: "Menor AIC do grupo"
 fit.reason_fixed_required: "Suporte compatível; exige parâmetros fixos do experimento."
 fit.reason_grouped_fixed: "Intervalos compatíveis; exige limites fixos do suporte."
 fit.reason_integer: "Exige observações inteiras."
@@ -402,7 +408,7 @@ calc.note.tiny: >-
 calc.note.outside: >-
   Um valor está fora do suporte de X, onde a distribuição não põe
   probabilidade.
-calc.complement: "Complementar: 1 − P = {p}"
+calc.complement: "Complemento: 1 − P = {p}"
 calc.coverage: "cobre {p}"
 calc.code: Código R
 calc.copy: Copiar
@@ -509,7 +515,7 @@ sim.col.quantity: Grandeza
 sim.col.exact: Exato
 sim.col.estimate: Estimativa
 sim.col.se: Erro-padrão
-sim.col.interval: Intervalo de 95%
+sim.col.interval: "Intervalo de {level}%"
 sim.col.covered: Contém o valor exato
 sim.covered.yes: sim
 sim.covered.no: não
@@ -652,3 +658,119 @@ fit.tab_diagnostics: Diagnósticos
 fit.tab_export: Reproduzir e exportar
 fit.show_candidates: Mostrar suporte e requisitos de todas as famílias
 fit.show_descriptives: Mostrar todas as medidas descritivas
+report.download: Baixar relatório de estudo
+report.building: Montando o relatório de estudo…
+report.title: "Relatório de estudo: {name}"
+report.kicker: relatório de estudo do distlab
+report.subtitle: >-
+  A distribuição como explorada nesta sessão: história, fórmulas, números
+  exatos e simulados, gráficos interativos, cálculos, relações e o código R
+  que reproduz cada resultado.
+report.print: Imprimir
+report.toc: Sumário
+report.param.symbol: Símbolo
+report.param.name: Nome no R
+report.param.value: Valor
+report.meta.support: Suporte
+report.meta.date: Data
+report.meta.language: Idioma
+report.meta.seeds: Sementes
+report.meta.version: Versão do distlab
+report.section.story: História e distribuições relacionadas
+report.section.formulas: Fórmulas
+report.section.numbers: Números exatos e simulados
+report.section.plots: Gráficos interativos
+report.section.calculations: Resultados da Calculadora
+report.section.relations: Relações
+report.section.fit: Ajuste aos dados
+report.section.code: Código R
+report.section.references: Referências e sessão
+report.parameterization: Parametrização no R
+report.support: "Suporte:"
+report.support_values: "({support} para estes valores dos parâmetros)"
+report.functions: "Funções do R:"
+report.param_note: >-
+  Os parâmetros seguem as funções do R acima, com os nomes mostrados na
+  capa; os símbolos são os das fórmulas.
+report.numbers.intro: >-
+  Os valores exatos vêm de fórmulas fechadas. Os valores simulados vêm de
+  sorteios com semente, com erros-padrão de Monte Carlo e intervalos de
+  {level}% onde a teoria assintótica vale.
+report.numbers.missing: >-
+  Um momento infinito ou inexistente não tem erro-padrão: seu valor amostral
+  não se estabiliza quando o número de sorteios cresce.
+report.numbers.discrete: >-
+  Em uma distribuição discreta, a probabilidade exata em um quartil q é F(q),
+  que é pelo menos o valor nominal 1/4, 1/2 ou 3/4.
+report.numbers.failed: "Não foi possível fazer a verificação de Monte Carlo: {message}"
+report.quantile: Função quantil
+report.plots.functions: Funções densidade, de distribuição e quantil
+report.plots.sweep: "Variação de parâmetro: {param}"
+report.plots.sweep_help: >-
+  Clique em reproduzir ou arraste o controle para ver a distribuição para
+  cada valor deste parâmetro; os outros parâmetros mantêm seus valores.
+report.plots.current: atual
+report.plots.simulations: Simulações
+report.plots.simulations_help: >-
+  Simulações com semente desta sessão (ou um conjunto padrão): a mesma
+  semente dá os mesmos sorteios, e o código R de cada uma está no apêndice.
+report.plot_unavailable: Este gráfico não está disponível para estes valores dos parâmetros.
+report.fig.lln: Médias acumuladas de cada trajetória
+report.fig.clt: Médias amostrais padronizadas e a N(0, 1)
+report.fig.sweep: A distribuição para cada valor do parâmetro
+report.fig.demo: "Simulação da relação {edge}"
+report.failed: Não foi possível montar o relatório de estudo. Tente de novo ou baixe-o de outra página.
+report.sim.draws: "{n} sorteios"
+report.sim.seed: "semente {seed}"
+report.sim.no_seed: sem semente (os sorteios não podem ser repetidos)
+report.sim.paths: "{n} trajetórias"
+report.sim.paths_one: "1 trajetória"
+report.sim.reps: "{n} amostras por tamanho"
+report.sim.failed: "Não foi possível fazer esta simulação: {message}"
+report.sim.no_draws: >-
+  Os sorteios não foram guardados porque a verificação não tinha semente; a
+  tabela acima ainda mostra seus números.
+report.calc.item: "Pergunta {n}"
+report.calc.none: >-
+  Nenhum cálculo foi registrado nesta sessão. Probabilidades, quantis e
+  intervalos calculados na Calculadora aparecem aqui.
+report.rel.no_demo: Esta relação não tem demonstração neste relatório.
+report.fit.intro: >-
+  Ajuste por máxima verossimilhança da {name} e das outras famílias
+  candidatas aos dados do laboratório de Ajuste: {n} observações ({kind}).
+report.fit.intro_one: >-
+  Ajuste por máxima verossimilhança da {name} aos dados do laboratório de
+  Ajuste: {n} observações ({kind}).
+report.fit.data_file: "O código R lê a tabela de dados ({n} linhas) deste arquivo; salve-o junto do script:"
+report.fit.data_large: >-
+  A tabela de dados ({n} linhas) é grande demais para esta página. O código
+  R a lê de {file}, o arquivo que o botão "{button}" da página de Ajuste
+  salva; seus números têm 15 algarismos significativos, então os resultados
+  podem diferir dos mostrados nos últimos dígitos.
+report.fit.diagnostics: Gráficos de diagnóstico
+report.fit.gof_note: >-
+  Descritivo: os parâmetros foram estimados com os mesmos dados, então estes
+  p-valores são uma orientação, não um teste calibrado.
+report.fit.failed: "O ajuste da {name} falhou: {message}"
+report.code.intro: >-
+  Cada bloco roda sozinho em uma sessão nova do R com o distlab instalado e
+  reproduz os números e gráficos a que se refere; blocos com sorteios
+  começam com set.seed().
+report.code.ref: "Código R: bloco {n}"
+report.code.dist: Distribuição, momentos exatos e curvas
+report.code.sweep: "Variação de {param}"
+report.code.calc: "Pergunta {n} da Calculadora"
+report.code.relation: "Relação {edge}"
+report.code.fit: Ajuste, estimativas e aderência
+report.code.show: "Mostrar o código ({n} linhas)"
+report.code.script: Baixar todos os blocos como um script R
+report.data.title: Dados simulados
+report.data.intro: Arquivos CSV com os valores simulados, para usar em outros programas.
+report.data.rows: "{n} linhas"
+report.data.cap: "primeiras {kept} de {n} linhas; o código R gera todas elas de novo"
+report.refs: Referências
+report.session: Sessão
+report.session.r: Versão do R
+report.session.platform: Plataforma
+report.session.packages: Pacotes
+report.session.date: Gerado em

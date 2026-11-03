@@ -28,7 +28,8 @@ mod_explore_ui <- function(id, lang) {
                             class = "btn-sm btn-outline-primary"),
         shiny::actionButton(ns("to_sim"), i18n_span("explorer.to_sim", lang),
                             icon = shiny::icon("shuffle", `aria-hidden` = "true"),
-                            class = "btn-sm btn-outline-primary")
+                            class = "btn-sm btn-outline-primary"),
+        report_button(ns("report"), lang)
       )
     ),
     shiny::uiOutput(ns("header")),
@@ -102,12 +103,15 @@ dist_choices <- function(lang) {
 # `select` is a reactive navigation request from other pages (Home,
 # Compendium, Simulation): list(tab, id, params); requests for the Explorer
 # open distribution `id`, with `params` when given.
+# `store` is the session record of study_store(), which feeds the study
+# report.
 # Returns the reactives of the current entry, parameter values and
 # distribution, and `route`, a request to open the Calculator, Compare or the
 # Simulation.
 mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
-                               select = shiny::reactive(NULL)) {
+                               select = shiny::reactive(NULL), store = NULL) {
   lang_r <- if (shiny::is.reactive(lang)) lang else shiny::reactive(lang)
+  store <- store %||% study_store()
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
     entry <- shiny::reactive(dl_entry(shiny::req(input$dist)))
@@ -180,35 +184,11 @@ mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
     })
 
     output$density <- plotly::renderPlotly({
-      d <- curve()
-      lg <- lang_r()
-      th <- plot_theme(dark())
-      if (is_discrete()) {
-        p <- plotly::plot_ly(d, x = ~x, y = ~density, type = "bar",
-                             marker = list(color = th$fill_solid),
-                             hovertemplate = "x = %{x}<br>P = %{y:.4f}<extra></extra>")
-        ylab <- tr("plot.probability", lg)
-      } else {
-        p <- plotly::plot_ly(d, x = ~x, y = ~density, type = "scatter",
-                             mode = "lines", fill = "tozeroy",
-                             fillcolor = th$fill, line = list(color = th$line, width = 2.5),
-                             hovertemplate = "x = %{x:.4f}<br>f(x) = %{y:.4f}<extra></extra>")
-        ylab <- tr("plot.density", lg)
-      }
-      p <- mean_marker(p, dist_now(), th, lg)
-      plot_layout(p, tr("plot.x", lg), ylab, th, lg, ylim = density_ylim(d))
+      explore_density_plot(curve(), dist_now(), lang_r(), plot_theme(dark()))
     })
 
     output$cdf <- plotly::renderPlotly({
-      d <- curve()
-      lg <- lang_r()
-      th <- plot_theme(dark())
-      # Discrete CDFs are right-continuous step functions.
-      shape <- if (is_discrete()) "hv" else "linear"
-      p <- plotly::plot_ly(d, x = ~x, y = ~cdf, type = "scatter", mode = "lines",
-                           line = list(color = th$line2, shape = shape, width = 2.5),
-                           hovertemplate = "x = %{x:.4f}<br>F(x) = %{y:.4f}<extra></extra>")
-      plot_layout(p, tr("plot.x", lg), tr("plot.cdf", lg), th, lg, ylim = c(0, 1.02))
+      explore_cdf_plot(curve(), dist_now(), lang_r(), plot_theme(dark()))
     })
 
     output$moments <- shiny::renderUI({
@@ -233,9 +213,39 @@ mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
       related_list_tag(entry()$id, lang_r(), ns("goto"))
     )
 
+    output$report <- report_download(store, dist_now, lang_r)
+
     list(entry = entry, params = pars, dist = dist, dist_now = dist_now,
          route = route)
   })
+}
+
+# Density (bars of the mass function for discrete laws) of a curve from
+# dl_curve(), with the mean marked.
+explore_density_plot <- function(d, dist, lang, th) {
+  if (identical(dist$entry$type, "discrete")) {
+    p <- plotly::plot_ly(d, x = ~x, y = ~density, type = "bar",
+                         marker = list(color = th$fill_solid),
+                         hovertemplate = "x = %{x}<br>P = %{y:.4f}<extra></extra>")
+    ylab <- tr("plot.probability", lang)
+  } else {
+    p <- plotly::plot_ly(d, x = ~x, y = ~density, type = "scatter",
+                         mode = "lines", fill = "tozeroy",
+                         fillcolor = th$fill, line = list(color = th$line, width = 2.5),
+                         hovertemplate = "x = %{x:.4f}<br>f(x) = %{y:.4f}<extra></extra>")
+    ylab <- tr("plot.density", lang)
+  }
+  p <- mean_marker(p, dist, th, lang)
+  plot_layout(p, tr("plot.x", lang), ylab, th, lang, ylim = density_ylim(d))
+}
+
+# CDF of a curve from dl_curve(); discrete CDFs are right-continuous steps.
+explore_cdf_plot <- function(d, dist, lang, th) {
+  shape <- if (identical(dist$entry$type, "discrete")) "hv" else "linear"
+  p <- plotly::plot_ly(d, x = ~x, y = ~cdf, type = "scatter", mode = "lines",
+                       line = list(color = th$line2, shape = shape, width = 2.5),
+                       hovertemplate = "x = %{x:.4f}<br>F(x) = %{y:.4f}<extra></extra>")
+  plot_layout(p, tr("plot.x", lang), tr("plot.cdf", lang), th, lang, ylim = c(0, 1.02))
 }
 
 # Title of the open distribution with its type and data-type group.

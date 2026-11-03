@@ -275,3 +275,56 @@ test_that("ambiguous commas follow the table structure in both languages", {
     })
   }
 })
+
+test_that("the ranking names the best fit of each group and marks its row", {
+  shiny::testServer(distlab:::mod_fit_server, args = list(lang = "pt-BR"), {
+    session$setInputs(source = "example", example = "faithful", level = ".95", load = 0, run = 0)
+    session$setInputs(load = 1)
+    session$setInputs(candidates = c("normal", "gamma", "weibull"), run = 1)
+    html <- output$ranking$html
+    expect_match(html, "Melhor ajuste: Weibull — menor AIC (peso de Akaike 1,00)", fixed = TRUE)
+    expect_match(html, "Densidades contínuas", fixed = TRUE)
+    expect_no_match(html, "O BIC escolhe outra família", fixed = TRUE)
+    expect_no_match(html, distlab:::tr("fit.best_groups", "pt-BR"), fixed = TRUE)
+    # One winning row, in bold, with an accessible badge.
+    expect_identical(lengths(regmatches(html, gregexpr('class="dl-best-row"', html, fixed = TRUE))), 1L)
+    expect_match(html, paste0('<tr class="dl-best-row">\\s*<td>\\s*Weibull\\s*',
+                              '<span class="badge dl-best-badge" title="Menor AIC do grupo">melhor</span>'),
+                 perl = TRUE)
+    # Diagnostics open on the winner.
+    expect_identical(selected_fit()$id, "weibull")
+    expect_match(output$estimates$html, "shape")
+  })
+})
+
+test_that("the summary says when BIC picks another family", {
+  x <- c(4.15, 1.65, 3.42, 0.71, 1.61, 0.7, 2.61, 3.39, 1.27, 0.2, 1.98, 1.69, 0.71, 1.56,
+         2.39, 0.04, 3.28, 1.41, 1.12, 0.56, 0.57, 0.81, 1.32, 1.21, 0.76, 0.38, 1.1, 0.96,
+         0.67, 2.26, 0.3, 0.04, 0.49, 3.68, 0.89, 1.85, 0.58, 0.56, 3.06, 1.58)
+  shiny::testServer(distlab:::mod_fit_server, args = list(lang = "en-US"), {
+    session$setInputs(source = "paste", kind = "raw", decimal = "auto",
+                      text = paste(c("value", x), collapse = "\n"), value_col = "value",
+                      level = ".95", load = 0, run = 0)
+    session$setInputs(load = 1)
+    session$setInputs(candidates = c("exponential", "gamma"), run = 1)
+    html <- output$ranking$html
+    expect_match(html, "Best fit: Gamma — lowest AIC (Akaike weight 0.69)", fixed = TRUE)
+    expect_match(html, "BIC picks a different family: Exponential has the lowest BIC.", fixed = TRUE)
+    expect_identical(selected_fit()$id, "gamma")
+  })
+})
+
+test_that("groups without a converged family say so and groups are not compared", {
+  fit <- dl_fit(c(1, 1, 2), "cauchy")
+  html <- as.character(distlab:::fit_ranking_tag(fit, "en-US"))
+  expect_match(html, distlab:::tr("fit.best_none", "en-US"), fixed = TRUE)
+  expect_no_match(html, "dl-best-row", fixed = TRUE)
+  expect_null(distlab:::fit_winner(fit$ranking))
+  grouped <- dl_fit(dl_fit_data(c(0, 1, 2, 3, 4), frequency = c(8, 18, 14, 7, 3)),
+                    c("poisson", "normal"))
+  html <- as.character(distlab:::fit_ranking_tag(grouped, "pt-BR"))
+  expect_match(html, distlab:::tr("fit.best_groups", "pt-BR"), fixed = TRUE)
+  expect_identical(lengths(regmatches(html, gregexpr('class="dl-best-row"', html, fixed = TRUE))), 2L)
+  # Akaike weights far below 0.0001 show as powers of ten.
+  expect_no_match(html, "0,0000", fixed = TRUE)
+})

@@ -586,6 +586,19 @@ th[aria-sort="ascending"], th[aria-sort="descending"] { color: var(--dl-ink); }
 .dl-fit-notice { border-left: 3px solid var(--dl-amber); background: var(--dl-surface);
   padding: 0.75rem 1rem; border-radius: 0.35rem; margin: 0 0 1rem; }
 .dl-fit-table { margin-bottom: 0.5rem; }
+/* Best fit: summary above the ranking and the winning row of each table. */
+.dl-fit-best { border-left: 4px solid var(--dl-teal); background: var(--dl-formula-bg);
+  border-radius: 0.6rem; padding: 0.6rem 0.9rem; margin-bottom: 0.9rem; }
+.dl-fit-best-group + .dl-fit-best-group { border-top: 1px dashed var(--dl-border); margin-top: 0.45rem;
+  padding-top: 0.45rem; }
+.dl-fit-best-label { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--dl-muted); margin: 0; }
+.dl-fit-best-line { margin: 0.15rem 0 0; }
+.dl-fit-best-note { font-size: 0.85rem; color: var(--dl-muted); margin: 0.5rem 0 0; }
+.dl-table .dl-best-row > td { font-weight: 700; background: var(--dl-chip-teal); }
+.dl-best-badge { background: transparent; color: var(--dl-accent-text); border: 1px solid currentColor;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  border-radius: 999px; padding: 0.15em 0.55em; vertical-align: middle; }
 .dl-fit .btn + .btn { margin-left: 0.35rem; }
 .dl-fit .dl-code { margin-bottom: 0.75rem; }
 .dl-fit details { margin-top: 0.6rem; }

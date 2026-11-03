@@ -1,0 +1,198 @@
+/* distlab study report: one light, print-friendly page in the brand colors. */
+
+:root {
+  --dl-indigo: #2B2D6E;
+  --dl-teal: #14A3A0;
+  --dl-amber: #F2A33A;
+  --dl-bg: #F7F8FC;
+  --dl-surface: #FFFFFF;
+  --dl-ink: #1B1C3A;
+  --dl-muted: #5B5E8A;
+  --dl-border: #E3E5F0;
+  --dl-accent-text: #0A6664;
+  --dl-amber-text: #8C5A0B;
+  --dl-chip-bg: #EEF0FA;
+  --dl-chip-indigo: rgba(43, 45, 110, 0.10);
+  --dl-chip-teal: rgba(20, 163, 160, 0.14);
+  --dl-chip-amber: rgba(242, 163, 58, 0.20);
+  --dl-formula-bg: #FAFBFE;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--dl-bg); color: var(--dl-ink);
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 16px; line-height: 1.55;
+}
+h1, h2, h3, h4 { font-family: "Space Grotesk", "Inter", sans-serif; color: var(--dl-indigo);
+  line-height: 1.25; margin: 0 0 0.6rem; }
+h1 { font-size: 2rem; font-weight: 700; }
+h2 { font-size: 1.45rem; font-weight: 700; margin-top: 0.4rem; }
+h3 { font-size: 1.12rem; font-weight: 700; margin-top: 1.4rem; }
+h4 { font-size: 1rem; font-weight: 600; margin-top: 1rem; }
+p { margin: 0 0 0.7rem; }
+a { color: var(--dl-accent-text); }
+code, pre { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-variant-ligatures: none; }
+code { font-size: 0.88em; }
+
+/* Icons of shared helpers are not part of the report. */
+i.fa, i.fas, i.far, i.fab, i.fa-solid, i.fa-regular, svg.svg-inline--fa { display: none; }
+.visually-hidden { position: absolute !important; width: 1px; height: 1px; padding: 0;
+  margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+.dl-report { max-width: 980px; margin: 0 auto; padding: 1.5rem 16px 3rem; }
+.dl-report-cover { background: var(--dl-surface); border: 1px solid var(--dl-border);
+  border-top: 6px solid var(--dl-indigo); border-radius: 0.9rem; padding: 1.4rem 1.5rem; }
+.dl-report-kicker { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--dl-accent-text); margin-bottom: 0.3rem; }
+.dl-report-sub { color: var(--dl-muted); }
+.dl-report-badges { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.4rem 0 0.9rem; }
+.dl-report-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.6rem 1.2rem; margin: 1rem 0 0; }
+.dl-report-meta div { min-width: 0; }
+.dl-report-meta dt { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--dl-muted); }
+.dl-report-meta dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.dl-report-print { margin-top: 1rem; font: inherit; font-size: 0.88rem; font-weight: 600;
+  color: var(--dl-indigo); background: var(--dl-chip-bg); border: 1px solid var(--dl-border);
+  border-radius: 0.5rem; padding: 0.35rem 0.9rem; cursor: pointer; }
+
+.dl-report-toc { background: var(--dl-surface); border: 1px solid var(--dl-border);
+  border-radius: 0.9rem; padding: 1rem 1.5rem; margin: 1rem 0; }
+.dl-report-toc h2 { font-size: 1.05rem; margin: 0 0 0.4rem; }
+.dl-report-toc ol { margin: 0; padding-left: 1.3rem; columns: 2 16rem; }
+.dl-report-toc li { break-inside: avoid; }
+
+.dl-report-section { background: var(--dl-surface); border: 1px solid var(--dl-border);
+  border-radius: 0.9rem; padding: 1.3rem 1.5rem; margin: 1rem 0; }
+.dl-report-block { margin: 1rem 0 1.4rem; }
+.dl-report-block + .dl-report-block { border-top: 1px dashed var(--dl-border); padding-top: 1rem; }
+.dl-report-caption { color: var(--dl-muted); font-size: 0.9rem; }
+.dl-report-ref { font-size: 0.85rem; margin-top: 0.4rem; }
+.dl-report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: 0.6rem 1.2rem; }
+.dl-report-plot { min-width: 0; break-inside: avoid; page-break-inside: avoid; }
+.dl-report-plot-title { font-size: 0.9rem; font-weight: 600; color: var(--dl-muted); margin: 0.6rem 0 0.2rem; }
+
+.badge { display: inline-block; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.6rem;
+  border-radius: 999px; background: var(--dl-chip-bg); color: var(--dl-indigo); }
+.dl-badge-muted { background: var(--dl-chip-amber); color: var(--dl-amber-text); }
+.dl-rel-special_case { background: var(--dl-chip-indigo); color: var(--dl-indigo); }
+.dl-rel-transformation { background: var(--dl-chip-teal); color: var(--dl-accent-text); }
+.dl-rel-limit { background: var(--dl-chip-amber); color: var(--dl-amber-text); }
+.dl-rel-sum { background: var(--dl-chip-bg); color: var(--dl-indigo); border: 1px solid var(--dl-border); }
+.dl-muted { color: var(--dl-muted); }
+.dl-story { font-size: 1.02rem; }
+
+/* Formula sheet, as in the Explorer. */
+.dl-formula-list { display: flex; flex-direction: column; gap: 0.6rem; }
+.dl-formula { background: var(--dl-formula-bg); border: 1px solid var(--dl-border);
+  border-radius: 0.6rem; padding: 0.55rem 0.9rem; break-inside: avoid; }
+.dl-formula-label { font-size: 0.85rem; font-weight: 600; color: var(--dl-muted); }
+.dl-piece { display: flex; flex-wrap: wrap; align-items: center; column-gap: 1.25rem; }
+.dl-piece + .dl-piece { border-top: 1px dashed var(--dl-border); }
+.dl-piece-math { flex: 1 1 auto; min-width: 0; overflow-x: auto; overflow-y: hidden; }
+.dl-piece-math .katex-display { margin: 0.4rem 0; text-align: left; }
+.dl-piece-math .katex-display > .katex { text-align: left; }
+.dl-piece-cond { color: var(--dl-muted); font-size: 0.92rem; }
+.dl-cond-word { font-style: italic; margin-right: 0.15rem; }
+.dl-formula-status { display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0; }
+.dl-report-math { background: var(--dl-formula-bg); border: 1px solid var(--dl-border);
+  border-radius: 0.6rem; padding: 0.2rem 0.9rem; overflow-x: auto; overflow-y: hidden; }
+.dl-math .katex-display { margin: 0.5rem 0; }
+
+/* Related distributions. */
+.dl-report-rel { list-style: none; padding: 0; margin: 0; }
+.dl-report-rel li { padding: 0.45rem 0; border-bottom: 1px solid var(--dl-border); }
+.dl-report-rel li:last-child { border-bottom: 0; }
+.dl-rel-path { font-weight: 600; }
+.dl-rel-arrow { color: var(--dl-muted); margin: 0 0.35rem; }
+.dl-rel-cond { color: var(--dl-muted); margin: 0.2rem 0 0; }
+
+/* Tables. */
+.table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0.4rem 0 0.8rem; }
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+caption { caption-side: top; text-align: left; font-weight: 600; color: var(--dl-muted);
+  padding: 0 0 0.3rem; }
+th, td { padding: 0.45rem 0.65rem; border-bottom: 1px solid var(--dl-border); text-align: left;
+  vertical-align: middle; }
+thead th { font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--dl-muted); background: var(--dl-formula-bg); white-space: nowrap; }
+tbody th { font-weight: 600; }
+.dl-cell-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dl-cell-mark { text-align: center; }
+.dl-cell-undefined { color: var(--dl-amber-text); font-weight: 600; }
+.dl-mark-yes { color: var(--dl-accent-text); font-weight: 700; }
+.dl-mark-no { color: var(--dl-amber-text); font-weight: 700; }
+
+/* Notes, verdicts and calculator results. */
+.dl-calc-note, .dl-fit-notice { font-size: 0.88rem; color: var(--dl-muted); background: var(--dl-formula-bg);
+  border-left: 3px solid var(--dl-teal); border-radius: 0.4rem; padding: 0.45rem 0.75rem; margin: 0.4rem 0; }
+.dl-sim-verdict { border-radius: 0.6rem; padding: 0.6rem 0.9rem; margin: 0.4rem 0;
+  background: var(--dl-formula-bg); border: 1px solid var(--dl-border); }
+.dl-sim-verdict-yes { border-left: 4px solid var(--dl-teal); }
+.dl-sim-verdict-no { border-left: 4px solid var(--dl-amber); }
+.dl-sim-verdict-main { font-weight: 700; }
+.dl-sim-law { margin: 0.4rem 0; }
+.dl-calc-out { display: flex; flex-direction: column; gap: 0.3rem; }
+.dl-calc-event { overflow-x: auto; overflow-y: hidden; }
+.dl-calc-event .katex-display { margin: 0; text-align: left; }
+.dl-calc-event .katex-display > .katex { text-align: left; font-size: 1.2em; }
+.dl-calc-value { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.6rem; }
+.dl-calc-big { font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 1.9rem;
+  color: var(--dl-indigo); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.dl-calc-pct { background: var(--dl-chip-amber); color: var(--dl-amber-text); }
+.dl-calc-notes { color: var(--dl-muted); font-size: 0.9rem; margin: 0.2rem 0; padding-left: 1.2rem; }
+
+/* Best fit of the Fit section. */
+.dl-fit-best { border-left: 4px solid var(--dl-teal); background: var(--dl-formula-bg);
+  border-radius: 0.6rem; padding: 0.6rem 0.9rem; margin: 0.4rem 0 0.9rem; }
+.dl-fit-best-group + .dl-fit-best-group { border-top: 1px dashed var(--dl-border); margin-top: 0.45rem;
+  padding-top: 0.45rem; }
+.dl-fit-best-label { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--dl-muted); margin: 0; }
+.dl-fit-best-line { margin: 0.15rem 0 0; }
+.dl-fit-best-note { font-size: 0.85rem; color: var(--dl-muted); margin: 0.5rem 0 0; }
+.dl-best-row > td { font-weight: 700; background: var(--dl-chip-teal); }
+.dl-best-badge { background: transparent; color: var(--dl-accent-text); border: 1px solid currentColor;
+  font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.04em; padding: 0.1em 0.5em;
+  vertical-align: middle; }
+
+/* R code. */
+.dl-code { border: 1px solid var(--dl-border); border-radius: 0.6rem; background: var(--dl-formula-bg);
+  margin: 0.5rem 0 1rem; overflow: hidden; }
+.dl-code-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+  padding: 0.35rem 0.8rem; border-bottom: 1px solid var(--dl-border); background: var(--dl-chip-bg); }
+.dl-code-title { font-size: 0.82rem; font-weight: 700; color: var(--dl-indigo); }
+.dl-copy { font: inherit; font-size: 0.78rem; font-weight: 600; color: var(--dl-indigo);
+  background: var(--dl-surface); border: 1px solid var(--dl-border); border-radius: 0.4rem;
+  padding: 0.15rem 0.6rem; cursor: pointer; }
+.dl-copied { color: var(--dl-accent-text); }
+.dl-code-block { margin: 0; padding: 0.65rem 0.8rem; font-size: 0.82rem; line-height: 1.5;
+  white-space: pre-wrap; overflow-wrap: anywhere; }
+.dl-report-code details > summary { cursor: pointer; padding: 0.4rem 0.8rem; color: var(--dl-accent-text); }
+.dl-report-data { padding-left: 1.2rem; }
+.dl-report-data li { margin: 0.25rem 0; }
+.dl-report-refs li { margin: 0.25rem 0; }
+
+@media (max-width: 600px) {
+  body { font-size: 15px; }
+  h1 { font-size: 1.6rem; }
+  .dl-report-cover, .dl-report-section, .dl-report-toc { padding: 1rem; }
+  .dl-calc-big { font-size: 1.5rem; }
+}
+
+@media print {
+  body { background: #FFFFFF; font-size: 11pt; }
+  .dl-report { max-width: none; padding: 0; }
+  .dl-report-cover, .dl-report-section, .dl-report-toc { border: 0; border-radius: 0; padding: 0.4rem 0; }
+  .dl-report-section { break-before: auto; }
+  .dl-report-print, .dl-copy, .modebar-container, .updatemenu-container { display: none !important; }
+  .dl-report-plot, .dl-formula, .dl-code, table { break-inside: avoid; page-break-inside: avoid; }
+  .dl-code-block { white-space: pre-wrap; overflow-wrap: anywhere; overflow: visible; }
+  .table-responsive, .dl-piece-math, .dl-report-math, .dl-calc-event { overflow: visible; }
+  a { color: inherit; text-decoration: none; }
+}

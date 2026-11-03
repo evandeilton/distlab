@@ -57,9 +57,9 @@
 #'   * `target`: a `dl_dist` with the exact law of \eqn{Y}, or `NULL`;
 #'   * `approx`: the Normal approximation (a `dl_dist`) for sums and means
 #'     without an exact law, or `NULL`;
-#'   * `op`, `k`, `a`, `b`, `seed`, and `code` (R code that reproduces the
-#'     sample, its mean and standard deviation, and the moments of the
-#'     reference law, exactly when a seed is given).
+#'   * `op`, `k`, `a`, `b`, `dist` (as in [dl_lln()]), `seed`, and `code` (R
+#'     code that reproduces the sample, its mean and standard deviation, and
+#'     the moments of the reference law, exactly when a seed is given).
 #'
 #' @seealso [dl_clt()], [dl_relation_demo()]
 #' @family simulation
@@ -111,7 +111,7 @@ dl_transform <- function(dist, op, k = 2, n = 5000, seed = NULL, a = 0, b = 1) {
     snap_dist(transform_approx(dist, op, k))
   }
   list(sample = y, dropped = dropped, target = target, approx = approx, op = op,
-       k = k, a = a, b = b, seed = seed,
+       k = k, a = a, b = b, dist = dist, seed = seed,
        code = transform_code(dist, op, k, n, a, b, seed, target %||% approx))
 }
 
