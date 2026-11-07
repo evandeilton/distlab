@@ -212,8 +212,8 @@ nav.lang_pt: Português (Brasil)
 nav.lang_en: English (US)
 nav.to_dark: Mudar para o modo escuro
 nav.to_light: Mudar para o modo claro
-nav.present: Modo apresentação
-nav.present_title: "Modo apresentação para projetores (P); Esc sai"
+nav.present: Modo de apresentação
+nav.present_title: "Modo de apresentação para projetores (P); Esc para sair"
 upcoming.note: Esta seção faz parte de uma próxima versão.
 home.search_label: Encontre uma distribuição
 home.search_placeholder: "Busque uma distribuição: Normal, Poisson, Beta…"

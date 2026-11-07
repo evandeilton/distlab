@@ -32,6 +32,16 @@ test_that("every plot gets translated PNG and SVG download buttons", {
   expect_match(html, "config.modeBarButtonsToAdd.1.click", fixed = TRUE)
 })
 
+test_that("the mean label of the density gets room below the toolbar", {
+  top <- function(d) {
+    p <- distlab:::explore_density_plot(dl_curve(d), d, "en-US", distlab:::plot_theme())
+    plotly::plotly_build(p)$x$layout$margin$t
+  }
+  expect_identical(top(dl_dist("gamma", shape = 2, rate = 1)), 52)
+  # The Cauchy has no mean, so no label.
+  expect_identical(top(dl_dist("cauchy")), 24)
+})
+
 test_that("downloaded plots are named after page, distributions and plot", {
   f <- distlab:::plot_file_name
   expect_identical(f("explorer", "student_t", "density"), "distlab-explorer-student_t-density")
@@ -113,6 +123,7 @@ test_that("the Compare code card reproduces the curves and the summary table", {
   check(list(dl_dist("binomial", size = 50, prob = 0.06), dl_dist("poisson", lambda = 3)))
   check(list(dl_dist("normal", mean = 3, sd = 1.5), dl_dist("poisson", lambda = 3)))
   check(lapply(c(0.5, 1, 2), function(a) dl_dist("beta", shape1 = a, shape2 = 2)))
+  expect_identical(distlab:::compare_code(list()), "")
   shiny::testServer(distlab:::mod_compare_server, args = list(lang = "en-US"), {
     session$setInputs(mode = "overlay",
                       s1_dist = "normal", s1_p_normal_mean = 0, s1_p_normal_sd = 1,
@@ -136,6 +147,27 @@ test_that("the Fit code card rebuilds the tables shown for the selected family",
   expect_equal(values[[n - 1L]], fit$fits$gamma$estimates)
   expect_equal(values[[n]], dl_fit_diagnostics(fit, id = "gamma")$gof)
   expect_false(grepl("estimates", distlab:::fit_view_code(fit)))
+  expect_false(grepl("dl_fit_describe", distlab:::fit_view_code(fit, "gamma", describe = FALSE)))
+})
+
+test_that("the Fit code card keeps the rows removed for missing values", {
+  data <- dl_fit_data(x = c(4.1, NA, 5.3, 5.3, NA, 6.2, 7, NA))
+  fit <- dl_fit(data, ids = "normal")
+  env <- new.env(parent = globalenv())
+  values <- lapply(parse(text = distlab:::fit_view_code(fit, "normal")), eval, envir = env)
+  desc <- values[[length(values) - 2L]]
+  expect_identical(desc$removed, 3L)
+  expect_equal(desc, dl_fit_describe(data))
+  expect_equal(env$fit$ranking, fit$ranking)
+  # The card describes the data only while the page shows the fitted data.
+  shiny::testServer(distlab:::mod_fit_server, args = list(lang = "en-US"), {
+    session$setInputs(source = "example", example = "iris", level = ".95", load = 0, run = 0)
+    session$setInputs(load = 1)
+    session$setInputs(candidates = "normal", run = 1)
+    expect_match(output$code$html, "distlab::dl_fit_describe(data)", fixed = TRUE)
+    session$setInputs(example = "faithful", load = 2)
+    expect_false(grepl("dl_fit_describe", output$code$html, fixed = TRUE))
+  })
 })
 
 test_that("the navbar has a presentation toggle labeled in both languages", {

@@ -167,13 +167,47 @@ test_that("the language switch keeps tab, distribution and parameters", {
     "(function () { var gd = document.getElementById('explore-density');",
     " return Plotly.toImage({ data: gd.data, layout: gd.layout }, { format: 'svg', width: 600,",
     " height: 350 }); })()")), "^data:image/svg\\+xml")
-  # Presentation mode: larger type and plot fonts, closed sidebars; it
-  # survives a language switch and a reload, and Esc leaves it.
+  # The mean label never runs under the toolbar.
+  overlap <- paste0(
+    "(function () { var gd = document.getElementById('explore-density');",
+    " var a = gd.querySelector('.modebar').getBoundingClientRect();",
+    " var b = gd.querySelector('.annotation').getBoundingClientRect();",
+    " return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom; })()")
+  expect_false(app$get_js(overlap))
+  # Presentation mode: larger type and plot fonts, thicker lines, closed
+  # sidebars; it survives a language switch and a reload, and Esc leaves it.
   base_font <- "parseFloat(getComputedStyle(document.documentElement).fontSize)"
   plot_font <- "document.getElementById('explore-density').layout.font.size"
+  mean_line <- "document.getElementById('explore-density').layout.shapes[0].line.width"
   expect_equal(app$get_js(base_font), 16)
   app$run_js("document.getElementById('dl_present').click()")
   app$wait_for_js(paste(plot_font, "> 12"))
+  expect_equal(app$get_js(mean_line), 1.5 * 1.6)
+  Sys.sleep(0.5)
+  expect_false(app$get_js(overlap))
+  # Downloads keep the sizes of the normal view.
+  png_btn <- "#explore-density .modebar-btn[data-title=\"Baixar gráfico em PNG\"]"
+  app$run_js(paste0(
+    "window.__dlSaved = Plotly.downloadImage; window.__dlGot = null;",
+    "Plotly.downloadImage = function (fig, o) { window.__dlGot = { font: fig.layout.font.size,",
+    " line: fig.data[0].line.width, shape: fig.layout.shapes[0].line.width, format: o.format };",
+    " return Promise.resolve(); };",
+    sprintf("document.querySelector('%s').click();", png_btn),
+    "Plotly.downloadImage = window.__dlSaved;"))
+  got <- app$get_js("window.__dlGot")
+  expect_identical(got$format, "png")
+  expect_equal(c(got$font, got$line, got$shape), c(12, 2.5, 1.5))
+  expect_gt(app$get_js(plot_font), 12)
+  # Esc that closes a menu keeps the mode, and a held P key does not flicker.
+  present_on <- "document.documentElement.classList.contains('dl-present')"
+  app$run_js(paste0(
+    "var m = document.createElement('div'); m.id = 'dl-test-menu'; m.className = 'dropdown-menu show';",
+    " document.body.appendChild(m);",
+    " document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));"))
+  expect_true(app$get_js(present_on))
+  app$run_js("document.getElementById('dl-test-menu').remove()")
+  app$run_js("document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'p', repeat: true, bubbles: true}))")
+  expect_true(app$get_js(present_on))
   expect_gt(app$get_js(base_font), 16)
   expect_lt(app$get_js(spread), 10, label = "navbar spread while presenting")
   expect_identical(app$get_js("document.getElementById('dl_present').getAttribute('aria-pressed')"), "true")

@@ -240,8 +240,11 @@ explore_density_plot <- function(d, dist, lang, th) {
                          hovertemplate = "x = %{x:.4f}<br>f(x) = %{y:.4f}<extra></extra>")
     ylab <- tr("plot.density", lang)
   }
-  p <- mean_marker(p, dist, th, lang)
-  plot_layout(p, tr("plot.x", lang), ylab, th, lang, ylim = density_ylim(d))
+  p <- plot_layout(mean_marker(p, dist, th, lang), tr("plot.x", lang), ylab, th, lang,
+                   ylim = density_ylim(d))
+  # The mean label sits above the plot area, below the toolbar.
+  if (is.finite(dist_mean(dist))) p <- plotly::layout(p, margin = list(l = 56, r = 12, t = 52, b = 44))
+  p
 }
 
 # CDF of a curve from dl_curve(); discrete CDFs are right-continuous steps.
@@ -320,9 +323,12 @@ plot_theme <- function(dark = FALSE) {
   }
 }
 
+# Mean of a distribution; NA when the engine cannot compute it.
+dist_mean <- function(d) tryCatch(dl_moments(d)[["mean"]], error = function(err) NA_real_)
+
 # Dashed vertical line at the mean, when it exists and is finite.
 mean_marker <- function(p, d, th, lang) {
-  mu <- tryCatch(dl_moments(d)[["mean"]], error = function(err) NA_real_)
+  mu <- dist_mean(d)
   if (!is.finite(mu)) return(p)
   plotly::layout(p, shapes = list(list(
     type = "line", xref = "x", yref = "paper", x0 = mu, x1 = mu, y0 = 0, y1 = 1,
@@ -376,8 +382,10 @@ plot_layout <- function(p, xlab, ylab, th = plot_theme(), lang = "en-US", ylim =
 }
 
 # Click handler of an export button: draws a copy of the figure on the
-# opaque background behind the plot (white or dark, as on screen) and
-# downloads it with the name and size of toImageButtonOptions.
+# opaque background behind the plot (white or dark, as on screen), at the
+# sizes it has outside the presentation mode (window.distlabFigure() of
+# distlab.js), and downloads it with the name and size of
+# toImageButtonOptions.
 .dl_export_js <- paste(
   "function (gd) {",
   "  var o = gd._context.toImageButtonOptions || {};",
@@ -389,8 +397,9 @@ plot_layout <- function(p, xlab, ylab, th = plot_theme(), lang = "en-US", ylim =
   "      break;",
   "    }",
   "  }",
-  "  var layout = Object.assign({}, gd.layout, { paper_bgcolor: bg, plot_bgcolor: bg });",
-  "  window.Plotly.downloadImage({ data: gd.data, layout: layout }, {",
+  "  var fig = window.distlabFigure ? window.distlabFigure(gd) : { data: gd.data, layout: gd.layout };",
+  "  var layout = Object.assign({}, fig.layout, { paper_bgcolor: bg, plot_bgcolor: bg });",
+  "  window.Plotly.downloadImage({ data: fig.data, layout: layout }, {",
   "    format: 'FORMAT', filename: o.filename || 'distlab-plot',",
   "    width: o.width || 1200, height: o.height || 700, scale: o.scale || 1",
   "  });",
