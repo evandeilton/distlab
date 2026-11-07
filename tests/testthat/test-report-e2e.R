@@ -45,6 +45,9 @@ test_that("a report opens from disk with its plots, math and fonts", {
   }
   expect_identical(ev("typeof window.Plotly"), "object")
   expect_identical(ev("document.querySelectorAll('.js-plotly-plot').length"), widgets)
+  # Every figure offers PNG and SVG downloads with Portuguese tooltips.
+  expect_identical(ev("document.querySelectorAll('.modebar-btn[data-title=\"Baixar gráfico em SVG (vetorial)\"]').length"),
+                   widgets)
   expect_gt(ev("document.querySelectorAll('.dl-math .katex').length"), 10)
   expect_identical(ev("document.querySelectorAll('.dl-math:not([data-rendered])').length"), 0L)
   # KaTeX and brand fonts load from data URIs inside the page.

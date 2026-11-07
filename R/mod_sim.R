@@ -343,14 +343,18 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
       if (inherits(res, "error")) return(res)
       sim_run(sample_view_of(res$sample, d))
     })
+    # Downloaded plots are named after the open distribution.
+    named <- function(p, plot) plot_file(p, "simulation", dist_now()$id, plot)
     output$sample_hist <- plotly::renderPlotly({
       mc_val()
       v <- sim_value(sample_view(), lang_r())
-      sim_hist_plot(v, lang_r(), plot_theme(dark()), tr("sim.exact", lang_r()))
+      named(sim_hist_plot(v, lang_r(), plot_theme(dark()), tr("sim.exact", lang_r())),
+            "sample-histogram")
     })
     output$sample_ecdf <- plotly::renderPlotly({
       v <- sim_value(sample_view(), lang_r())
-      sim_ecdf_plot(mc_val()$sample, dist_now(), v$range, lang_r(), plot_theme(dark()))
+      named(sim_ecdf_plot(mc_val()$sample, dist_now(), v$range, lang_r(), plot_theme(dark())),
+            "sample-ecdf")
     })
     output$sample_note <- shiny::renderUI({
       v <- sample_view()
@@ -376,8 +380,8 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
     })
     lln_val <- shiny::reactive(sim_value(lln(), lang_r()))
     output$lln_plot <- plotly::renderPlotly({
-      lln_plot(lln_val(), isTRUE(input$lln_log), lang_r(), plot_theme(dark()),
-               lower = dl_support(dist_now())$lower)
+      named(lln_plot(lln_val(), isTRUE(input$lln_log), lang_r(), plot_theme(dark()),
+                     lower = dl_support(dist_now())$lower), "lln")
     })
     output$lln_note <- shiny::renderUI(lln_note(lln_val(), lang_r()))
     output$lln_code <- shiny::renderUI(code_out(lln_val(), "lln-code"))
@@ -393,7 +397,7 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
     })
     clt_val <- shiny::reactive(sim_value(clt(), lang_r()))
     output$clt_plot <- plotly::renderPlotly({
-      clt_plot(clt_val(), dist_now(), lang_r(), plot_theme(dark()))
+      named(clt_plot(clt_val(), dist_now(), lang_r(), plot_theme(dark())), "clt")
     })
     output$clt_note <- shiny::renderUI(clt_note(clt_val(), is_discrete(), lang_r()))
     output$clt_table <- shiny::renderUI({
@@ -435,7 +439,8 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
     output$tf_plot <- plotly::renderPlotly({
       res <- tf_val()
       lg <- lang_r()
-      tf_plot(res, sim_value(tf_view(), lg), lg, plot_theme(dark()))
+      named(tf_plot(res, sim_value(tf_view(), lg), lg, plot_theme(dark())),
+            paste0("transform-", op()))
     })
     output$tf_summary <- shiny::renderUI({
       v <- tf_view()
@@ -462,7 +467,10 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
       tab_open("relations")
       rel_head_tag(edge(), lang_r(), ns("open_end"))
     })
-    output$rel_plot <- plotly::renderPlotly(rel_plot(demo_val(), lang_r(), plot_theme(dark())))
+    output$rel_plot <- plotly::renderPlotly({
+      ends <- strsplit(edge(), "__", fixed = TRUE)[[1]][1:2]
+      plot_file(rel_plot(demo_val(), lang_r(), plot_theme(dark())), "simulation", ends, "relation")
+    })
     output$rel_note <- shiny::renderUI(rel_note(demo_val(), lang_r()))
     output$rel_table <- shiny::renderUI(rel_table_tag(demo_val(), lang_r()))
     output$rel_code <- shiny::renderUI(code_out(demo_val(), "rel-code"))
@@ -527,12 +535,14 @@ mod_sim_server <- function(id, lang, dark = shiny::reactive(FALSE),
       if (is_discrete()) note_list(tr("sim.mem.note.discrete", lang_r()))
     })
     output$mem_code <- shiny::renderUI(code_out(mem_val(), "mem-code"))
-    output$mem_surv <- plotly::renderPlotly(mem_surv_plot(mem_val(), dist_now(), lang_r(),
-                                                          plot_theme(dark())))
+    output$mem_surv <- plotly::renderPlotly({
+      named(mem_surv_plot(mem_val(), dist_now(), lang_r(), plot_theme(dark())),
+            "memoryless-survival")
+    })
     output$mem_hist <- plotly::renderPlotly({
       res <- mem_val()
       v <- sim_value(sim_run(sample_view_of(res$residual, dist_now())), lang_r())
-      mem_hist_plot(v, lang_r(), plot_theme(dark()))
+      named(mem_hist_plot(v, lang_r(), plot_theme(dark())), "memoryless-histogram")
     })
 
     # Study report of the open distribution, with what the session recorded.

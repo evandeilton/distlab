@@ -1,6 +1,6 @@
 /* distlab client script: KaTeX rendering, live language switch,
    distribution buttons, Home panels and last-distribution memory, copy
-   buttons and the sortable, filterable tables. */
+   buttons, the sortable, filterable tables and the presentation mode. */
 (function () {
   "use strict";
 
@@ -207,7 +207,11 @@
       if (src) copyText(src.textContent, cb);
       return;
     }
-    if (ev.target.closest(".dl-print")) window.print();
+    if (ev.target.closest(".dl-print")) {
+      window.print();
+      return;
+    }
+    if (ev.target.closest(".dl-present-btn")) setPresent(!presenting(), true);
   });
 
   // Open or close the panel of a Home data-type tile; one is open at a time.
@@ -222,6 +226,174 @@
     var panel = document.getElementById(tile.getAttribute("aria-controls"));
     if (panel) panel.hidden = !open;
   }
+
+  // Presentation mode: a class on <html> that the stylesheet reads (larger
+  // type, no help lines), collapsed sidebars and larger plot fonts with
+  // thicker lines. The choice is kept in the browser; storage may be blocked.
+  var presentKey = "distlab.present";
+  var presentScale = { font: 1.4, line: 1.6, marker: 1.4 };
+  function presenting() {
+    return document.documentElement.classList.contains("dl-present");
+  }
+
+  // Sizes of a figure that the mode scales: layout font sizes and shape line
+  // widths by attribute path, and the line width and marker size of each
+  // trace (undefined where a trace sets none).
+  function plotSizes(gd) {
+    var num = function (v) { return typeof v === "number" ? v : undefined; };
+    var L = gd.layout;
+    var fonts = { "font.size": num(L.font && L.font.size) || 12 };
+    var lines = {};
+    if (L.legend && L.legend.font && num(L.legend.font.size)) {
+      fonts["legend.font.size"] = L.legend.font.size;
+    }
+    (L.annotations || []).forEach(function (a, i) {
+      if (a && a.font && num(a.font.size)) fonts["annotations[" + i + "].font.size"] = a.font.size;
+    });
+    (L.shapes || []).forEach(function (sh, i) {
+      if (sh && sh.line && num(sh.line.width)) lines["shapes[" + i + "].line.width"] = sh.line.width;
+    });
+    Object.keys(L).forEach(function (key) {
+      var ax = L[key];
+      if (!/^[xy]axis[0-9]*$/.test(key) || !ax) return;
+      if (ax.tickfont && num(ax.tickfont.size)) fonts[key + ".tickfont.size"] = ax.tickfont.size;
+      if (ax.title && ax.title.font && num(ax.title.font.size)) {
+        fonts[key + ".title.font.size"] = ax.title.font.size;
+      }
+    });
+    return {
+      fonts: fonts, lines: lines,
+      traceLines: gd.data.map(function (t) { return num(t.line && t.line.width); }),
+      markers: gd.data.map(function (t) { return num(t.marker && t.marker.size); })
+    };
+  }
+
+  // Layout and trace values of sizes `b` at the presentation scale (`on`)
+  // or as drawn.
+  function scaledSizes(b, on) {
+    var k = on ? presentScale : { font: 1, line: 1, marker: 1 };
+    var layout = {};
+    Object.keys(b.fonts).forEach(function (p) { layout[p] = Math.round(b.fonts[p] * k.font); });
+    Object.keys(b.lines).forEach(function (p) { layout[p] = b.lines[p] * k.line; });
+    var times = function (f) {
+      return function (v) { return v === undefined ? undefined : v * f; };
+    };
+    return { layout: layout, lines: b.traceLines.map(times(k.line)),
+             markers: b.markers.map(times(k.marker)) };
+  }
+
+  // Scale the sizes of one plotly figure to the mode. The sizes it had are
+  // kept on the element; a figure the server draws again arrives without
+  // the mark, at its own sizes.
+  function stylePlot(gd) {
+    if (!window.Plotly || !gd || !gd.layout || !Array.isArray(gd.data)) return;
+    var on = presenting();
+    if (on === (gd.layout._dlPresent === true)) return;
+    if (on) gd._dlBase = plotSizes(gd);
+    if (!gd._dlBase) return;
+    var v = scaledSizes(gd._dlBase, on);
+    gd.layout._dlPresent = on;
+    // Undefined entries leave the traces without a size as they are.
+    window.Plotly.update(gd, { "line.width": v.lines, "marker.size": v.markers }, v.layout);
+  }
+
+  // Set a value at a path such as "annotations[0].font.size" in `obj`.
+  function setPath(obj, path, value) {
+    var keys = path.replace(/\[(\d+)\]/g, ".$1").split(".");
+    var o = obj;
+    for (var i = 0; i < keys.length - 1; i++) {
+      if (o[keys[i]] === null || typeof o[keys[i]] !== "object") o[keys[i]] = {};
+      o = o[keys[i]];
+    }
+    o[keys[keys.length - 1]] = value;
+  }
+
+  // Figure for a download: a copy of the plot at the sizes it has outside the
+  // presentation mode. Used by the export buttons of plot_layout().
+  window.distlabFigure = function (gd) {
+    var b = gd.layout && gd.layout._dlPresent === true && gd._dlBase;
+    if (!b) return { data: gd.data, layout: gd.layout };
+    var v = scaledSizes(b, false);
+    var layout = JSON.parse(JSON.stringify(gd.layout));
+    delete layout._dlPresent;
+    Object.keys(v.layout).forEach(function (p) { setPath(layout, p, v.layout[p]); });
+    var data = gd.data.map(function (t, i) {
+      var c = Object.assign({}, t);
+      if (v.lines[i] !== undefined) c.line = Object.assign({}, t.line, { width: v.lines[i] });
+      if (v.markers[i] !== undefined) c.marker = Object.assign({}, t.marker, { size: v.markers[i] });
+      return c;
+    });
+    return { data: data, layout: layout };
+  };
+
+  // Close the open sidebars (and reopen them on leaving) through bslib, so
+  // their state stays consistent; sidebars on hidden pages switch at once,
+  // since their transition would never end.
+  function setSidebars(on) {
+    var api = window.bslib && window.bslib.Sidebar;
+    document.querySelectorAll(".bslib-sidebar-layout").forEach(function (l) {
+      var open = !l.classList.contains("sidebar-collapsed");
+      var method = null;
+      if (on && open) {
+        l.setAttribute("data-dl-reopen", "true");
+        method = "close";
+      } else if (!on && l.hasAttribute("data-dl-reopen")) {
+        l.removeAttribute("data-dl-reopen");
+        if (!open) method = "open";
+      }
+      if (!method) return;
+      var sb = api && api.getInstance && api.getInstance(l);
+      if (sb) {
+        sb.toggle(method, l.offsetParent === null);
+      } else {
+        var t = l.querySelector(":scope > .collapse-toggle");
+        if (t) t.click();
+      }
+    });
+  }
+
+  function setPresent(on, save) {
+    document.documentElement.classList.toggle("dl-present", on);
+    document.querySelectorAll(".dl-present-btn").forEach(function (b) {
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    if (save) {
+      try { window.localStorage.setItem(presentKey, on ? "1" : "0"); } catch (e) { /* blocked */ }
+    }
+    setSidebars(on);
+    document.querySelectorAll(".js-plotly-plot").forEach(stylePlot);
+    // Plots take the new widths once the sidebars have moved.
+    setTimeout(function () { window.dispatchEvent(new Event("resize")); }, 400);
+  }
+
+  function storedPresent() {
+    try { return window.localStorage.getItem(presentKey) === "1"; } catch (e) { return false; }
+  }
+
+  // Every plot drawn while presenting gets the larger sizes.
+  if (window.jQuery) {
+    window.jQuery(document).on("plotly_afterplot", function (ev) { stylePlot(ev.target); });
+  }
+
+  // "P" switches the mode and Esc leaves it, except while typing in a field.
+  // It listens in the capture phase, so an Esc that closes an open menu,
+  // dialog, popover or full-screen card is seen while that is still open
+  // and left to it.
+  var escClosable = ".dropdown-menu.show, .modal.show, .popover.show, .offcanvas.show, " +
+    "[data-full-screen='true'], .bslib-full-screen-overlay";
+  document.addEventListener("keydown", function (ev) {
+    if (ev.defaultPrevented || ev.repeat || ev.isComposing || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    if (!document.querySelector(".dl-present-btn")) return;
+    var t = ev.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    if (ev.key === "p" || ev.key === "P") {
+      ev.preventDefault();
+      setPresent(!presenting(), true);
+    } else if (ev.key === "Escape" && presenting() && !document.querySelector(escClosable) &&
+               !(t && t.closest && t.closest(".dl-group-grid, [aria-expanded='true']"))) {
+      setPresent(false, true);
+    }
+  }, true);
 
   // Esc closes the open data-type panel and returns focus to its tile.
   document.addEventListener("keydown", function (ev) {
@@ -299,6 +471,15 @@
   document.addEventListener("DOMContentLoaded", function () {
     var t = document.getElementById("dl_lang");
     if (t) setToggle(t.getAttribute("data-initial"));
+    // Presentation mode chosen in an earlier visit; sidebars close once
+    // their script has set them up.
+    if (document.querySelector(".dl-present-btn") && storedPresent()) {
+      document.documentElement.classList.add("dl-present");
+      document.querySelectorAll(".dl-present-btn").forEach(function (b) {
+        b.setAttribute("aria-pressed", "true");
+      });
+      window.addEventListener("load", function () { if (presenting()) setSidebars(true); });
+    }
     renderMath(document.body);
     observer.observe(document.body, { childList: true, subtree: true });
     // Relabel after the switch renders and after every mode change.

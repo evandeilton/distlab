@@ -297,9 +297,10 @@ report_edges <- function(id) {
 
 # Mutable state of one report: language, plot colors and counters, the code
 # blocks and the simulated data, in the order they appear.
-report_context <- function(lang) {
+report_context <- function(lang, id = NULL) {
   ctx <- new.env(parent = emptyenv())
   ctx$lang <- lang
+  ctx$id <- id
   ctx$th <- plot_theme(FALSE)
   ctx$plots <- 0L
   ctx$blocks <- list()
@@ -336,7 +337,9 @@ code_ref <- function(ctx, n) {
 report_plot <- function(ctx, expr, title, height = 320) {
   w <- tryCatch({
     ctx$plots <- ctx$plots + 1L
-    b <- report_widget(expr, sprintf("dl-plot-%d", ctx$plots), height)
+    # Downloaded figures are named after the distribution and their number.
+    p <- plot_file(expr, "report", ctx$id, sprintf("figure-%d", ctx$plots))
+    b <- report_widget(p, sprintf("dl-plot-%d", ctx$plots), height)
     htmltools::tagQuery(htmltools::as.tags(b))$filter(".html-widget")$
       addAttrs(role = "img", `aria-label` = title)$allTags()
   }, error = function(err) NULL)
@@ -382,7 +385,7 @@ report_section <- function(id, title, ...) {
 # `progress(share)` (optional) is called after each section with the share
 # of sections built, for the app's progress bar.
 report_html <- function(dist, lang, calcs, sims, fit, seed, progress = NULL) {
-  ctx <- report_context(lang)
+  ctx <- report_context(lang, dist$id)
   name <- entry_text(dist$entry, "names", lang)
   fit_part <- report_fit_part(fit, dist$id)
   builders <- list(

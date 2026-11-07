@@ -296,10 +296,12 @@ mod_calc_server <- function(id, lang, dark = shiny::reactive(FALSE),
     })
 
     output$density <- plotly::renderPlotly({
-      calc_density_plot(plot_data(), res(), dist_now(), lang_r(), plot_theme(dark()))
+      p <- calc_density_plot(plot_data(), res(), dist_now(), lang_r(), plot_theme(dark()))
+      plot_file(p, "calculator", dist_now()$id, "density")
     })
     output$cdf <- plotly::renderPlotly({
-      calc_cdf_plot(plot_data(), res(), dist_now(), lang_r(), plot_theme(dark()))
+      p <- calc_cdf_plot(plot_data(), res(), dist_now(), lang_r(), plot_theme(dark()))
+      plot_file(p, "calculator", dist_now()$id, "cdf")
     })
 
     list(entry = entry, params = pars, dist = dist, result = res)

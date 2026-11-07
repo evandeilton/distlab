@@ -353,6 +353,16 @@ test_that("generated literals read back exactly and keep raw data raw", {
   eval(parse(text = distlab:::fit_data_code(table)), envir = env)
   expect_identical(env$data$type, "frequency")
   expect_equal(env$data$x, table$x)
+  # Rows removed for missing values come back, so the counts agree.
+  for (d in list(dl_fit_data(c(1.5, 2, NA, 2, NA)),
+                 dl_fit_data(c(0, 1, 2, NA, 4), frequency = c(4, 0, 6, 3, NA)),
+                 dl_fit_data(lower = c(0, 1, NA, 2), upper = c(1, 2, NA, Inf),
+                             frequency = c(3, 4, NA, 2)))) {
+    env <- new.env()
+    eval(parse(text = distlab:::fit_data_code(d)), envir = env)
+    expect_equal(unclass(env$data), unclass(d))
+    expect_identical(dl_fit_describe(env$data), dl_fit_describe(d))
+  }
 })
 
 test_that("fitting reports each candidate to a progress callback", {

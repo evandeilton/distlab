@@ -443,7 +443,14 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
     output$ranking <- shiny::renderUI(fit_ranking_tag(result(), lang_r()))
     output$estimates <- shiny::renderUI(fit_estimates_tag(selected_fit(), lang_r()))
     output$fit_notes <- shiny::renderUI(fit_notes_tag(selected_fit(), lang_r()))
-    output$code <- shiny::renderUI({ shiny::req(result()); code_tag(result()$code, ns("fit-code"), lang_r()) })
+    # Code of the fit plus the tables shown for the selected family; the
+    # descriptives line only while the page shows the data that was fitted.
+    view_code <- shiny::reactive({
+      r <- shiny::req(result())
+      same <- isTRUE(all.equal(unclass(loaded()), unclass(r$data)))
+      fit_view_code(r, if (length(r$fits)) selected_fit()$id, describe = same)
+    })
+    output$code <- shiny::renderUI(code_tag(view_code(), ns("fit-code"), lang_r()))
     shiny::observeEvent(input$open_explorer, {
       f <- selected_fit()
       count <<- count + 1L
@@ -472,8 +479,10 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
 
     # Plots and exports are registered below to keep data and fitting code
     # independent of rendering. Each view reads the already-fitted object.
-    output$histogram <- plotly::renderPlotly(fit_preview_plot(loaded(), "histogram", lang_r(), plot_theme(dark())))
-    output$ecdf <- plotly::renderPlotly(fit_preview_plot(loaded(), "ecdf", lang_r(), plot_theme(dark())))
+    output$histogram <- plotly::renderPlotly(plot_file(
+      fit_preview_plot(loaded(), "histogram", lang_r(), plot_theme(dark())), "fit", "data", "histogram"))
+    output$ecdf <- plotly::renderPlotly(plot_file(
+      fit_preview_plot(loaded(), "ecdf", lang_r(), plot_theme(dark())), "fit", "data", "ecdf"))
     output$preview_note <- shiny::renderUI({
       d <- loaded()
       shiny::req(d)
@@ -487,7 +496,9 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
     })
     for (key in c("density", "cdf", "qq", "pp")) local({
       view <- key
-      output[[view]] <- plotly::renderPlotly(fit_diagnostic_plot(diagnostics(), view, lang_r(), plot_theme(dark())))
+      output[[view]] <- plotly::renderPlotly(plot_file(
+        fit_diagnostic_plot(diagnostics(), view, lang_r(), plot_theme(dark())), "fit",
+        selected_fit()$id, view))
     })
     output$gof <- shiny::renderUI(fit_gof_tag(diagnostics(), selected_fit(), lang_r()))
     output$diagnostic_notes <- shiny::renderUI(fit_diagnostic_notes_tag(diagnostics(), lang_r()))
@@ -508,7 +519,7 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
     # Study report of the selected family, at its estimates.
     output$report <- report_download(store, function() selected_fit()$dist, lang_r, fit = result)
     output$download_code <- shiny::downloadHandler(filename = function() "distlab-fit.R",
-      content = function(file) { shiny::req(result()); writeLines(result()$code, file, useBytes = TRUE) })
+      content = function(file) writeLines(view_code(), file, useBytes = TRUE))
     list(data = shiny::reactive(loaded()), fit = shiny::reactive(result()), route = shiny::reactive(route()))
   })
 }
@@ -531,6 +542,16 @@ fit_notes_tag <- function(f, lang) {
     if (length(f$warnings)) shiny::tags$details(
       shiny::tags$summary(tr("fit.technical_notes", lang)),
       shiny::tags$ul(lapply(f$warnings, function(s) shiny::tags$li(fit_message_text(s, lang))))))
+}
+
+# Script of a fit result `r` (data and ranking) followed by the descriptive
+# statistics (when `describe`) and, for family `id`, its estimates and
+# goodness-of-fit table.
+fit_view_code <- function(r, id = NULL, describe = TRUE) {
+  paste(c(r$code, if (describe) "distlab::dl_fit_describe(data)",
+          if (is_string(id)) c(sprintf("fit$fits[[\"%s\"]]$estimates", id),
+                               sprintf("distlab::dl_fit_diagnostics(fit, id = \"%s\")$gof", id))),
+        collapse = "\n")
 }
 
 # Descriptive goodness-of-fit table of dl_fit_diagnostics() for fit `f`.

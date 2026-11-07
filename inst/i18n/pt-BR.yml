@@ -212,6 +212,8 @@ nav.lang_pt: Português (Brasil)
 nav.lang_en: English (US)
 nav.to_dark: Mudar para o modo escuro
 nav.to_light: Mudar para o modo claro
+nav.present: Modo de apresentação
+nav.present_title: "Modo de apresentação para projetores (P); Esc para sair"
 upcoming.note: Esta seção faz parte de uma próxima versão.
 home.search_label: Encontre uma distribuição
 home.search_placeholder: "Busque uma distribuição: Normal, Poisson, Beta…"
@@ -322,6 +324,8 @@ plot.density: f(x)
 plot.probability: P(X = x)
 plot.cdf: F(x)
 plot.mean: Média
+plot.download_png: Baixar gráfico em PNG
+plot.download_svg: Baixar gráfico em SVG (vetorial)
 error.invalid_params: "Valores de parâmetros fora do domínio: {message}"
 about.text: >-
   O distlab é um laboratório interativo para estudar distribuições de

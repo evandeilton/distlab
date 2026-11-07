@@ -141,6 +141,20 @@ code, kbd, pre { font-family: "JetBrains Mono", ui-monospace, monospace; }
 [data-bs-theme="dark"] .dl-lang-btn[aria-pressed="true"] { background: #A9ACF2; color: #12132B; }
 bslib-input-dark-mode { --text-1: #FFFFFF; --text-2: rgba(255, 255, 255, 0.80); color: #FFFFFF; }
 
+/* Presentation toggle: an icon on wide navbars, with its label in the
+   collapsed menu; the label always names the button for screen readers. */
+.dl-present-btn { color: rgba(255, 255, 255, 0.86); border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 0.5rem; padding: 0.2rem 0.55rem; margin-right: 0.5rem; display: inline-flex;
+  align-items: center; gap: 0.45rem; font-weight: 600; font-size: 0.85rem; }
+.dl-present-btn:hover { color: #FFFFFF; background: rgba(255, 255, 255, 0.08); }
+.dl-present-btn[aria-pressed="true"] { background: #FFFFFF; color: #2B2D6E; border-color: #FFFFFF; }
+[data-bs-theme="dark"] .dl-present-btn[aria-pressed="true"] { background: #A9ACF2; color: #12132B;
+  border-color: #A9ACF2; }
+@media (min-width: 992px) {
+  .dl-present-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+}
+
 /* Page content */
 .bslib-page-navbar > .container-fluid, .navbar + .container-fluid { padding: 1.5rem 1.5rem 2rem; }
 .tab-content > .tab-pane { max-width: 1440px; margin: 0 auto; }
@@ -719,6 +733,29 @@ th[aria-sort="ascending"], th[aria-sort="descending"] { color: var(--dl-ink); }
   .dl-sim-controls > .shiny-input-container, .dl-sim-controls > .form-group,
   .dl-sim-controls > .shiny-panel-conditional { flex: 1 1 100%; }
 }
+/* Presentation mode: larger type, the full width of the screen, stronger
+   contrast and no help lines, for a projector. Plots get larger fonts and
+   thicker lines from distlab.js. */
+html.dl-present { font-size: 118%; }
+html.dl-present:root { --dl-muted: #3A3D66; --dl-border: #B9BCD6; --dl-shadow: none; }
+html.dl-present:root[data-bs-theme="dark"] { --dl-muted: #C9CBF0; --dl-border: #4A4E8A;
+  --dl-bg: #0B0C1F; }
+html.dl-present .tab-content > .tab-pane { max-width: none; }
+/* The larger type keeps the navbar on one line with icons only below
+   1680px; labels stay for screen readers and as tooltips. */
+@media (min-width: 992px) and (max-width: 1679.98px) {
+  html.dl-present .bslib-page-navbar > .navbar .dl-nav-label > [data-i18n] { position: absolute;
+    width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0);
+    white-space: nowrap; border: 0; }
+}
+html.dl-present .bslib-page-navbar > .container-fluid,
+html.dl-present .navbar + .container-fluid { padding: 0.75rem 1rem 1rem; }
+html.dl-present .card { border-width: 2px; }
+html.dl-present .dl-field-help, html.dl-present .dl-sim-help, html.dl-present .dl-comp-sub,
+html.dl-present .dl-sim-intro { display: none !important; }
+html.dl-present .dl-code-block { font-size: 0.95rem; }
+html.dl-present .dl-stat-value:not(.dl-stat-text) { font-size: 1.6rem; }
+
 @media (prefers-reduced-motion: reduce) {
   .dl-chip, .dl-dist-card, .dl-segmented .radio-inline > span, .dl-task-tile, .dl-group-tile,
   .dl-exam-card, .dl-tile-caret { transition: none; }

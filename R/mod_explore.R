@@ -47,6 +47,7 @@ mod_explore_ui <- function(id, lang) {
       )
     ),
     shiny::uiOutput(ns("moments")),
+    shiny::tags$div(class = "dl-explore-code", shiny::uiOutput(ns("code"))),
     bslib::layout_columns(
       col_widths = c(7, 5), fill = FALSE,
       bslib::card(
@@ -184,11 +185,13 @@ mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
     })
 
     output$density <- plotly::renderPlotly({
-      explore_density_plot(curve(), dist_now(), lang_r(), plot_theme(dark()))
+      p <- explore_density_plot(curve(), dist_now(), lang_r(), plot_theme(dark()))
+      plot_file(p, "explorer", dist_now()$id, "density")
     })
 
     output$cdf <- plotly::renderPlotly({
-      explore_cdf_plot(curve(), dist_now(), lang_r(), plot_theme(dark()))
+      p <- explore_cdf_plot(curve(), dist_now(), lang_r(), plot_theme(dark()))
+      plot_file(p, "explorer", dist_now()$id, "cdf")
     })
 
     output$moments <- shiny::renderUI({
@@ -199,6 +202,8 @@ mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
       m <- tryCatch(dl_moments(d), error = function(err) NULL)
       moment_boxes(m, lg)
     })
+
+    output$code <- shiny::renderUI(code_tag(explore_code(dist_now()), ns("explore-code"), lang_r()))
 
     for (tab in names(formula_tabs("discrete"))) local({
       tb <- tab
@@ -235,8 +240,11 @@ explore_density_plot <- function(d, dist, lang, th) {
                          hovertemplate = "x = %{x:.4f}<br>f(x) = %{y:.4f}<extra></extra>")
     ylab <- tr("plot.density", lang)
   }
-  p <- mean_marker(p, dist, th, lang)
-  plot_layout(p, tr("plot.x", lang), ylab, th, lang, ylim = density_ylim(d))
+  p <- plot_layout(mean_marker(p, dist, th, lang), tr("plot.x", lang), ylab, th, lang,
+                   ylim = density_ylim(d))
+  # The mean label sits above the plot area, below the toolbar.
+  if (is.finite(dist_mean(dist))) p <- plotly::layout(p, margin = list(l = 56, r = 12, t = 52, b = 44))
+  p
 }
 
 # CDF of a curve from dl_curve(); discrete CDFs are right-continuous steps.
@@ -246,6 +254,21 @@ explore_cdf_plot <- function(d, dist, lang, th) {
                        line = list(color = th$line2, shape = shape, width = 2.5),
                        hovertemplate = "x = %{x:.4f}<br>F(x) = %{y:.4f}<extra></extra>")
   plot_layout(p, tr("plot.x", lang), tr("plot.cdf", lang), th, lang, ylim = c(0, 1.02))
+}
+
+# R code of the moments and of the curves the Explorer shows, with the R
+# functions of the distribution as a comment when they exist.
+explore_code <- function(dist) {
+  base <- vapply(c("d", "p"), function(k) {
+    cc <- code_call(dist, k, exact = TRUE)
+    if (is.null(cc)) "" else sprintf("%s(x, %s)", cc$fun, cc$args)
+  }, "")
+  paste(c(
+    code_dist(dist, exact = TRUE),
+    "distlab::dl_moments(d)  # mean, variance, sd, skewness, excess kurtosis",
+    "curve <- distlab::dl_curve(d)  # x, density and cdf of the plots",
+    if (all(nzchar(base))) sprintf("# R functions: %s and %s", base[1], base[2])
+  ), collapse = "\n")
 }
 
 # Title of the open distribution with its type and data-type group.
@@ -300,9 +323,12 @@ plot_theme <- function(dark = FALSE) {
   }
 }
 
+# Mean of a distribution; NA when the engine cannot compute it.
+dist_mean <- function(d) tryCatch(dl_moments(d)[["mean"]], error = function(err) NA_real_)
+
 # Dashed vertical line at the mean, when it exists and is finite.
 mean_marker <- function(p, d, th, lang) {
-  mu <- tryCatch(dl_moments(d)[["mean"]], error = function(err) NA_real_)
+  mu <- dist_mean(d)
   if (!is.finite(mu)) return(p)
   plotly::layout(p, shapes = list(list(
     type = "line", xref = "x", yref = "paper", x0 = mu, x1 = mu, y0 = 0, y1 = 1,
@@ -344,8 +370,63 @@ plot_layout <- function(p, xlab, ylab, th = plot_theme(), lang = "en-US", ylim =
       modebar = list(bgcolor = "rgba(0,0,0,0)", color = th$muted, activecolor = th$line)
     ),
     displaylogo = FALSE,
-    modeBarButtonsToRemove = c("lasso2d", "select2d", "autoScale2d", "pan2d",
+    # The PNG and SVG buttons below replace plotly's snapshot button, which
+    # keeps the transparent background.
+    modeBarButtonsToRemove = c("toImage", "lasso2d", "select2d", "autoScale2d", "pan2d",
                                "zoomIn2d", "zoomOut2d", "hoverClosestCartesian",
-                               "hoverCompareCartesian", "toggleSpikelines")
+                               "hoverCompareCartesian", "toggleSpikelines"),
+    modeBarButtonsToAdd = plot_export_buttons(lang),
+    toImageButtonOptions = list(format = "png", filename = "distlab-plot",
+                                width = 1200, height = 700, scale = 2)
   )
+}
+
+# Click handler of an export button: draws a copy of the figure on the
+# opaque background behind the plot (white or dark, as on screen), at the
+# sizes it has outside the presentation mode (window.distlabFigure() of
+# distlab.js), and downloads it with the name and size of
+# toImageButtonOptions.
+.dl_export_js <- paste(
+  "function (gd) {",
+  "  var o = gd._context.toImageButtonOptions || {};",
+  "  var bg = '#ffffff';",
+  "  for (var el = gd; el && el.nodeType === 1; el = el.parentElement) {",
+  "    var v = (window.getComputedStyle(el).backgroundColor || '').match(/[0-9.]+/g);",
+  "    if (v && (v.length < 4 || parseFloat(v[3]) > 0.9)) {",
+  "      bg = window.getComputedStyle(el).backgroundColor;",
+  "      break;",
+  "    }",
+  "  }",
+  "  var fig = window.distlabFigure ? window.distlabFigure(gd) : { data: gd.data, layout: gd.layout };",
+  "  var layout = Object.assign({}, fig.layout, { paper_bgcolor: bg, plot_bgcolor: bg });",
+  "  window.Plotly.downloadImage({ data: fig.data, layout: layout }, {",
+  "    format: 'FORMAT', filename: o.filename || 'distlab-plot',",
+  "    width: o.width || 1200, height: o.height || 700, scale: o.scale || 1",
+  "  });",
+  "}", sep = "\n")
+
+# Modebar buttons that download the plot as PNG (raster) or SVG (vector),
+# with tooltips in `lang`.
+plot_export_buttons <- function(lang) {
+  btn <- function(format, icon) {
+    list(name = paste0("dl-download-", format),
+         title = tr(paste0("plot.download_", format), lang),
+         icon = htmlwidgets::JS(icon),
+         click = htmlwidgets::JS(sub("FORMAT", format, .dl_export_js, fixed = TRUE)))
+  }
+  list(btn("png", "Plotly.Icons.camera"), btn("svg", "Plotly.Icons.disk"))
+}
+
+# File name of a downloaded plot, distlab-<page>-<distribution ids>-<plot>,
+# with characters that are unsafe in file names replaced by "-".
+plot_file_name <- function(page, ids, plot) {
+  parts <- c("distlab", page, unique(as.character(ids)), plot)
+  parts <- gsub("[^A-Za-z0-9_]+", "-", parts[!is.na(parts) & nzchar(parts)])
+  paste(parts, collapse = "-")
+}
+
+# Name the files that the export buttons of a plot download.
+plot_file <- function(p, page, ids, plot) {
+  p$x$config$toImageButtonOptions$filename <- plot_file_name(page, ids, plot)
+  p
 }
