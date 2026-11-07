@@ -56,6 +56,8 @@ app_ui <- function(lang) {
   panels <- lapply(.dl_sections, function(s) {
     bslib::nav_panel(
       title = shiny::tags$span(class = "dl-nav-label",
+                               title = tr(paste0("nav.", s$value), lang),
+                               `data-i18n-title` = paste0("nav.", s$value),
                                shiny::icon(s$icon, `aria-hidden` = "true"),
                                i18n_span(paste0("nav.", s$value), lang)),
       value = s$value,
@@ -144,6 +146,7 @@ about_panel <- function(lang) {
                           height = "56"),
           shiny::tags$div(
             shiny::tags$h1(class = "dl-page-title", "distlab"),
+            shiny::tags$p(class = "dl-about-tagline", i18n_span("app.tagline", lang)),
             shiny::tags$p(class = "dl-muted",
                           shiny::tags$span(`data-i18n` = "about.version",
                                            `data-i18n-version` = version,
@@ -166,11 +169,12 @@ app_server <- function(lang) {
     dark <- shiny::reactive(identical(input$dark_mode, "dark"))
 
     # One navigation request at a time, from any page: list(tab, id, params,
-    # group, edge).
+    # group, edge, preset, sim_tab).
     route <- shiny::reactiveVal(NULL)
     # What the student does, per distribution, for the study report.
     store <- study_store()
-    home <- mod_home_server("home", lang_r)
+    home <- mod_home_server("home", lang_r,
+                            active = shiny::reactive(identical(input$nav, "home")))
     compendium <- mod_compendium_server("compendium", lang_r, dark = dark, request = route)
     explore <- mod_explore_server("explore", lang_r, dark = dark, select = route, store = store)
     calc <- mod_calc_server("calc", lang_r, dark = dark, select = route, store = store)
@@ -183,13 +187,58 @@ app_server <- function(lang) {
     shiny::observeEvent(sim$route(), route(c(sim$route(), from = "simulation")))
     shiny::observeEvent(fit$route(), route(c(fit$route(), from = "fit")))
 
+    # The browser remembers the last distribution the student opened or changed
+    # in the Explorer or the Calculator, for the Home resume strip. The values
+    # a page shows on its own are skipped; after a request, only the requested
+    # distribution is remembered.
+    remember <- function(tab, pars) {
+      seen <- FALSE
+      routed <- NULL
+      pars_d <- shiny::debounce(pars, 600)
+      send <- function(p) {
+        session$sendCustomMessage("dl-remember", list(tab = tab, id = p$id, params = p$vals))
+      }
+      shiny::observeEvent(route(), {
+        r <- route()
+        if (!identical(r$tab, tab) || !is_string(r$id) || !r$id %in% dl_ids()) return()
+        cur <- pars()
+        # New values for the open distribution arrive through the sliders.
+        moved <- !is.null(r$params) && !is.null(cur) && !isTRUE(all.equal(
+          unlist(cur$vals[names(r$params)]), unlist(r$params), check.attributes = FALSE))
+        if (!is.null(cur) && identical(cur$id, r$id) && !moved) {
+          # Already open with these values: no new report will come.
+          routed <<- NULL
+          seen <<- TRUE
+          send(cur)
+        } else {
+          routed <<- r$id
+        }
+      })
+      shiny::observeEvent(pars_d(), {
+        p <- pars_d()
+        if (!is_string(p$id)) return()
+        if (!is.null(routed)) {
+          if (!identical(p$id, routed)) return()
+          routed <<- NULL
+          seen <<- TRUE
+          send(p)
+          return()
+        }
+        first <- !seen
+        seen <<- TRUE
+        if (!first && identical(input$nav, tab)) send(p)
+      })
+    }
+    remember("explorer", explore$params)
+    remember("calculator", calc$params)
+
     # Static texts are re-translated in the browser from the dictionary.
     shiny::observeEvent(lang_r(), {
       session$sendCustomMessage("dl-lang", list(lang = lang_r(),
                                                 dict = dl_dictionary(lang_r())))
     }, ignoreInit = TRUE)
 
-    # Navigation requested by Home (search, chips, quick start), by the
+    # Navigation requested by Home (search, chips, tiles and cards), by the
     # Compendium, by the Explorer (open the Calculator, Compare or the
     # Simulation) or by the Simulation (open an end of a relation).
     shiny::observeEvent(route(), {

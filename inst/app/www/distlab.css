@@ -119,8 +119,17 @@ code, kbd, pre { font-family: "JetBrains Mono", ui-monospace, monospace; }
 .bslib-page-navbar > .navbar .nav-link:hover { color: #FFFFFF; background: rgba(255, 255, 255, 0.07); }
 .bslib-page-navbar > .navbar .nav-link.active { color: #FFFFFF; background: rgba(255, 255, 255, 0.12);
   box-shadow: inset 0 -2px 0 var(--dl-amber); }
+.bslib-page-navbar > .navbar .navbar-nav { gap: 0.25rem; }
 .dl-nav-label { display: inline-flex; align-items: center; gap: 0.45rem; }
 .dl-nav-label .fa, .dl-nav-label svg { opacity: 0.85; }
+/* Where the labels do not fit on one line, the navbar shows icons only;
+   the labels stay for screen readers and as tooltips. */
+@media (min-width: 992px) and (max-width: 1279.98px) {
+  .bslib-page-navbar > .navbar .dl-nav-label > [data-i18n] { position: absolute; width: 1px;
+    height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0);
+    white-space: nowrap; border: 0; }
+  .bslib-page-navbar > .navbar .nav-link { padding: 0.45rem 0.85rem !important; }
+}
 
 .dl-lang-toggle { border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 0.5rem;
   overflow: hidden; margin-right: 0.5rem; }
@@ -150,28 +159,92 @@ bslib-input-dark-mode { --text-1: #FFFFFF; --text-2: rgba(255, 255, 255, 0.80); 
   background: var(--dl-chip-indigo); color: var(--dl-icon-indigo); }
 .dl-icon-chip-lg { width: 3.4rem; height: 3.4rem; font-size: 1.45rem; border-radius: 0.9rem; }
 
-/* Home */
-.dl-hero { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 2rem;
-  align-items: center; background: var(--dl-surface); border: 1px solid var(--dl-border);
-  border-radius: 1.1rem; box-shadow: var(--dl-shadow); padding: 2rem 2.25rem; margin-bottom: 2rem; }
-.dl-hero-logo { border-radius: 16px; margin-bottom: 0.9rem; }
-.dl-hero-title { font-size: 2.6rem; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 0.4rem; }
-.dl-hero-tagline { font-size: 1.12rem; color: var(--dl-muted); max-width: 34rem; margin: 0; line-height: 1.55; }
-.dl-hero-search .form-group, .dl-hero-search .shiny-input-container { width: 100%; margin-bottom: 1rem; }
-.dl-hero-search label { font-weight: 600; margin-bottom: 0.4rem; }
-.dl-hero-search .selectize-input { min-height: 3rem; padding: 0.75rem 1rem; font-size: 1.02rem;
-  border-radius: 0.7rem; border-color: var(--dl-border); background: var(--dl-bg); box-shadow: none; }
-.dl-quick { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
-.dl-quick-label { color: var(--dl-muted); font-size: 0.9rem; font-weight: 600; margin-right: 0.25rem; }
-.dl-quick .btn { border-radius: 0.6rem; font-weight: 600; padding: 0.5rem 1rem; }
-.dl-quick .btn .fa, .dl-quick .btn svg { margin-right: 0.35rem; }
+/* Home: one centered column; only the search is emphasized. */
+.dl-home { max-width: 70rem; margin: 0 auto; padding-bottom: 3rem; }
+.dl-home-band { margin-top: 3rem; }
 .dl-section-title { font-size: 1.3rem; font-weight: 700; margin: 0 0 1rem; }
-.dl-groups { margin-bottom: 2rem; }
-.dl-group-card .card-body { padding: 1.25rem 1.35rem 1.35rem; gap: 0; justify-content: flex-start; }
+.dl-resume { margin: 0.5rem 0 1.5rem; }
+.dl-resume-btn { appearance: none; display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem;
+  width: 100%; min-height: 3rem; padding: 0.6rem 1rem; text-align: left; cursor: pointer;
+  background: var(--dl-chip-teal); color: var(--dl-ink); border: 1px solid var(--dl-teal);
+  border-radius: 0.8rem; font-size: 0.98rem; }
+.dl-resume-btn > .fa, .dl-resume-btn > svg { color: var(--dl-accent-text); }
+.dl-resume-btn:hover { border-color: var(--dl-accent-text); }
+.dl-resume-arrow { margin-left: auto; color: var(--dl-accent-text); font-weight: 700; }
+.dl-home-entry { padding-top: 1.5rem; }
+.dl-home-title { font-size: 2.4rem; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 1.25rem; }
+.dl-home-search { position: relative; }
+.dl-home-search .form-group, .dl-home-search .shiny-input-container { width: 100%; margin-bottom: 1rem; }
+/* The label stays for screen readers; the placeholder says the same. */
+.dl-home-search label { position: absolute !important; width: 1px; height: 1px; padding: 0;
+  margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.dl-home-search-icon { position: absolute; left: 1.1rem; top: 1.75rem; transform: translateY(-50%);
+  z-index: 2; color: var(--dl-muted); font-size: 1.1rem; pointer-events: none; }
+.dl-home-search .selectize-input { min-height: 3.5rem; padding: 1rem 1rem 1rem 3rem; font-size: 1.08rem;
+  border: 2px solid var(--dl-icon-indigo); border-radius: 0.8rem; background: var(--dl-surface);
+  box-shadow: var(--dl-shadow-hover); }
+.dl-home-search .selectize-input.focus { box-shadow: var(--dl-focus), var(--dl-shadow-hover) !important; }
+.dl-home-popular { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.dl-home-popular > .shiny-html-output { display: inline-flex; flex-wrap: wrap; gap: 0.5rem; }
+.dl-quick-label { color: var(--dl-muted); font-size: 0.9rem; font-weight: 600; margin-right: 0.25rem; }
+.dl-home .dl-chip { min-height: 2.75rem; display: inline-flex; align-items: center; gap: 0.45rem; }
+.dl-home-status { min-height: 1.5rem; margin: 0.5rem 0 -1rem; color: var(--dl-muted); font-size: 0.92rem; }
+
+/* Task tiles and exam-prep cards: outlined surfaces, no filled buttons. */
+.dl-task-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.dl-task-tile, .dl-group-tile, .dl-exam-card { appearance: none; display: flex; gap: 0.85rem;
+  text-align: left; cursor: pointer; color: var(--dl-ink); background: var(--dl-surface);
+  border: 1px solid var(--dl-border); border-radius: 0.9rem; box-shadow: var(--dl-shadow);
+  padding: 1rem 1.1rem; min-height: 2.75rem; transition: box-shadow 0.15s ease, border-color 0.15s ease; }
+.dl-task-tile { align-items: center; }
+.dl-task-tile:hover, .dl-group-tile:hover, .dl-exam-card:hover { box-shadow: var(--dl-shadow-hover);
+  border-color: var(--dl-icon-indigo); }
+.dl-tile-text { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.dl-tile-title { font-family: "Space Grotesk", "Inter", sans-serif; font-weight: 700; font-size: 1.05rem; }
+.dl-tile-example { color: var(--dl-muted); font-size: 0.88rem; line-height: 1.35; }
+
+/* Data-type tiles: equal height in a row; the open panel spans the row
+   below its tile ("dense" lets the following tiles fill the row above). */
+.dl-group-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
+  grid-auto-flow: row dense; gap: 1rem; }
+.dl-group-tile { flex-direction: column; align-items: flex-start; height: 100%;
+  border-left: 4px solid var(--dl-grp); position: relative; }
+.dl-group-grid .dl-group-tile .dl-icon-chip { background: var(--dl-chip-bg); color: var(--dl-grp); }
+.dl-group-tile[aria-expanded="true"] { border-color: var(--dl-grp); box-shadow: var(--dl-shadow-hover); }
+.dl-count-badge { margin-top: auto; white-space: nowrap; font-size: 0.78rem; font-weight: 700; border-radius: 999px;
+  padding: 0.15em 0.6em; background: var(--dl-chip-amber); color: var(--dl-amber-text); }
+.dl-tile-caret { position: absolute; top: 1rem; right: 1rem; color: var(--dl-muted);
+  transition: transform 0.15s ease; }
+.dl-group-tile[aria-expanded="true"] .dl-tile-caret { transform: rotate(180deg); }
+.dl-group-panel { grid-column: 1 / -1; background: var(--dl-surface); border: 1px solid var(--dl-border);
+  border-top: 3px solid var(--dl-grp); border-radius: 0.9rem; padding: 1rem 1.1rem; }
+.dl-group-panel[hidden] { display: none; }
+.dl-group-panel .dl-chips { margin-top: 0; }
+.dl-group-panel .dl-group-more { margin-top: 0.5rem; }
+.dl-group-panel .dl-link-btn { min-height: 2.75rem; display: inline-flex; align-items: center; }
+.dl-start-badge { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+  border-radius: 999px; padding: 0.1em 0.5em; background: var(--dl-chip-amber); color: var(--dl-amber-text); }
+.dl-group-tile.dl-group-binary, .dl-group-panel.dl-group-binary { --dl-grp: var(--dl-grp-binary); }
+.dl-group-tile.dl-group-counts, .dl-group-panel.dl-group-counts { --dl-grp: var(--dl-grp-counts); }
+.dl-group-tile.dl-group-bounded, .dl-group-panel.dl-group-bounded { --dl-grp: var(--dl-grp-bounded); }
+.dl-group-tile.dl-group-positive, .dl-group-panel.dl-group-positive { --dl-grp: var(--dl-grp-positive); }
+.dl-group-tile.dl-group-real_line, .dl-group-panel.dl-group-real_line { --dl-grp: var(--dl-grp-real_line); }
+
+/* Exam-prep cards with their static mini plots. */
+.dl-exam-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+.dl-exam-card { flex-direction: column; align-items: stretch; gap: 0.3rem; }
+.dl-mini-plot { width: 100%; height: auto; max-height: 4.5rem; margin-bottom: 0.4rem; overflow: visible; }
+.dl-mini-axis { stroke: var(--dl-border); stroke-width: 1; }
+.dl-mini-bar { fill: var(--dl-icon-indigo); fill-opacity: 0.22; }
+.dl-mini-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.dl-mini-a { stroke: var(--dl-icon-indigo); }
+.dl-mini-b { stroke: var(--dl-accent-text); }
+.dl-mini-c { stroke: var(--dl-icon-amber); }
+.dl-mini-dash { stroke-dasharray: 4 3; }
+
 .dl-group-head { display: flex; align-items: center; gap: 0.85rem; margin-bottom: 0.6rem; }
 .dl-group-title { font-size: 1.15rem; font-weight: 700; margin: 0; }
 .dl-group-count { margin: 0; font-size: 0.82rem; color: var(--dl-muted); }
-.dl-group-desc { color: var(--dl-muted); font-size: 0.93rem; margin-bottom: 0.9rem; }
 .dl-group-counts .dl-icon-chip, .dl-group-positive .dl-icon-chip { background: var(--dl-chip-teal); color: var(--dl-icon-teal); }
 .dl-group-bounded .dl-icon-chip { background: var(--dl-chip-amber); color: var(--dl-icon-amber); }
 .dl-chips { margin-top: 0.4rem; display: flex; flex-wrap: wrap; gap: 0.45rem; }
@@ -190,6 +263,7 @@ bslib-input-dark-mode { --text-1: #FFFFFF; --text-2: rgba(255, 255, 255, 0.80); 
 .dl-about { max-width: 52rem; }
 .dl-about-head { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
 .dl-about-head img { border-radius: 14px; }
+.dl-about-tagline { margin: 0 0 0.2rem; font-size: 1.05rem; color: var(--dl-muted); }
 
 /* Explorer */
 .dl-explorer > .sidebar { background: var(--dl-surface); border-color: var(--dl-border) !important; }
@@ -620,18 +694,34 @@ th[aria-sort="ascending"], th[aria-sort="descending"] { color: var(--dl-ink); }
   --bs-btn-active-bg: #A9ACF2; --bs-btn-active-color: #12132B; }
 
 @media (max-width: 991.98px) {
-  .dl-hero { grid-template-columns: 1fr; padding: 1.5rem; gap: 1.25rem; }
-  .dl-hero-title { font-size: 2.1rem; }
+  .dl-task-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dl-exam-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dl-comp-panel { position: static; }
 }
 @media (max-width: 575.98px) {
+  .dl-home-title { font-size: 1.85rem; }
+  .dl-home-band { margin-top: 2.5rem; }
+  .dl-task-grid, .dl-group-grid { grid-template-columns: minmax(0, 1fr); }
+  .dl-task-tile, .dl-group-tile { padding: 0.75rem 0.9rem; }
+  /* Phone tiles are rows: icon and text, with the count badge below the text. */
+  .dl-group-tile { flex-direction: row; flex-wrap: wrap; align-items: center; row-gap: 0.4rem;
+    padding-right: 2.75rem; }
+  .dl-group-tile .dl-tile-text { flex: 1 1 calc(100% - 3.45rem); }
+  .dl-group-tile .dl-count-badge { margin: 0 0 0 3.45rem; }
+  .dl-tile-caret { top: 50%; transform: translateY(-50%); }
+  .dl-group-tile[aria-expanded="true"] .dl-tile-caret { transform: translateY(-50%) rotate(180deg); }
+  /* Exam cards scroll sideways inside their row, snapping to each card. */
+  .dl-exam-row { display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
+    padding-bottom: 0.5rem; }
+  .dl-exam-card { flex: 0 0 72%; scroll-snap-align: start; }
   .dl-map { height: 460px; }
   .dl-comp-search { max-width: none; }
   .dl-sim-controls > .shiny-input-container, .dl-sim-controls > .form-group,
   .dl-sim-controls > .shiny-panel-conditional { flex: 1 1 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .dl-chip, .dl-dist-card, .dl-segmented .radio-inline > span { transition: none; }
+  .dl-chip, .dl-dist-card, .dl-segmented .radio-inline > span, .dl-task-tile, .dl-group-tile,
+  .dl-exam-card, .dl-tile-caret { transition: none; }
 }
 @media print {
   .navbar, .dl-comp-toolbar, .dl-compendium .nav-underline, .dl-print, .dl-cell-action,

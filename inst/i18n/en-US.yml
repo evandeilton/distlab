@@ -214,13 +214,48 @@ nav.to_dark: Switch to dark mode
 nav.to_light: Switch to light mode
 upcoming.note: This section is part of an upcoming release.
 home.search_label: Find a distribution
-home.search_placeholder: Type a name, such as Normal or Poisson
-home.quick_start: Quick start
-home.explore_normal: Explore the Normal
-home.fit_data: Fit my data
-home.browse: Browse by data type
+home.search_placeholder: "Search for a distribution: Normal, Poisson, Beta…"
+home.search_placeholder_short: "Search: Normal, Poisson, Beta…"
 home.count: "{n} distributions"
 home.count_one: "1 distribution"
+home.title: What do you want to do today?
+home.popular: "Popular:"
+home.opening.explorer: "Opening {name} in the Explorer…"
+home.opening.calculator: "Opening {name} in the Calculator…"
+home.resume: "Continue:"
+home.resume_in.explorer: in the Explorer
+home.resume_in.calculator: in the Calculator
+home.tasks: Tasks
+home.task.explore: Explore a distribution
+home.task.explore.ex: Move the parameters and watch the curve
+home.task.calc: Compute a probability
+home.task.calc.ex: "P(X ≤ 3), quantiles, intervals"
+home.task.compare: Compare distributions
+home.task.compare.ex: Side by side or sweeping a parameter
+home.task.simulate: Simulate and see theorems
+home.task.simulate.ex: Law of large numbers, CLT, relationships
+home.task.fit: Fit my data
+home.task.fit.ex: Paste, upload or use an example
+home.task.map: See the relationship map
+home.task.map.ex: Every distribution and how they connect
+home.bytype: Not sure which one? Pick by your data type
+home.example.binary: "E.g. a right or wrong answer"
+home.example.counts: "E.g. customers per hour"
+home.example.bounded: "E.g. the share of right answers on a test"
+home.example.positive: "E.g. waiting time in a line"
+home.example.real_line: "E.g. a measurement error"
+home.start_here: start here
+home.see_all: "See all {n} in the Compendium →"
+home.see_one: "See it in the Compendium →"
+home.exam: "Exam prep: watch it happen"
+home.exam.binom_pois: Binomial becomes Poisson
+home.exam.binom_pois.ex: "Large n, small p and fixed np"
+home.exam.clt: Central Limit Theorem
+home.exam.clt.ex: Sample means turn normal
+home.exam.t_normal: t approaches the Normal
+home.exam.t_normal.ex: More degrees of freedom, lighter tails
+home.exam.beta_shapes: Shapes of the Beta
+home.exam.beta_shapes.ex: "U-shaped, bell or skewed, always on [0, 1]"
 group.binary: Binary
 group.binary.desc: Outcomes with two values, such as success and failure.
 group.counts: Counts
@@ -297,8 +332,6 @@ about.details: >-
   textbooks.
 about.version: "Version {version}"
 about.license: Code released under the MIT license.
-home.in_compendium: See in the Compendium
-home.in_compendium_group: "See the {group} group in the Compendium"
 tier.1: Core
 tier.2: Extended
 tier.3: Advanced

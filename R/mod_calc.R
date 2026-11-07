@@ -302,7 +302,7 @@ mod_calc_server <- function(id, lang, dark = shiny::reactive(FALSE),
       calc_cdf_plot(plot_data(), res(), dist_now(), lang_r(), plot_theme(dark()))
     })
 
-    list(entry = entry, dist = dist, result = res)
+    list(entry = entry, params = pars, dist = dist, result = res)
   })
 }
 
