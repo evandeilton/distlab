@@ -130,3 +130,6 @@
   browser remembers the last distribution opened in the Explorer or the
   Calculator and offers to continue it. Compare and the Simulation accept
   requests for a preset or a tab by name.
+* Every plot of the app and of the study report downloads as PNG or SVG from
+  its toolbar, on the white or dark background shown on screen and with a
+  file name such as `distlab-explorer-gamma-density.png`.

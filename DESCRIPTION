@@ -35,6 +35,7 @@ Imports:
     goftest,
     grDevices,
     htmltools,
+    htmlwidgets,
     jsonlite,
     numDeriv,
     plotly,

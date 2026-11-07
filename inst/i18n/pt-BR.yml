@@ -322,6 +322,8 @@ plot.density: f(x)
 plot.probability: P(X = x)
 plot.cdf: F(x)
 plot.mean: Média
+plot.download_png: Baixar gráfico em PNG
+plot.download_svg: Baixar gráfico em SVG (vetorial)
 error.invalid_params: "Valores de parâmetros fora do domínio: {message}"
 about.text: >-
   O distlab é um laboratório interativo para estudar distribuições de

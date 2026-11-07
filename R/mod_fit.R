@@ -472,8 +472,10 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
 
     # Plots and exports are registered below to keep data and fitting code
     # independent of rendering. Each view reads the already-fitted object.
-    output$histogram <- plotly::renderPlotly(fit_preview_plot(loaded(), "histogram", lang_r(), plot_theme(dark())))
-    output$ecdf <- plotly::renderPlotly(fit_preview_plot(loaded(), "ecdf", lang_r(), plot_theme(dark())))
+    output$histogram <- plotly::renderPlotly(plot_file(
+      fit_preview_plot(loaded(), "histogram", lang_r(), plot_theme(dark())), "fit", "data", "histogram"))
+    output$ecdf <- plotly::renderPlotly(plot_file(
+      fit_preview_plot(loaded(), "ecdf", lang_r(), plot_theme(dark())), "fit", "data", "ecdf"))
     output$preview_note <- shiny::renderUI({
       d <- loaded()
       shiny::req(d)
@@ -487,7 +489,9 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
     })
     for (key in c("density", "cdf", "qq", "pp")) local({
       view <- key
-      output[[view]] <- plotly::renderPlotly(fit_diagnostic_plot(diagnostics(), view, lang_r(), plot_theme(dark())))
+      output[[view]] <- plotly::renderPlotly(plot_file(
+        fit_diagnostic_plot(diagnostics(), view, lang_r(), plot_theme(dark())), "fit",
+        selected_fit()$id, view))
     })
     output$gof <- shiny::renderUI(fit_gof_tag(diagnostics(), selected_fit(), lang_r()))
     output$diagnostic_notes <- shiny::renderUI(fit_diagnostic_notes_tag(diagnostics(), lang_r()))

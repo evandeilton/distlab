@@ -645,8 +645,16 @@ mod_compare_server <- function(id, lang, dark = shiny::reactive(FALSE),
       res
     })
 
-    output$density <- plotly::renderPlotly(compare_density_plot(curves(), lang_r(), plot_theme(dark())))
-    output$cdf <- plotly::renderPlotly(compare_cdf_plot(curves(), lang_r(), plot_theme(dark())))
+    # Downloaded plots are named after the distributions they show.
+    curve_ids <- function(cv) vapply(cv, function(s) s$dist$id, "")
+    output$density <- plotly::renderPlotly({
+      cv <- curves()
+      plot_file(compare_density_plot(cv, lang_r(), plot_theme(dark())), "compare", curve_ids(cv), "density")
+    })
+    output$cdf <- plotly::renderPlotly({
+      cv <- curves()
+      plot_file(compare_cdf_plot(cv, lang_r(), plot_theme(dark())), "compare", curve_ids(cv), "cdf")
+    })
     output$summary <- shiny::renderUI(compare_table(series_d(), lang_r()))
 
     # Mixed types share one axis: bars are probabilities, curves densities.

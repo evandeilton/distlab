@@ -184,11 +184,13 @@ mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
     })
 
     output$density <- plotly::renderPlotly({
-      explore_density_plot(curve(), dist_now(), lang_r(), plot_theme(dark()))
+      p <- explore_density_plot(curve(), dist_now(), lang_r(), plot_theme(dark()))
+      plot_file(p, "explorer", dist_now()$id, "density")
     })
 
     output$cdf <- plotly::renderPlotly({
-      explore_cdf_plot(curve(), dist_now(), lang_r(), plot_theme(dark()))
+      p <- explore_cdf_plot(curve(), dist_now(), lang_r(), plot_theme(dark()))
+      plot_file(p, "explorer", dist_now()$id, "cdf")
     })
 
     output$moments <- shiny::renderUI({
@@ -344,8 +346,60 @@ plot_layout <- function(p, xlab, ylab, th = plot_theme(), lang = "en-US", ylim =
       modebar = list(bgcolor = "rgba(0,0,0,0)", color = th$muted, activecolor = th$line)
     ),
     displaylogo = FALSE,
-    modeBarButtonsToRemove = c("lasso2d", "select2d", "autoScale2d", "pan2d",
+    # The PNG and SVG buttons below replace plotly's snapshot button, which
+    # keeps the transparent background.
+    modeBarButtonsToRemove = c("toImage", "lasso2d", "select2d", "autoScale2d", "pan2d",
                                "zoomIn2d", "zoomOut2d", "hoverClosestCartesian",
-                               "hoverCompareCartesian", "toggleSpikelines")
+                               "hoverCompareCartesian", "toggleSpikelines"),
+    modeBarButtonsToAdd = plot_export_buttons(lang),
+    toImageButtonOptions = list(format = "png", filename = "distlab-plot",
+                                width = 1200, height = 700, scale = 2)
   )
+}
+
+# Click handler of an export button: draws a copy of the figure on the
+# opaque background behind the plot (white or dark, as on screen) and
+# downloads it with the name and size of toImageButtonOptions.
+.dl_export_js <- paste(
+  "function (gd) {",
+  "  var o = gd._context.toImageButtonOptions || {};",
+  "  var bg = '#ffffff';",
+  "  for (var el = gd; el && el.nodeType === 1; el = el.parentElement) {",
+  "    var v = (window.getComputedStyle(el).backgroundColor || '').match(/[0-9.]+/g);",
+  "    if (v && (v.length < 4 || parseFloat(v[3]) > 0.9)) {",
+  "      bg = window.getComputedStyle(el).backgroundColor;",
+  "      break;",
+  "    }",
+  "  }",
+  "  var layout = Object.assign({}, gd.layout, { paper_bgcolor: bg, plot_bgcolor: bg });",
+  "  window.Plotly.downloadImage({ data: gd.data, layout: layout }, {",
+  "    format: 'FORMAT', filename: o.filename || 'distlab-plot',",
+  "    width: o.width || 1200, height: o.height || 700, scale: o.scale || 1",
+  "  });",
+  "}", sep = "\n")
+
+# Modebar buttons that download the plot as PNG (raster) or SVG (vector),
+# with tooltips in `lang`.
+plot_export_buttons <- function(lang) {
+  btn <- function(format, icon) {
+    list(name = paste0("dl-download-", format),
+         title = tr(paste0("plot.download_", format), lang),
+         icon = htmlwidgets::JS(icon),
+         click = htmlwidgets::JS(sub("FORMAT", format, .dl_export_js, fixed = TRUE)))
+  }
+  list(btn("png", "Plotly.Icons.camera"), btn("svg", "Plotly.Icons.disk"))
+}
+
+# File name of a downloaded plot, distlab-<page>-<distribution ids>-<plot>,
+# with characters that are unsafe in file names replaced by "-".
+plot_file_name <- function(page, ids, plot) {
+  parts <- c("distlab", page, unique(as.character(ids)), plot)
+  parts <- gsub("[^A-Za-z0-9_]+", "-", parts[!is.na(parts) & nzchar(parts)])
+  paste(parts, collapse = "-")
+}
+
+# Name the files that the export buttons of a plot download.
+plot_file <- function(p, page, ids, plot) {
+  p$x$config$toImageButtonOptions$filename <- plot_file_name(page, ids, plot)
+  p
 }
