@@ -428,6 +428,7 @@ compare_table <- function(series, lang) {
 # median of each one. Without a shared range only the table is rebuilt.
 compare_code <- function(series) {
   n <- length(series)
+  if (!n) return("")
   dists <- vapply(series, function(s) sub("^d <- ", "", code_dist(s$dist, exact = TRUE)), "")
   discrete <- vapply(series, function(s) identical(s$dist$entry$type, "discrete"), logical(1))
   rng <- tryCatch(compare_range(series), error = function(err) NULL)

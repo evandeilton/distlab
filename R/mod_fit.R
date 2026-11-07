@@ -443,10 +443,12 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
     output$ranking <- shiny::renderUI(fit_ranking_tag(result(), lang_r()))
     output$estimates <- shiny::renderUI(fit_estimates_tag(selected_fit(), lang_r()))
     output$fit_notes <- shiny::renderUI(fit_notes_tag(selected_fit(), lang_r()))
-    # Code of the fit plus the tables shown for the selected family.
+    # Code of the fit plus the tables shown for the selected family; the
+    # descriptives line only while the page shows the data that was fitted.
     view_code <- shiny::reactive({
       r <- shiny::req(result())
-      fit_view_code(r, if (length(r$fits)) selected_fit()$id)
+      same <- isTRUE(all.equal(unclass(loaded()), unclass(r$data)))
+      fit_view_code(r, if (length(r$fits)) selected_fit()$id, describe = same)
     })
     output$code <- shiny::renderUI(code_tag(view_code(), ns("fit-code"), lang_r()))
     shiny::observeEvent(input$open_explorer, {
@@ -543,9 +545,10 @@ fit_notes_tag <- function(f, lang) {
 }
 
 # Script of a fit result `r` (data and ranking) followed by the descriptive
-# statistics and, for family `id`, its estimates and goodness-of-fit table.
-fit_view_code <- function(r, id = NULL) {
-  paste(c(r$code, "distlab::dl_fit_describe(data)",
+# statistics (when `describe`) and, for family `id`, its estimates and
+# goodness-of-fit table.
+fit_view_code <- function(r, id = NULL, describe = TRUE) {
+  paste(c(r$code, if (describe) "distlab::dl_fit_describe(data)",
           if (is_string(id)) c(sprintf("fit$fits[[\"%s\"]]$estimates", id),
                                sprintf("distlab::dl_fit_diagnostics(fit, id = \"%s\")$gof", id))),
         collapse = "\n")

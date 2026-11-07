@@ -721,19 +721,32 @@ fit_literal <- function(x) {
 }
 
 # Script line that rebuilds the data. Raw observations stay raw: ties are
-# written as rep(values, counts) rather than as a frequency table.
+# written as rep(values, counts) rather than as a frequency table. Rows
+# removed for missing values come back as NA rows (the first one carries the
+# known frequency of the removed rows), so the rebuilt data report the same
+# `removed` and `removed_frequency`.
 fit_data_code <- function(data) {
+  k <- data$removed %||% 0
+  # A column literal followed by the missing rows.
+  pad <- function(lit, first = NA) {
+    if (k == 0) return(lit)
+    tail <- c(fit_literal(first), if (k == 2) "NA" else if (k > 2) sprintf("rep(NA, %d)", k - 1L))
+    # The elements of a c(...) literal join the new ones directly.
+    if (startsWith(lit, "c(")) lit <- substr(lit, 3L, nchar(lit) - 1L)
+    paste0("c(", lit, ", ", paste(tail, collapse = ", "), ")")
+  }
+  freq <- function() pad(fit_literal(data$counts), data$removed_frequency %||% 0)
   if (data$type == "grouped") {
-    paste0("data <- distlab::dl_fit_data(lower = ", fit_literal(data$lower),
-           ", upper = ", fit_literal(data$upper),
-           ", frequency = ", fit_literal(data$counts), ")")
+    paste0("data <- distlab::dl_fit_data(lower = ", pad(fit_literal(data$lower)),
+           ", upper = ", pad(fit_literal(data$upper)),
+           ", frequency = ", freq(), ")")
   } else if (data$type == "raw") {
     x <- if (all(data$counts == 1)) fit_literal(data$x) else
       paste0("rep(", fit_literal(data$x), ", ", fit_literal(data$counts), ")")
-    paste0("data <- distlab::dl_fit_data(x = ", x, ")")
+    paste0("data <- distlab::dl_fit_data(x = ", pad(x), ")")
   } else {
-    paste0("data <- distlab::dl_fit_data(x = ", fit_literal(data$x),
-           ", frequency = ", fit_literal(data$counts), ")")
+    paste0("data <- distlab::dl_fit_data(x = ", pad(fit_literal(data$x)),
+           ", frequency = ", freq(), ")")
   }
 }
 
