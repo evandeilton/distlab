@@ -212,6 +212,8 @@ nav.lang_pt: Português (Brasil)
 nav.lang_en: English (US)
 nav.to_dark: Switch to dark mode
 nav.to_light: Switch to light mode
+nav.present: Presentation mode
+nav.present_title: "Presentation mode for projectors (P); Esc leaves"
 upcoming.note: This section is part of an upcoming release.
 home.search_label: Find a distribution
 home.search_placeholder: "Search for a distribution: Normal, Poisson, Beta…"

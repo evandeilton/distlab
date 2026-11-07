@@ -1,4 +1,4 @@
-# Plot downloads and code cards.
+# Plot downloads, code cards and the presentation toggle.
 
 # Run generated code in a fresh environment and return that environment.
 run_snippet <- function(code) {
@@ -136,4 +136,15 @@ test_that("the Fit code card rebuilds the tables shown for the selected family",
   expect_equal(values[[n - 1L]], fit$fits$gamma$estimates)
   expect_equal(values[[n]], dl_fit_diagnostics(fit, id = "gamma")$gof)
   expect_false(grepl("estimates", distlab:::fit_view_code(fit)))
+})
+
+test_that("the navbar has a presentation toggle labeled in both languages", {
+  for (lang in dl_languages()) {
+    html <- as.character(distlab:::present_toggle(lang))
+    expect_match(html, 'aria-pressed="false"', fixed = TRUE)
+    expect_match(html, 'aria-keyshortcuts="P"', fixed = TRUE)
+    expect_match(html, distlab:::tr("nav.present", lang), fixed = TRUE)
+    expect_match(html, 'data-i18n-title="nav.present_title"', fixed = TRUE)
+  }
+  expect_match(as.character(distlab:::app_ui("en-US")), 'id="dl_present"', fixed = TRUE)
 })

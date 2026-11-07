@@ -136,3 +136,6 @@
 * The Explorer and Compare show the R code of their moments, curves and
   summary table, and the Fit code also rebuilds the descriptive statistics,
   the estimates and the goodness-of-fit table of the selected family.
+* New presentation mode for projectors (navbar button, or "P"; Esc leaves):
+  larger type and plot fonts, thicker lines, stronger contrast, closed
+  sidebars and no help lines. The browser remembers the choice.

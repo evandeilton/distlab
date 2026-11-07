@@ -35,7 +35,7 @@ run_app <- function(lang = "pt-BR", ...) {
 )
 
 # Top-level page: branded navbar with one panel per app section, plus the
-# language and color-mode toggles.
+# presentation, language and color-mode toggles.
 app_ui <- function(lang) {
   # Logo and favicon are served from here; registered with the UI so the app
   # also works when built without run_app().
@@ -83,6 +83,7 @@ app_ui <- function(lang) {
     panels,
     list(
       bslib::nav_spacer(),
+      bslib::nav_item(present_toggle(lang)),
       bslib::nav_item(lang_toggle(lang)),
       bslib::nav_item(dark_toggle(lang))
     )
@@ -107,6 +108,18 @@ lang_toggle <- function(lang) {
     `data-i18n-aria-label` = "nav.language", `aria-label` = tr("nav.language", lang),
     btn("pt-BR", "PT", "nav.lang_pt"),
     btn("en-US", "EN", "nav.lang_en")
+  )
+}
+
+# Presentation-mode switch: larger type and plots for a projector. distlab.js
+# keeps the state in the browser and also toggles it with "P" and Esc.
+present_toggle <- function(lang) {
+  shiny::tags$button(
+    type = "button", class = "btn dl-present-btn", id = "dl_present", `aria-pressed` = "false",
+    `data-i18n-title` = "nav.present_title", title = tr("nav.present_title", lang),
+    `aria-keyshortcuts` = "P",
+    shiny::icon("display", `aria-hidden` = "true"),
+    shiny::tags$span(class = "dl-present-label", i18n_span("nav.present", lang))
   )
 }
 

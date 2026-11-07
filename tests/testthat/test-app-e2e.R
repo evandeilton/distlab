@@ -7,13 +7,22 @@ test_that("the language switch keeps tab, distribution and parameters", {
           "needs the installed package")
   skip_if(is.null(tryCatch(chromote::find_chrome(), error = function(e) NULL)),
           "Chrome is not available")
-  app <- shinytest2::AppDriver$new(distlab::run_app("pt-BR"), width = 1200,
-                                   height = 800, load_timeout = 30000)
-  # Close the browser too, so Chrome removes its temporary profile.
+  # Chrome leaves folders in its TMPDIR: give it one that the test removes
+  # (short, since Chrome puts a socket in it).
+  chrome_tmp <- tempfile("chr")
+  dir.create(chrome_tmp)
+  on.exit(unlink(chrome_tmp, recursive = TRUE), add = TRUE)
+  old_tmp <- Sys.getenv("TMPDIR", unset = NA)
+  if (nchar(chrome_tmp) < 60) Sys.setenv(TMPDIR = chrome_tmp)
+  app <- tryCatch(
+    shinytest2::AppDriver$new(distlab::run_app("pt-BR"), width = 1200, height = 800,
+                              load_timeout = 30000),
+    finally = if (is.na(old_tmp)) Sys.unsetenv("TMPDIR") else Sys.setenv(TMPDIR = old_tmp))
+  # Close the browser too, before its folder is removed.
   on.exit({
     app$stop()
     try(chromote::default_chromote_object()$close(), silent = TRUE)
-  }, add = TRUE)
+  }, add = TRUE, after = FALSE)
   # The navbar stays on one line at every desktop width, in both languages;
   # where labels do not fit, it shows icons with labels for screen readers.
   # Spread of the vertical centers of brand, links and toggles: one line is
@@ -80,7 +89,7 @@ test_that("the language switch keeps tab, distribution and parameters", {
   app$run_js("document.querySelector('.navbar [data-value=\"calculator\"]').click()")
   app$wait_for_idle()
   expect_gt(app$get_js("document.querySelectorAll('.dl-calc-event .katex').length"), 0)
-  expect_match(app$get_js("document.querySelector('.dl-code-block').textContent"), "^pnorm\\(")
+  expect_match(app$get_js("document.querySelector('.dl-calc-result .dl-code-block').textContent"), "^pnorm\\(")
   # Compare starts with three overlaid distributions.
   app$run_js("document.querySelector('.navbar [data-value=\"compare\"]').click()")
   app$wait_for_idle()
@@ -138,4 +147,65 @@ test_that("the language switch keeps tab, distribution and parameters", {
   expect_identical(app$get_value(input = "nav"), "explorer")
   expect_equal(app$get_value(input = "explore-p_normal_mean"), mean(datasets::faithful$waiting),
                tolerance = 1e-6)
+  # Plots download as PNG or SVG on the background of the page, named after
+  # the page, distribution and plot.
+  app$wait_for_js("document.querySelector('#explore-density .modebar-btn[data-title]') !== null")
+  svg_btn <- "#explore-density .modebar-btn[data-title=\"Baixar gráfico em SVG (vetorial)\"]"
+  expect_true(app$get_js(sprintf("document.querySelector('%s') !== null", svg_btn)))
+  app$run_js(paste0(
+    "window.__dlSaved = Plotly.downloadImage; window.__dlGot = null;",
+    "Plotly.downloadImage = function (fig, o) { window.__dlGot = { bg: fig.layout.paper_bgcolor,",
+    " format: o.format, name: o.filename, width: o.width }; return Promise.resolve(); };",
+    sprintf("document.querySelector('%s').click();", svg_btn),
+    "Plotly.downloadImage = window.__dlSaved;"))
+  got <- app$get_js("window.__dlGot")
+  expect_identical(got$format, "svg")
+  expect_identical(got$name, "distlab-explorer-normal-density")
+  expect_identical(got$width, 1200L)
+  expect_match(got$bg, "^rgb\\(")
+  expect_match(app$get_js(paste0(
+    "(function () { var gd = document.getElementById('explore-density');",
+    " return Plotly.toImage({ data: gd.data, layout: gd.layout }, { format: 'svg', width: 600,",
+    " height: 350 }); })()")), "^data:image/svg\\+xml")
+  # Presentation mode: larger type and plot fonts, closed sidebars; it
+  # survives a language switch and a reload, and Esc leaves it.
+  base_font <- "parseFloat(getComputedStyle(document.documentElement).fontSize)"
+  plot_font <- "document.getElementById('explore-density').layout.font.size"
+  expect_equal(app$get_js(base_font), 16)
+  app$run_js("document.getElementById('dl_present').click()")
+  app$wait_for_js(paste(plot_font, "> 12"))
+  expect_gt(app$get_js(base_font), 16)
+  expect_lt(app$get_js(spread), 10, label = "navbar spread while presenting")
+  expect_identical(app$get_js("document.getElementById('dl_present').getAttribute('aria-pressed')"), "true")
+  collapsed <- paste0("document.getElementById('explore-dist').closest('.bslib-sidebar-layout')",
+                      ".classList.contains('sidebar-collapsed')")
+  expect_true(app$get_js(collapsed))
+  app$run_js("document.querySelector('.dl-lang-btn[data-lang=\"en-US\"]').click()")
+  app$wait_for_js("document.documentElement.lang === 'en-US'")
+  app$wait_for_idle()
+  expect_true(app$get_js("document.documentElement.classList.contains('dl-present')"))
+  expect_match(app$get_js("document.getElementById('dl_present').title"), "^Presentation mode")
+  app$wait_for_js(paste(plot_font, "> 12"))
+  # It still fits a phone screen.
+  app$set_window_size(375, 812)
+  app$wait_for_idle()
+  expect_lte(app$get_js("document.documentElement.scrollWidth"), app$get_js("window.innerWidth"))
+  app$set_window_size(1200, 800)
+  # After a reload the driver only reads the page.
+  app$run_js("location.reload()")
+  app$wait_for_js("document.readyState === 'complete' && !!window.Shiny && !!window.Shiny.shinyapp && window.Shiny.shinyapp.isConnected()",
+                  timeout = 20000)
+  expect_true(app$get_js("document.documentElement.classList.contains('dl-present')"))
+  expect_gt(app$get_js(base_font), 16)
+  app$wait_for_js(collapsed)
+  app$run_js("document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}))")
+  expect_false(app$get_js("document.documentElement.classList.contains('dl-present')"))
+  expect_equal(app$get_js(base_font), 16)
+  expect_false(app$get_js(collapsed))
+  expect_identical(app$get_js("window.localStorage.getItem('distlab.present')"), "0")
+  # "P" switches it on and off.
+  app$run_js("document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'p', bubbles: true}))")
+  expect_true(app$get_js("document.documentElement.classList.contains('dl-present')"))
+  app$run_js("document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'p', bubbles: true}))")
+  expect_false(app$get_js("document.documentElement.classList.contains('dl-present')"))
 })

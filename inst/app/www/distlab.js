@@ -1,6 +1,6 @@
 /* distlab client script: KaTeX rendering, live language switch,
    distribution buttons, Home panels and last-distribution memory, copy
-   buttons and the sortable, filterable tables. */
+   buttons, the sortable, filterable tables and the presentation mode. */
 (function () {
   "use strict";
 
@@ -207,7 +207,11 @@
       if (src) copyText(src.textContent, cb);
       return;
     }
-    if (ev.target.closest(".dl-print")) window.print();
+    if (ev.target.closest(".dl-print")) {
+      window.print();
+      return;
+    }
+    if (ev.target.closest(".dl-present-btn")) setPresent(!presenting(), true);
   });
 
   // Open or close the panel of a Home data-type tile; one is open at a time.
@@ -222,6 +226,113 @@
     var panel = document.getElementById(tile.getAttribute("aria-controls"));
     if (panel) panel.hidden = !open;
   }
+
+  // Presentation mode: a class on <html> that the stylesheet reads (larger
+  // type, no help lines), collapsed sidebars and larger plot fonts with
+  // thicker lines. The choice is kept in the browser; storage may be blocked.
+  var presentKey = "distlab.present";
+  var presentScale = { font: 1.4, line: 1.6, marker: 1.4 };
+  function presenting() {
+    return document.documentElement.classList.contains("dl-present");
+  }
+
+  // Scale the fonts, lines and markers of one plotly figure to the mode. The
+  // sizes it had are kept on the element; a figure the server draws again
+  // arrives without the mark, at its own sizes.
+  function stylePlot(gd) {
+    if (!window.Plotly || !gd || !gd.layout || !Array.isArray(gd.data)) return;
+    var on = presenting();
+    if (on === (gd.layout._dlPresent === true)) return;
+    if (on) {
+      var num = function (v) { return typeof v === "number" ? v : undefined; };
+      gd._dlBase = {
+        font: num(gd.layout.font && gd.layout.font.size) || 12,
+        legend: num(gd.layout.legend && gd.layout.legend.font && gd.layout.legend.font.size),
+        notes: (gd.layout.annotations || []).map(function (a) { return num(a.font && a.font.size); }),
+        lines: gd.data.map(function (t) { return num(t.line && t.line.width); }),
+        markers: gd.data.map(function (t) { return num(t.marker && t.marker.size); })
+      };
+    }
+    var b = gd._dlBase;
+    if (!b) return;
+    var k = on ? presentScale : { font: 1, line: 1, marker: 1 };
+    var times = function (f) {
+      return function (v) { return v === undefined ? undefined : v * f; };
+    };
+    var layout = { "font.size": Math.round(b.font * k.font) };
+    if (b.legend) layout["legend.font.size"] = Math.round(b.legend * k.font);
+    b.notes.forEach(function (v, i) {
+      if (v) layout["annotations[" + i + "].font.size"] = Math.round(v * k.font);
+    });
+    gd.layout._dlPresent = on;
+    // Undefined entries leave the traces without a size as they are.
+    window.Plotly.update(gd, { "line.width": b.lines.map(times(k.line)),
+                               "marker.size": b.markers.map(times(k.marker)) }, layout);
+  }
+
+  // Close the open sidebars (and reopen them on leaving) through bslib, so
+  // their state stays consistent; sidebars on hidden pages switch at once,
+  // since their transition would never end.
+  function setSidebars(on) {
+    var api = window.bslib && window.bslib.Sidebar;
+    document.querySelectorAll(".bslib-sidebar-layout").forEach(function (l) {
+      var open = !l.classList.contains("sidebar-collapsed");
+      var method = null;
+      if (on && open) {
+        l.setAttribute("data-dl-reopen", "true");
+        method = "close";
+      } else if (!on && l.hasAttribute("data-dl-reopen")) {
+        l.removeAttribute("data-dl-reopen");
+        if (!open) method = "open";
+      }
+      if (!method) return;
+      var sb = api && api.getInstance && api.getInstance(l);
+      if (sb) {
+        sb.toggle(method, l.offsetParent === null);
+      } else {
+        var t = l.querySelector(":scope > .collapse-toggle");
+        if (t) t.click();
+      }
+    });
+  }
+
+  function setPresent(on, save) {
+    document.documentElement.classList.toggle("dl-present", on);
+    document.querySelectorAll(".dl-present-btn").forEach(function (b) {
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    if (save) {
+      try { window.localStorage.setItem(presentKey, on ? "1" : "0"); } catch (e) { /* blocked */ }
+    }
+    setSidebars(on);
+    document.querySelectorAll(".js-plotly-plot").forEach(stylePlot);
+    // Plots take the new widths once the sidebars have moved.
+    setTimeout(function () { window.dispatchEvent(new Event("resize")); }, 400);
+  }
+
+  function storedPresent() {
+    try { return window.localStorage.getItem(presentKey) === "1"; } catch (e) { return false; }
+  }
+
+  // Every plot drawn while presenting gets the larger sizes.
+  if (window.jQuery) {
+    window.jQuery(document).on("plotly_afterplot", function (ev) { stylePlot(ev.target); });
+  }
+
+  // "P" switches the mode and Esc leaves it, except while typing in a field.
+  document.addEventListener("keydown", function (ev) {
+    if (ev.defaultPrevented || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    if (!document.querySelector(".dl-present-btn")) return;
+    var t = ev.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    if (ev.key === "p" || ev.key === "P") {
+      ev.preventDefault();
+      setPresent(!presenting(), true);
+    } else if (ev.key === "Escape" && presenting() &&
+               !(t && t.closest && t.closest(".dl-group-grid"))) {
+      setPresent(false, true);
+    }
+  });
 
   // Esc closes the open data-type panel and returns focus to its tile.
   document.addEventListener("keydown", function (ev) {
@@ -299,6 +410,15 @@
   document.addEventListener("DOMContentLoaded", function () {
     var t = document.getElementById("dl_lang");
     if (t) setToggle(t.getAttribute("data-initial"));
+    // Presentation mode chosen in an earlier visit; sidebars close once
+    // their script has set them up.
+    if (document.querySelector(".dl-present-btn") && storedPresent()) {
+      document.documentElement.classList.add("dl-present");
+      document.querySelectorAll(".dl-present-btn").forEach(function (b) {
+        b.setAttribute("aria-pressed", "true");
+      });
+      window.addEventListener("load", function () { if (presenting()) setSidebars(true); });
+    }
     renderMath(document.body);
     observer.observe(document.body, { childList: true, subtree: true });
     // Relabel after the switch renders and after every mode change.
