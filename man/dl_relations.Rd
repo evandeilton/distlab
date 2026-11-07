@@ -7,8 +7,9 @@
 dl_relations(id = NULL)
 }
 \arguments{
-\item{id}{Optional distribution id (see \code{\link[=dl_ids]{dl_ids()}}). When given, only the
-edges that start or end at \code{id} are returned.}
+\item{id}{Optional distribution id (see \code{\link[=dl_ids]{dl_ids()}}, univariate or
+multivariate). When given, only the edges that start or end at \code{id} are
+returned.}
 }
 \value{
 A data frame with one row per edge and the columns \code{from} and
@@ -20,7 +21,7 @@ in English and Portuguese), \code{latex} (the relation as a LaTeX string) and
 \description{
 Lists the relationship edges recorded in the registry: special cases,
 transformations, sums and limits that lead from one distribution to
-another.
+another. Edges of the multivariate entries are included.
 }
 \examples{
 rel <- dl_relations()

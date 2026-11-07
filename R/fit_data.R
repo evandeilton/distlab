@@ -322,7 +322,8 @@ fit_one_line <- function(line, decimal_mark) {
 #' dl_fit_candidates(c(0, 1, 2, 3))
 dl_fit_candidates <- function(data) {
   if (!inherits(data, "dl_fit_data")) data <- dl_fit_data(data)
-  cat <- dl_catalog()
+  # Univariate entries only: multivariate laws have no fitting engine.
+  cat <- catalog_frame(dl_registry())
   out <- cat[, c("id", "type")]
   out$eligible <- TRUE
   out$reason <- out$reason_key <- ""

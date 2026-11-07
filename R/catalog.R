@@ -2,10 +2,11 @@
 #'
 #' Lists the relationship edges recorded in the registry: special cases,
 #' transformations, sums and limits that lead from one distribution to
-#' another.
+#' another. Edges of the multivariate entries are included.
 #'
-#' @param id Optional distribution id (see [dl_ids()]). When given, only the
-#'   edges that start or end at `id` are returned.
+#' @param id Optional distribution id (see [dl_ids()], univariate or
+#'   multivariate). When given, only the edges that start or end at `id` are
+#'   returned.
 #'
 #' @returns A data frame with one row per edge and the columns `from` and
 #'   `to` (distribution ids), `type` (`"special_case"`, `"transformation"`,
@@ -21,8 +22,8 @@
 #' table(rel$type)
 #' dl_relations("poisson")[, c("from", "to", "type")]
 dl_relations <- function(id = NULL) {
-  reg <- dl_registry()
-  if (!is.null(id)) id <- dl_entry(id)$id
+  reg <- catalog_registry()
+  if (!is.null(id)) id <- dl_entry(id, multivariate = TRUE)$id
   relations_frame(reg, id)
 }
 
@@ -51,13 +52,14 @@ relations_frame <- function(reg, id = NULL) {
 
 #' Catalog of distributions
 #'
-#' One row per registry entry, with its names, classification and counts of
-#' parameters and relationships.
+#' One row per registry entry, univariate and multivariate, with its names,
+#' classification and counts of parameters and relationships.
 #'
 #' @returns A data frame with the columns `id`, `name_en`, `name_pt`,
 #'   `group` (data type, such as `"counts"`), `subgroup` (family), `type`
-#'   (`"discrete"` or `"continuous"`), `tier` (1 = core catalog), `n_params`
-#'   and `n_relations` (edges that start or end at the entry, see
+#'   (`"discrete"` or `"continuous"`), `dimension` (`"univariate"` or
+#'   `"multivariate"`), `tier` (1 = core catalog), `n_params` and
+#'   `n_relations` (edges that start or end at the entry, see
 #'   [dl_relations()]).
 #'
 #' @seealso [dl_relations()], [dl_registry()]
@@ -67,7 +69,7 @@ relations_frame <- function(reg, id = NULL) {
 #' cat <- dl_catalog()
 #' head(cat)
 #' cat[cat$group == "counts", c("id", "name_en", "n_relations")]
-dl_catalog <- function() catalog_frame(dl_registry())
+dl_catalog <- function() catalog_frame(catalog_registry())
 
 # Catalog table of a registry list.
 catalog_frame <- function(reg) {
@@ -80,6 +82,7 @@ catalog_frame <- function(reg) {
     group = vapply(reg, `[[`, "", "group"),
     subgroup = vapply(reg, `[[`, "", "subgroup"),
     type = vapply(reg, `[[`, "", "type"),
+    dimension = vapply(reg, entry_dimension, ""),
     tier = vapply(reg, function(e) as.integer(e$tier), integer(1)),
     n_params = vapply(reg, function(e) length(e$parameters), integer(1)),
     n_relations = unname(n_rel),
@@ -111,8 +114,10 @@ bound_tex <- function(x, entry) {
 }
 
 # Support as TeX: a set of whole numbers for discrete entries, an interval
-# with open or closed ends for continuous ones.
+# with open or closed ends for continuous ones. Multivariate entries give the
+# whole statement ("\mathbf{x} \in ...") in their registry.
 support_tex <- function(entry) {
+  if (is_multivariate(entry)) return(entry$support$latex)
   s <- entry$support
   lo <- bound_tex(s$lower, entry)
   hi <- bound_tex(s$upper, entry)
@@ -132,6 +137,11 @@ support_tex <- function(entry) {
   closed_lo <- !isTRUE(s$lower_open) && !(is.numeric(s$lower) && is.infinite(s$lower))
   closed_hi <- !isTRUE(s$upper_open) && !(is.numeric(s$upper) && is.infinite(s$upper))
   sprintf("%s%s, %s%s", if (closed_lo) "[" else "(", lo, hi, if (closed_hi) "]" else ")")
+}
+
+# Support statement shown on panels and cards: "x \in" and the support.
+support_math <- function(entry) {
+  if (is_multivariate(entry)) support_tex(entry) else paste("x \\in", support_tex(entry))
 }
 
 # Parameter symbols of an entry as one TeX string.

@@ -1,0 +1,76 @@
+id: mvnormal
+dimension: multivariate
+names:
+  en-US: Multivariate normal
+  pt-BR: Normal multivariada
+type: continuous
+group: multivariate
+subgroup: normal_family
+tier: 1
+graph: {xy: [150, -190]}
+support:
+  latex: "\\mathbf{x} \\in \\mathbb{R}^{k}"
+parameters:
+  - name: mean
+    latex: "\\boldsymbol{\\mu}"
+    elements: "(\\mu_1, \\ldots, \\mu_k)"
+    example: [0, 0]
+    description:
+      en-US: "Mean vector: the center of the distribution, one value per coordinate."
+      pt-BR: "Vetor de médias: o centro da distribuição, um valor por coordenada."
+  - name: sigma
+    latex: "\\boldsymbol{\\Sigma}"
+    elements: "(\\Sigma_{ij})_{k \\times k}"
+    example: [[1, 0.6], [0.6, 1]]
+    description:
+      en-US: "Covariance matrix, k by k, symmetric and positive definite: variances on the diagonal and covariances off it."
+      pt-BR: "Matriz de covariâncias, k por k, simétrica e positiva definida: variâncias na diagonal e covariâncias fora dela."
+constraints:
+  - "length(mean) == nrow(sigma)"
+  - "nrow(sigma) == ncol(sigma)"
+  - "all(sigma == t(sigma))"
+  - "all(diag(sigma) > 0)"
+  - "det(sigma) > 0"
+latex:
+  pdf: "f(\\mathbf{x}) = (2 \\pi)^{-k/2} \\det(\\boldsymbol{\\Sigma})^{-1/2} \\exp\\left\\{-\\frac{1}{2} (\\mathbf{x} - \\boldsymbol{\\mu})^{\\top} \\boldsymbol{\\Sigma}^{-1} (\\mathbf{x} - \\boldsymbol{\\mu})\\right\\}"
+  mean:
+    expr: "\\mu_i"
+  covariance:
+    expr: "\\Sigma_{ij}"
+  marginal:
+    expr: "X_i \\sim N(\\mu_i, \\Sigma_{ii})"
+  mgf:
+    expr: "\\exp\\left(\\mathbf{t}^{\\top} \\boldsymbol{\\mu} + \\frac{1}{2} \\mathbf{t}^{\\top} \\boldsymbol{\\Sigma} \\mathbf{t}\\right)"
+  cf:
+    expr: "\\exp\\left(i \\mathbf{t}^{\\top} \\boldsymbol{\\mu} - \\frac{1}{2} \\mathbf{t}^{\\top} \\boldsymbol{\\Sigma} \\mathbf{t}\\right)"
+story:
+  en-US: >-
+    Several measurements taken on the same unit, such as height and weight,
+    often vary together around a center, and each one alone looks Normal. The
+    multivariate Normal describes such a vector with a mean vector mu and a
+    covariance matrix Sigma, which holds the variances and how each pair of
+    coordinates moves together. Its density has elliptical contours, every
+    coordinate and every linear combination of coordinates is Normal, and
+    uncorrelated coordinates are independent.
+  pt-BR: >-
+    Várias medidas tomadas na mesma unidade, como altura e peso, costumam
+    variar juntas em torno de um centro, e cada uma isoladamente parece Normal.
+    A Normal multivariada descreve esse vetor com um vetor de médias mu e uma
+    matriz de covariâncias Sigma, que reúne as variâncias e o quanto cada par
+    de coordenadas varia em conjunto. Sua densidade tem contornos elípticos,
+    toda coordenada e toda combinação linear de coordenadas é Normal, e
+    coordenadas não correlacionadas são independentes.
+relationships:
+  - to: normal
+    type: transformation
+    label: "aᵀX"
+    condition:
+      en-US: "Every linear combination of the coordinates is Normal; with a the i-th unit vector it gives the marginal X_i ~ N(mu_i, Sigma_ii)."
+      pt-BR: "Toda combinação linear das coordenadas é Normal; com a igual ao i-ésimo vetor canônico ela dá a marginal X_i ~ N(mu_i, Sigma_ii)."
+    latex: "\\mathbf{a}^{\\top} \\mathbf{X} \\sim N\\left(\\mathbf{a}^{\\top} \\boldsymbol{\\mu}, \\mathbf{a}^{\\top} \\boldsymbol{\\Sigma} \\mathbf{a}\\right)"
+references:
+  - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
+  - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
+  - "Anderson, T. W. (2003). An Introduction to Multivariate Statistical Analysis, 3rd ed. Wiley."
+  - "Johnson, R. A. and Wichern, D. W. (2007). Applied Multivariate Statistical Analysis, 6th ed. Pearson."
+  - "Kotz, S., Balakrishnan, N. and Johnson, N. L. (2000). Continuous Multivariate Distributions, Vol. 1: Models and Applications, 2nd ed. Wiley."

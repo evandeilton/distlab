@@ -1,0 +1,78 @@
+id: dirichlet
+dimension: multivariate
+names:
+  en-US: Dirichlet
+  pt-BR: Dirichlet
+type: continuous
+group: multivariate
+subgroup: beta_family
+tier: 1
+graph: {xy: [-830, 0]}
+support:
+  latex: "\\mathbf{x} \\in (0, 1)^{k},\\ \\sum_{i=1}^{k} x_i = 1"
+parameters:
+  - name: alpha
+    latex: "\\boldsymbol{\\alpha}"
+    elements: "(\\alpha_1, \\ldots, \\alpha_k)"
+    lower: 0
+    lower_open: true
+    example: [2, 3, 4]
+    description:
+      en-US: "Concentrations of the k components, each greater than 0; their total is alpha_0."
+      pt-BR: "Concentrações das k componentes, cada uma maior que 0; o total delas é alfa_0."
+constraints:
+  - "length(alpha) >= 2"
+functions:
+  d: extraDistr::ddirichlet
+  r: extraDistr::rdirichlet
+latex:
+  pdf: "f(\\mathbf{x}) = \\frac{\\Gamma(\\alpha_0)}{\\prod_{i=1}^{k} \\Gamma(\\alpha_i)} \\prod_{i=1}^{k} x_i^{\\alpha_i - 1}, \\quad \\alpha_0 = \\sum_{i=1}^{k} \\alpha_i"
+  mean:
+    expr: "\\frac{\\alpha_i}{\\alpha_0}"
+  covariance:
+    - expr: "\\frac{\\alpha_i (\\alpha_0 - \\alpha_i)}{\\alpha_0^{2} (\\alpha_0 + 1)}"
+      condition: "i = j"
+    - expr: "-\\frac{\\alpha_i \\alpha_j}{\\alpha_0^{2} (\\alpha_0 + 1)}"
+      condition: "i \\ne j"
+  marginal:
+    expr: "X_i \\sim \\mathrm{Beta}(\\alpha_i, \\alpha_0 - \\alpha_i)"
+  mgf:
+    expr: null
+  cf:
+    expr: null
+story:
+  en-US: >-
+    A Dirichlet vector is a random set of k proportions that add to 1, such as
+    the shares of a budget or the composition of a mixture. It extends the
+    Beta distribution from one proportion to several. The concentrations
+    alpha_i act like prior counts for each category: their ratios set the
+    average shares, and their total sets how tightly the shares gather around
+    that average. It is the usual prior for the probabilities of a Categorical
+    or Multinomial model.
+  pt-BR: >-
+    Um vetor de Dirichlet é um conjunto aleatório de k proporções que somam 1,
+    como as fatias de um orçamento ou a composição de uma mistura. Ele estende
+    a distribuição Beta de uma proporção para várias. As concentrações alfa_i
+    funcionam como contagens prévias de cada categoria: suas razões fixam as
+    proporções médias, e seu total fixa o quanto as proporções se agrupam em
+    torno dessa média. É a priori usual para as probabilidades de um modelo
+    Categórico ou Multinomial.
+relationships:
+  - to: beta
+    type: special_case
+    label: "k=2"
+    condition:
+      en-US: "With k = 2 components the vector is fixed by its first coordinate, which is Beta(alpha_1, alpha_2)."
+      pt-BR: "Com k = 2 componentes o vetor fica determinado pela primeira coordenada, que é Beta(alfa_1, alfa_2)."
+    latex: "k = 2 \\Rightarrow X_1 \\sim \\mathrm{Beta}(\\alpha_1, \\alpha_2),\\ X_2 = 1 - X_1"
+  - to: beta
+    type: transformation
+    label: "Xᵢ"
+    condition:
+      en-US: "Each proportion alone is Beta, with alpha_i against the total of the other concentrations."
+      pt-BR: "Cada proporção isolada é Beta, com alfa_i contra o total das demais concentrações."
+    latex: "\\mathbf{X} \\sim \\mathrm{Dirichlet}(\\boldsymbol{\\alpha}) \\Rightarrow X_i \\sim \\mathrm{Beta}(\\alpha_i, \\alpha_0 - \\alpha_i)"
+references:
+  - "Kotz, S., Balakrishnan, N. and Johnson, N. L. (2000). Continuous Multivariate Distributions, Vol. 1: Models and Applications, 2nd ed. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."
+  - "Gelman, A., Carlin, J. B., Stern, H. S., Dunson, D. B., Vehtari, A. and Rubin, D. B. (2013). Bayesian Data Analysis, 3rd ed. CRC Press."

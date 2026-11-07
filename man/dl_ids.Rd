@@ -4,7 +4,7 @@
 \alias{dl_ids}
 \title{List distribution ids}
 \usage{
-dl_ids(type = NULL, group = NULL)
+dl_ids(type = NULL, group = NULL, dimension = "univariate")
 }
 \arguments{
 \item{type}{Optional character vector of types (\code{"discrete"},
@@ -12,9 +12,13 @@ dl_ids(type = NULL, group = NULL)
 
 \item{group}{Optional character vector of data-type groups to keep, such
 as \code{"counts"}, \code{"positive"} or \code{"real_line"}.}
+
+\item{dimension}{Which entries to return: \code{"univariate"} (the default, the
+distributions handled by the engine), \code{"multivariate"}, or both.}
 }
 \value{
-A character vector of distribution ids.
+A character vector of distribution ids. By default only
+univariate ids, the ones \code{\link[=dl_dist]{dl_dist()}} accepts.
 }
 \description{
 List distribution ids
@@ -22,6 +26,7 @@ List distribution ids
 \examples{
 dl_ids()
 dl_ids(type = "discrete")
+dl_ids(dimension = "multivariate")
 }
 \seealso{
 Other registry:

@@ -1,0 +1,85 @@
+id: multinomial
+dimension: multivariate
+names:
+  en-US: Multinomial
+  pt-BR: Multinomial
+type: discrete
+group: multivariate
+subgroup: binomial_family
+tier: 1
+graph: {xy: [-320, -480]}
+support:
+  latex: "\\mathbf{x} \\in \\{0, 1, \\ldots, n\\}^{k},\\ \\sum_{i=1}^{k} x_i = n"
+parameters:
+  - name: size
+    latex: "n"
+    lower: 1
+    integer: true
+    example: 10
+    description:
+      en-US: "Number of independent trials, a whole number n of at least 1."
+      pt-BR: "Número de ensaios independentes, um inteiro n maior ou igual a 1."
+  - name: prob
+    latex: "\\mathbf{p}"
+    elements: "(p_1, \\ldots, p_k)"
+    lower: 0
+    example: [0.2, 0.5, 0.3]
+    description:
+      en-US: "Probabilities of the k categories in each trial, each at least 0 and adding to 1."
+      pt-BR: "Probabilidades das k categorias em cada ensaio, cada uma maior ou igual a 0 e com soma 1."
+constraints:
+  - "length(size) == 1"
+  - "length(prob) >= 2"
+  - "abs(sum(prob) - 1) < 1e-9"
+functions:
+  d: stats::dmultinom
+  r: stats::rmultinom
+latex:
+  pdf: "P(\\mathbf{X} = \\mathbf{x}) = \\frac{n!}{x_1! \\cdots x_k!} \\prod_{i=1}^{k} p_i^{x_i}, \\quad \\sum_{i=1}^{k} x_i = n"
+  mean:
+    expr: "n p_i"
+  covariance:
+    - expr: "n p_i (1 - p_i)"
+      condition: "i = j"
+    - expr: "-n p_i p_j"
+      condition: "i \\ne j"
+  marginal:
+    expr: "X_i \\sim \\mathrm{Binomial}(n, p_i)"
+  mgf:
+    expr: "\\left(\\sum_{j=1}^{k} p_j e^{t_j}\\right)^{n}"
+  cf:
+    expr: "\\left(\\sum_{j=1}^{k} p_j e^{i t_j}\\right)^{n}"
+story:
+  en-US: >-
+    Repeat a trial with k possible outcomes n times, independently and with
+    the same probabilities, and count how many results fall in each category.
+    The vector of counts follows a Multinomial distribution. It describes, for
+    example, how n survey answers split among k options. The counts always add
+    to n, so when one category gets more results the others tend to get fewer.
+  pt-BR: >-
+    Repita n vezes, de forma independente e com as mesmas probabilidades, um
+    ensaio com k resultados possíveis, e conte quantos resultados caem em cada
+    categoria. O vetor de contagens segue uma distribuição Multinomial. Ela
+    descreve, por exemplo, como n respostas de uma pesquisa se dividem entre k
+    opções. As contagens sempre somam n; por isso, quando uma categoria recebe
+    mais resultados, as outras tendem a receber menos.
+relationships:
+  - to: categorical
+    type: special_case
+    label: "n=1"
+    condition:
+      en-US: "With a single trial (n = 1) the Multinomial is Categorical(p)."
+      pt-BR: "Com um único ensaio (n = 1), a Multinomial é Categórica(p)."
+    latex: "\\mathrm{Multinomial}(1, \\mathbf{p}) = \\mathrm{Categorical}(\\mathbf{p})"
+  - to: binomial
+    type: transformation
+    label: "Xᵢ"
+    condition:
+      en-US: "Each count alone, successes of category i against all others, is Binomial(n, p_i)."
+      pt-BR: "Cada contagem isolada, sucessos da categoria i contra todas as outras, é Binomial(n, p_i)."
+    latex: "\\mathbf{X} \\sim \\mathrm{Multinomial}(n, \\mathbf{p}) \\Rightarrow X_i \\sim \\mathrm{Binomial}(n, p_i)"
+references:
+  - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."
+  - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
+  - "Johnson, N. L., Kotz, S. and Balakrishnan, N. (1997). Discrete Multivariate Distributions. Wiley."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."

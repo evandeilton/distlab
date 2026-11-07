@@ -1,11 +1,13 @@
 test_that("dl_relations lists every registry edge exactly once", {
   rel <- dl_relations()
   expect_named(rel, c("from", "to", "type", "condition_en", "condition_pt", "latex", "label"))
-  n <- sum(vapply(dl_registry(), function(e) length(e$relationships), integer(1)))
+  reg <- dl_registry(dimension = c("univariate", "multivariate"))
+  n <- sum(vapply(reg, function(e) length(e$relationships), integer(1)))
   expect_identical(nrow(rel), n)
   expect_false(anyDuplicated(distlab:::edge_ids(rel)) > 0)
   expect_false(anyNA(rel))
-  expect_true(all(rel$from %in% dl_ids()) && all(rel$to %in% dl_ids()))
+  ids <- dl_ids(dimension = c("univariate", "multivariate"))
+  expect_true(all(rel$from %in% ids) && all(rel$to %in% ids))
   expect_true(all(rel$type %in% c("special_case", "transformation", "sum", "limit")))
   expect_true(all(nzchar(rel$label)))
 })
@@ -22,9 +24,9 @@ test_that("dl_relations filters by id and checks it", {
 
 test_that("dl_catalog has one complete row per entry", {
   cat <- dl_catalog()
-  expect_identical(cat$id, dl_ids())
-  expect_named(cat, c("id", "name_en", "name_pt", "group", "subgroup", "type", "tier",
-                      "n_params", "n_relations"))
+  expect_identical(cat$id, dl_ids(dimension = c("univariate", "multivariate")))
+  expect_named(cat, c("id", "name_en", "name_pt", "group", "subgroup", "type", "dimension",
+                      "tier", "n_params", "n_relations"))
   expect_false(anyNA(cat))
   expect_identical(cat$name_pt[cat$id == "gamma"], "Gama")
   rel <- dl_relations()
