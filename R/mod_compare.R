@@ -144,7 +144,7 @@ mod_compare_ui <- function(id, lang) {
           bslib::card_header(shiny::tags$span(
             class = "dl-card-title", shiny::icon("table", `aria-hidden` = "true"),
             i18n_span("compare.summary", lang))),
-          bslib::card_body(shiny::uiOutput(ns("summary")))
+          bslib::card_body(shiny::uiOutput(ns("summary")), shiny::uiOutput(ns("code")))
         )
       )
     )
@@ -301,9 +301,15 @@ shared_range <- function(dists) {
   c(lo, hi)
 }
 
+# Shared range with ends that read back from their literals (code_value()),
+# so the code card rebuilds the same grid.
+compare_range <- function(series) {
+  vapply(shared_range(lapply(series, `[[`, "dist")), code_value, numeric(1))
+}
+
 # Curves of every series on the shared range.
 compare_curves <- function(series) {
-  rng <- shared_range(lapply(series, `[[`, "dist"))
+  rng <- compare_range(series)
   lapply(series, function(s) {
     s$curve <- curve_grid(s$dist, rng[1], rng[2], n = 401L)
     s
@@ -415,6 +421,32 @@ compare_table <- function(series, lang) {
       shiny::tags$tbody(rows)
     )
   )
+}
+
+# R code of the curves and of the summary table: the distributions, the
+# shared grid (every whole number for discrete laws) and the moments and
+# median of each one. Without a shared range only the table is rebuilt.
+compare_code <- function(series) {
+  n <- length(series)
+  dists <- vapply(series, function(s) sub("^d <- ", "", code_dist(s$dist, exact = TRUE)), "")
+  discrete <- vapply(series, function(s) identical(s$dist$entry$type, "discrete"), logical(1))
+  rng <- tryCatch(compare_range(series), error = function(err) NULL)
+  curves <- if (!is.null(rng)) c(
+    if (!all(discrete)) sprintf("x <- seq(%s, %s, length.out = 401)",
+                                code_num(rng[1], exact = TRUE), code_num(rng[2], exact = TRUE)),
+    if (any(discrete)) sprintf("k <- seq(%s, %s)", code_num(floor(rng[1])), code_num(ceiling(rng[2]))),
+    sprintf("grids <- list(%s)", paste(ifelse(discrete, "k", "x"), collapse = ", ")),
+    "density <- Map(distlab::dl_density, dists, grids)",
+    "cdf <- Map(distlab::dl_cdf, dists, grids)"
+  )
+  paste(c(
+    "dists <- list(",
+    paste0("  ", dists, c(rep(",", n - 1L), "")),
+    ")",
+    curves,
+    "# Summary: moments and median of each distribution",
+    "t(sapply(dists, function(d) c(distlab::dl_moments(d), median = distlab::dl_quantile(d, 0.5))))"
+  ), collapse = "\n")
 }
 
 # `lang` may be fixed or reactive; `dark` a reactive logical; `select` a
@@ -656,6 +688,7 @@ mod_compare_server <- function(id, lang, dark = shiny::reactive(FALSE),
       plot_file(compare_cdf_plot(cv, lang_r(), plot_theme(dark())), "compare", curve_ids(cv), "cdf")
     })
     output$summary <- shiny::renderUI(compare_table(series_d(), lang_r()))
+    output$code <- shiny::renderUI(code_tag(compare_code(series_d()), ns("compare-code"), lang_r()))
 
     # Mixed types share one axis: bars are probabilities, curves densities.
     output$note <- shiny::renderUI({

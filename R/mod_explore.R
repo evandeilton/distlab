@@ -47,6 +47,7 @@ mod_explore_ui <- function(id, lang) {
       )
     ),
     shiny::uiOutput(ns("moments")),
+    shiny::tags$div(class = "dl-explore-code", shiny::uiOutput(ns("code"))),
     bslib::layout_columns(
       col_widths = c(7, 5), fill = FALSE,
       bslib::card(
@@ -202,6 +203,8 @@ mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
       moment_boxes(m, lg)
     })
 
+    output$code <- shiny::renderUI(code_tag(explore_code(dist_now()), ns("explore-code"), lang_r()))
+
     for (tab in names(formula_tabs("discrete"))) local({
       tb <- tab
       output[[paste0("formulas_", tb)]] <- shiny::renderUI(
@@ -248,6 +251,21 @@ explore_cdf_plot <- function(d, dist, lang, th) {
                        line = list(color = th$line2, shape = shape, width = 2.5),
                        hovertemplate = "x = %{x:.4f}<br>F(x) = %{y:.4f}<extra></extra>")
   plot_layout(p, tr("plot.x", lang), tr("plot.cdf", lang), th, lang, ylim = c(0, 1.02))
+}
+
+# R code of the moments and of the curves the Explorer shows, with the R
+# functions of the distribution as a comment when they exist.
+explore_code <- function(dist) {
+  base <- vapply(c("d", "p"), function(k) {
+    cc <- code_call(dist, k, exact = TRUE)
+    if (is.null(cc)) "" else sprintf("%s(x, %s)", cc$fun, cc$args)
+  }, "")
+  paste(c(
+    code_dist(dist, exact = TRUE),
+    "distlab::dl_moments(d)  # mean, variance, sd, skewness, excess kurtosis",
+    "curve <- distlab::dl_curve(d)  # x, density and cdf of the plots",
+    if (all(nzchar(base))) sprintf("# R functions: %s and %s", base[1], base[2])
+  ), collapse = "\n")
 }
 
 # Title of the open distribution with its type and data-type group.

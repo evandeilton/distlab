@@ -133,3 +133,6 @@
 * Every plot of the app and of the study report downloads as PNG or SVG from
   its toolbar, on the white or dark background shown on screen and with a
   file name such as `distlab-explorer-gamma-density.png`.
+* The Explorer and Compare show the R code of their moments, curves and
+  summary table, and the Fit code also rebuilds the descriptive statistics,
+  the estimates and the goodness-of-fit table of the selected family.

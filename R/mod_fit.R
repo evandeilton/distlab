@@ -443,7 +443,12 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
     output$ranking <- shiny::renderUI(fit_ranking_tag(result(), lang_r()))
     output$estimates <- shiny::renderUI(fit_estimates_tag(selected_fit(), lang_r()))
     output$fit_notes <- shiny::renderUI(fit_notes_tag(selected_fit(), lang_r()))
-    output$code <- shiny::renderUI({ shiny::req(result()); code_tag(result()$code, ns("fit-code"), lang_r()) })
+    # Code of the fit plus the tables shown for the selected family.
+    view_code <- shiny::reactive({
+      r <- shiny::req(result())
+      fit_view_code(r, if (length(r$fits)) selected_fit()$id)
+    })
+    output$code <- shiny::renderUI(code_tag(view_code(), ns("fit-code"), lang_r()))
     shiny::observeEvent(input$open_explorer, {
       f <- selected_fit()
       count <<- count + 1L
@@ -512,7 +517,7 @@ mod_fit_server <- function(id, lang, dark = shiny::reactive(FALSE),
     # Study report of the selected family, at its estimates.
     output$report <- report_download(store, function() selected_fit()$dist, lang_r, fit = result)
     output$download_code <- shiny::downloadHandler(filename = function() "distlab-fit.R",
-      content = function(file) { shiny::req(result()); writeLines(result()$code, file, useBytes = TRUE) })
+      content = function(file) writeLines(view_code(), file, useBytes = TRUE))
     list(data = shiny::reactive(loaded()), fit = shiny::reactive(result()), route = shiny::reactive(route()))
   })
 }
@@ -535,6 +540,15 @@ fit_notes_tag <- function(f, lang) {
     if (length(f$warnings)) shiny::tags$details(
       shiny::tags$summary(tr("fit.technical_notes", lang)),
       shiny::tags$ul(lapply(f$warnings, function(s) shiny::tags$li(fit_message_text(s, lang))))))
+}
+
+# Script of a fit result `r` (data and ranking) followed by the descriptive
+# statistics and, for family `id`, its estimates and goodness-of-fit table.
+fit_view_code <- function(r, id = NULL) {
+  paste(c(r$code, "distlab::dl_fit_describe(data)",
+          if (is_string(id)) c(sprintf("fit$fits[[\"%s\"]]$estimates", id),
+                               sprintf("distlab::dl_fit_diagnostics(fit, id = \"%s\")$gof", id))),
+        collapse = "\n")
 }
 
 # Descriptive goodness-of-fit table of dl_fit_diagnostics() for fit `f`.
