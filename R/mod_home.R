@@ -92,24 +92,25 @@ home_search_options <- function(lang) {
   )
 }
 
-# Search choices: every distribution name in `lang`, sorted.
+# Search choices: every distribution name in `lang`, sorted, multivariate
+# reference cards included.
 search_choices <- function(lang) {
-  reg <- dl_registry()
+  reg <- catalog_registry()
   labels <- vapply(reg, function(e) entry_text(e, "names", lang), "")
   o <- order(labels, method = "radix")
   c(stats::setNames("", ""), stats::setNames(names(reg)[o], labels[o]))
 }
 
 # Data-type groups present in the registry, in their canonical order.
-registry_groups <- function(reg = dl_registry()) {
+registry_groups <- function(reg = catalog_registry()) {
   intersect(.dl_groups, unique(unlist(lapply(reg, entry_groups))))
 }
 
 # Chips of distributions `ids`, labeled in `lang`.
-dist_chips <- function(ids, lang, input_id, reg = dl_registry()) {
+dist_chips <- function(ids, lang, input_id, reg = catalog_registry()) {
   lapply(ids, function(i) {
     name <- entry_text(reg[[i]], "names", lang)
-    dist_button(i, name, input_id, label = tr("related.open", lang, name = name))
+    dist_button(i, name, input_id, label = open_label(reg[[i]], lang))
   })
 }
 
@@ -132,7 +133,7 @@ task_tile <- function(key, input_id, lang) {
 # Data-type tiles, each a disclosure button followed by its panel. distlab.js
 # keeps one panel open at a time; the chips are outputs so they follow the
 # language without closing the panel.
-group_picker <- function(ns, lang, reg = dl_registry()) {
+group_picker <- function(ns, lang, reg = catalog_registry()) {
   items <- lapply(registry_groups(reg), function(g) {
     n <- length(group_members(g, reg))
     tile_id <- ns(paste0("tile_", g))
@@ -176,7 +177,7 @@ group_picker <- function(ns, lang, reg = dl_registry()) {
 }
 
 # Chips of one group: starters first, with a badge, then the rest by name.
-group_chips <- function(g, lang, input_id, reg = dl_registry()) {
+group_chips <- function(g, lang, input_id, reg = catalog_registry()) {
   ids <- group_members(g, reg)
   starters <- intersect(.dl_home_starters[[g]] %||% character(0), ids)
   rest <- setdiff(ids, starters)
@@ -316,8 +317,9 @@ home_task_route <- function(key, last = NULL) {
 }
 
 # Returns a reactive with the latest navigation request: list(tab, n) plus
-# id/params (Explorer, Calculator), group (Compendium), preset (Compare) or
-# edge/sim_tab (Simulation); `n` increases so repeated requests still fire.
+# id/params (Explorer, Calculator), group or card (Compendium), preset
+# (Compare) or edge/sim_tab (Simulation); `n` increases so repeated requests
+# still fire.
 # `active` is a reactive that is TRUE while Home is the open page.
 mod_home_server <- function(id, lang, active = shiny::reactive(NULL)) {
   lang_r <- if (shiny::is.reactive(lang)) lang else shiny::reactive(lang)
@@ -361,17 +363,25 @@ mod_home_server <- function(id, lang, active = shiny::reactive(NULL)) {
                                   selected = "", options = home_search_options(lang_r()))
     }, ignoreInit = TRUE)
 
+    # A univariate law opens in the Explorer, a multivariate one as its
+    # reference card in the Compendium.
+    open_entry <- function(did) {
+      if (!is_string(did)) return(FALSE)
+      if (did %in% dl_ids()) {
+        go(list(tab = "explorer", id = did))
+      } else if (did %in% dl_ids(dimension = "multivariate")) {
+        go(list(tab = "compendium", card = did))
+      } else {
+        return(FALSE)
+      }
+      TRUE
+    }
     shiny::observeEvent(input$search, {
-      if (is_string(input$search) && input$search %in% dl_ids()) {
-        go(list(tab = "explorer", id = input$search))
+      if (open_entry(input$search)) {
         shiny::updateSelectizeInput(session, "search", selected = "")
       }
     })
-    shiny::observeEvent(input$pick, {
-      if (is_string(input$pick) && input$pick %in% dl_ids()) {
-        go(list(tab = "explorer", id = input$pick))
-      }
-    })
+    shiny::observeEvent(input$pick, open_entry(input$pick))
     shiny::observeEvent(input$compendium, {
       if (is_string(input$compendium) && input$compendium %in% .dl_groups) {
         go(list(tab = "compendium", group = input$compendium))

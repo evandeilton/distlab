@@ -5,7 +5,8 @@ test_that("Home has task tiles, data-type tiles with panels and exam cards", {
     expect_match(html, sprintf('data-dist="%s" data-input="home-task"', k), info = k)
   }
   groups <- distlab:::registry_groups()
-  expect_identical(groups, c("binary", "counts", "bounded", "positive", "real_line"))
+  expect_identical(groups, c("binary", "counts", "bounded", "positive", "real_line",
+                               "multivariate"))
   for (g in groups) {
     expect_match(html, sprintf('id="home-tile_%s"[^>]*aria-expanded="false" aria-controls="home-panel_%s"',
                                g, g), info = g)

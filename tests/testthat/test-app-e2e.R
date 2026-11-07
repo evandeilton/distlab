@@ -85,6 +85,37 @@ test_that("the language switch keeps tab, distribution and parameters", {
   app$run_js("document.querySelector('[data-value=\"relations\"]').click()")
   app$wait_for_idle()
   expect_gt(app$get_js("document.querySelectorAll('.dl-rel-table .katex').length"), 20)
+  # Home search opens a multivariate law as its reference card in the
+  # Compendium, with formulas typeset and a static illustration; the dialog
+  # fits a phone screen and its links open univariate laws in the Explorer.
+  app$run_js("document.querySelector('.navbar [data-value=\"home\"]').click()")
+  app$set_inputs(`home-search` = "mvnormal")
+  app$wait_for_js("document.querySelector('.modal.show .dl-mv-card .katex') !== null")
+  expect_identical(app$get_value(input = "nav"), "compendium")
+  expect_identical(app$get_js("document.querySelector('.modal.show .modal-title').textContent.trim()"),
+                   "Multivariate normal")
+  expect_true(app$get_js(
+    "document.querySelector('.modal.show svg.dl-mv-plot[role=\"img\"] .dl-mv-ellipse') !== null"))
+  app$set_window_size(375, 812)
+  app$wait_for_idle()
+  body <- "document.querySelector('.modal.show .modal-body')"
+  expect_lte(app$get_js(paste0(body, ".scrollWidth")), app$get_js(paste0(body, ".clientWidth")))
+  expect_lte(app$get_js("document.querySelector('.modal.show .modal-dialog').getBoundingClientRect().right"),
+             app$get_js("window.innerWidth"))
+  app$set_window_size(1200, 800)
+  app$run_js("document.querySelector('.modal.show .dl-mv-related .dl-goto[data-dist=\"normal\"]').click()")
+  app$wait_for_js("document.querySelector('.modal.show') === null")
+  app$wait_for_idle()
+  expect_identical(app$get_value(input = "nav"), "explorer")
+  expect_identical(app$get_value(input = "explore-dist"), "normal")
+  # The related card of the Explorer opens the card back.
+  app$run_js("document.querySelector('#explore-related .dl-goto[data-dist=\"mvnormal\"]').click()")
+  app$wait_for_js("document.querySelector('.modal.show .dl-mv-card') !== null")
+  expect_identical(app$get_value(input = "nav"), "compendium")
+  # Bootstrap ignores a close while the dialog is still fading in.
+  Sys.sleep(0.6)
+  app$run_js("document.querySelector('.modal.show .modal-footer button').click()")
+  app$wait_for_js("document.querySelector('.modal.show') === null && !document.body.classList.contains('modal-open')")
   # The Calculator typesets the event and shows the R code.
   app$run_js("document.querySelector('.navbar [data-value=\"calculator\"]').click()")
   app$wait_for_idle()

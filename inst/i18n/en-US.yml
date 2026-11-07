@@ -246,6 +246,7 @@ home.example.counts: "E.g. customers per hour"
 home.example.bounded: "E.g. the share of right answers on a test"
 home.example.positive: "E.g. waiting time in a line"
 home.example.real_line: "E.g. a measurement error"
+home.example.multivariate: "E.g. votes split among parties"
 home.start_here: start here
 home.see_all: "See all {n} in the Compendium →"
 home.see_one: "See it in the Compendium →"
@@ -305,6 +306,9 @@ formula.entropy: Entropy
 formula.if: if
 formula.undefined: does not exist
 formula.no_closed_form: no closed form
+formula.mean_vector: Mean vector
+formula.covariance: Covariance matrix
+formula.marginal: Marginal distributions
 related.title: Related distributions
 related.none: No relationships are recorded for this distribution.
 related.to: leads to
@@ -313,6 +317,20 @@ related.type.special_case: Special case
 related.type.transformation: Transformation
 related.type.limit: Limit
 related.type.sum: Sum
+card.badge: "Reference: formulas and properties"
+card.note: "The interactive pages (Explorer, Calculator, Compare, Simulation and Fit) work with one variable at a time."
+card.story: Story
+card.illustration: Illustration
+card.formulas: Formula sheet
+card.functions: R functions
+card.close: Close
+card.open: Open the reference card
+card.open_label: "Open the {name} reference card"
+card.no_illustration: No illustration for these values.
+card.illus.categorical: "Probability of each category for p = {p}."
+card.illus.multinomial: "Expected count n p_i of each category, with a bar of one standard deviation on each side, for n = {n} and p = {p}."
+card.illus.dirichlet: "{draws} draws of Dirichlet(α = {alpha}) on the triangle of proportions, the simplex; the larger point is the mean vector."
+card.illus.mvnormal: "{draws} draws of a bivariate Normal with mean vector μ = {mu}, variances {v1} and {v2} and correlation {rho}; the ellipses hold 50% and 90% of the probability."
 moments.mean: Mean
 moments.variance: Variance
 moments.sd: Std. deviation

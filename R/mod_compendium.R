@@ -4,7 +4,7 @@
 
 mod_compendium_ui <- function(id, lang) {
   ns <- shiny::NS(id)
-  reg <- dl_registry()
+  reg <- catalog_registry()
   view_title <- function(key, icon) {
     shiny::tags$span(class = "dl-nav-label", shiny::icon(icon, `aria-hidden` = "true"),
                      i18n_span(key, lang))
@@ -146,7 +146,7 @@ compendium_toolbar <- function(ns, lang, reg) {
 }
 
 # Legend of the map: group colors, node shapes and edge styles.
-graph_legend <- function(lang, reg = dl_registry()) {
+graph_legend <- function(lang, reg = catalog_registry()) {
   item <- function(cls, key) {
     shiny::tags$li(shiny::tags$span(class = cls, `aria-hidden` = "true"),
                    i18n_span(key, lang))
@@ -173,7 +173,8 @@ graph_legend <- function(lang, reg = dl_registry()) {
 }
 
 # `lang` may be fixed or reactive; `dark` a reactive logical; `request` a
-# reactive navigation request from other pages (list(tab, group, ...)).
+# reactive navigation request from other pages (list(tab, group, card, ...));
+# `card` opens the reference card of a multivariate entry.
 # Returns a reactive with the latest navigation request: list(tab, id, n),
 # where tab is "explorer", "calculator", "compare" or "simulation" (with
 # `edge` instead of `id` for a relation).
@@ -182,7 +183,7 @@ mod_compendium_server <- function(id, lang, dark = shiny::reactive(FALSE),
   lang_r <- if (shiny::is.reactive(lang)) lang else shiny::reactive(lang)
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
-    reg <- dl_registry()
+    reg <- catalog_registry()
     rel <- relations_frame(reg)
     rel$id <- edge_ids(rel)
     groups_all <- registry_groups(reg)
@@ -230,6 +231,8 @@ mod_compendium_server <- function(id, lang, dark = shiny::reactive(FALSE),
 
     valid_node <- function(x) is_string(x) && x %in% names(reg)
     valid_edge <- function(x) is_string(x) && x %in% rel$id
+    # Univariate laws and simulated relations, for the interactive pages.
+    valid_tool <- function(x) valid_node(x) && !is_multivariate(reg[[x]])
 
     # Selection made outside the map is mirrored on it.
     # The map tab may be hidden or not drawn yet, so distlab.js waits for a
@@ -267,23 +270,52 @@ mod_compendium_server <- function(id, lang, dark = shiny::reactive(FALSE),
         sel(NULL)
       }
     })
-    shiny::observeEvent(input$dblclick, {
-      if (valid_node(input$dblclick)) go("explorer", input$dblclick)
+    # Reference card of a multivariate entry, in a dialog that follows the
+    # language; its links open other cards or univariate laws in the Explorer.
+    # `card` is list(id, n); the counter re-renders a card opened again.
+    card <- shiny::reactiveVal(NULL)
+    card_count <- 0L
+    show_card <- function(did) {
+      card_count <<- card_count + 1L
+      card(list(id = did, n = card_count))
+      shiny::showModal(card_modal(ns, shiny::isolate(lang_r())))
+    }
+    output$card_title <- shiny::renderText({
+      shiny::req(card())
+      entry_text(reg[[card()$id]], "names", lang_r())
     })
-    shiny::observeEvent(input$open, {
-      if (valid_node(input$open)) go("explorer", input$open)
+    output$card <- shiny::renderUI({
+      shiny::req(card())
+      mv_card_tag(reg[[card()$id]], lang_r(), ns("open"))
     })
+    # Univariate laws open in the Explorer; multivariate ones as their card.
+    open_node <- function(did) {
+      if (!valid_node(did)) return()
+      if (is_multivariate(reg[[did]])) {
+        show_card(did)
+      } else {
+        if (!is.null(card())) {
+          card(NULL)
+          shiny::removeModal()
+        }
+        go("explorer", did)
+      }
+    }
+    shiny::observeEvent(input$dblclick, open_node(input$dblclick))
+    shiny::observeEvent(input$open, open_node(input$open))
     shiny::observeEvent(input$calc, {
-      if (valid_node(input$calc)) go("calculator", input$calc)
+      if (valid_tool(input$calc)) go("calculator", input$calc)
     })
     shiny::observeEvent(input$compare, {
-      if (valid_node(input$compare)) go("compare", input$compare)
+      if (valid_tool(input$compare)) go("compare", input$compare)
     })
     shiny::observeEvent(input$sim, {
-      if (valid_node(input$sim)) go("simulation", input$sim)
+      if (valid_tool(input$sim)) go("simulation", input$sim)
     })
     shiny::observeEvent(input$sim_edge, {
-      if (valid_edge(input$sim_edge)) go("simulation", edge = input$sim_edge)
+      if (valid_edge(input$sim_edge) && !is.null(.dl_sim_recipes[[input$sim_edge]])) {
+        go("simulation", edge = input$sim_edge)
+      }
     })
     shiny::observeEvent(input$pick_node, {
       if (valid_node(input$pick_node)) select_node(input$pick_node)
@@ -310,6 +342,10 @@ mod_compendium_server <- function(id, lang, dark = shiny::reactive(FALSE),
     # with that group only.
     shiny::observeEvent(request(), {
       r <- request()
+      if (identical(r$tab, "compendium") && valid_node(r$card) &&
+          is_multivariate(reg[[r$card]])) {
+        show_card(r$card)
+      }
       if (identical(r$tab, "compendium") && is_string(r$group) && r$group %in% groups_all) {
         shiny::updateCheckboxGroupInput(session, "groups", selected = r$group)
         shiny::updateCheckboxGroupInput(session, "types", selected = .dl_types)
@@ -403,16 +439,19 @@ entry_badges <- function(entry, lang, group = TRUE) {
 
 # Side panel of a selected distribution: name, badges, support, parameters,
 # story excerpt, its relations (each selects the edge) and buttons that open
-# it in the Explorer, the Calculator, Compare and the Simulation.
+# it in the Explorer, the Calculator, Compare and the Simulation. A
+# multivariate entry offers its reference card instead.
 node_panel <- function(entry, lang, open_id, edge_id, rel = NULL, calc_id = NULL,
                        compare_id = NULL, sim_id = NULL) {
-  reg <- dl_registry()
+  reg <- catalog_registry()
   if (is.null(rel)) {
     rel <- relations_frame(reg)
     rel$id <- edge_ids(rel)
   }
   mine <- rel[rel$from == entry$id | rel$to == entry$id, , drop = FALSE]
   name <- function(i) entry_text(reg[[i]], "names", lang)
+  mv <- is_multivariate(entry)
+  if (mv) calc_id <- compare_id <- sim_id <- NULL
   shiny::tags$div(
     class = "dl-panel-node",
     shiny::tags$h2(class = "dl-panel-title", entry_text(entry, "names", lang)),
@@ -420,7 +459,7 @@ node_panel <- function(entry, lang, open_id, edge_id, rel = NULL, calc_id = NULL
     shiny::tags$dl(
       class = "dl-panel-facts",
       shiny::tags$dt(tr("compendium.support", lang)),
-      shiny::tags$dd(math_tag(paste("x \\in", support_tex(entry)))),
+      shiny::tags$dd(math_tag(support_math(entry))),
       shiny::tags$dt(tr("compendium.parameters", lang)),
       shiny::tags$dd(shiny::tags$ul(
         class = "dl-param-list",
@@ -449,9 +488,8 @@ node_panel <- function(entry, lang, open_id, edge_id, rel = NULL, calc_id = NULL
     },
     shiny::tags$div(
       class = "dl-panel-actions",
-      dist_button(entry$id, tr("compendium.open", lang), open_id,
-                  class = "btn btn-primary btn-sm",
-                  label = tr("related.open", lang, name = entry_text(entry, "names", lang))),
+      dist_button(entry$id, tr(if (mv) "card.open" else "compendium.open", lang), open_id,
+                  class = "btn btn-primary btn-sm", label = open_label(entry, lang)),
       if (!is.null(calc_id)) {
         dist_button(entry$id, tr("compendium.calc", lang), calc_id,
                     class = "btn btn-outline-primary btn-sm",
@@ -474,7 +512,7 @@ node_panel <- function(entry, lang, open_id, edge_id, rel = NULL, calc_id = NULL
 # Side panel of a selected edge: path, type, condition, formula (KaTeX),
 # buttons that open either end in the Explorer and one that simulates the
 # relation (`sim_id`, when given; the button sends the edge id).
-edge_panel <- function(r, lang, open_id, reg = dl_registry(), sim_id = NULL) {
+edge_panel <- function(r, lang, open_id, reg = catalog_registry(), sim_id = NULL) {
   name <- function(i) entry_text(reg[[i]], "names", lang)
   cond <- if (lang == "pt-BR") r$condition_pt else r$condition_en
   ends <- unique(c(r$from, r$to))
@@ -492,7 +530,8 @@ edge_panel <- function(r, lang, open_id, reg = dl_registry(), sim_id = NULL) {
     shiny::tags$div(class = "dl-rel-math dl-panel-math", math_tag(r$latex)),
     shiny::tags$div(
       class = "dl-panel-actions",
-      if (!is.null(sim_id) && !is.null(r$id)) {
+      # Only relations with a simulation recipe can be simulated.
+      if (!is.null(sim_id) && !is.null(r$id) && !is.null(.dl_sim_recipes[[r$id]])) {
         path <- paste(name(r$from), "\u2192", name(r$to))
         dist_button(r$id, tr("compendium.simulate_relation", lang), sim_id,
                     class = "btn btn-primary btn-sm",
@@ -501,7 +540,7 @@ edge_panel <- function(r, lang, open_id, reg = dl_registry(), sim_id = NULL) {
       lapply(ends, function(i) {
         dist_button(i, tr("compendium.open_name", lang, name = name(i)), open_id,
                     class = "btn btn-outline-primary btn-sm",
-                    label = tr("related.open", lang, name = name(i)))
+                    label = open_label(reg[[i]], lang))
       })
     )
   )
@@ -512,7 +551,7 @@ edge_panel <- function(r, lang, open_id, reg = dl_registry(), sim_id = NULL) {
 # that shows the edge on the map.
 relations_table <- function(lang, open_id, edge_id, groups = .dl_groups,
                             types = .dl_types, relations = .dl_relation_types,
-                            reg = dl_registry()) {
+                            reg = catalog_registry()) {
   rel <- relations_frame(reg)
   rel$id <- edge_ids(rel)
   # Same rule as the map: an edge counts when both ends are active.
@@ -522,8 +561,7 @@ relations_table <- function(lang, open_id, edge_id, groups = .dl_groups,
   if (!nrow(rel)) return(shiny::tags$p(class = "dl-empty", tr("compendium.empty", lang)))
   name <- function(i) entry_text(reg[[i]], "names", lang)
   end_btn <- function(i) {
-    dist_button(i, name(i), open_id, class = "dl-link-btn",
-                label = tr("related.open", lang, name = name(i)))
+    dist_button(i, name(i), open_id, class = "dl-link-btn", label = open_label(reg[[i]], lang))
   }
   th <- function(key) shiny::tags$th(scope = "col", tr(key, lang))
   rows <- lapply(seq_len(nrow(rel)), function(k) {
@@ -560,14 +598,14 @@ relations_table <- function(lang, open_id, edge_id, groups = .dl_groups,
 
 # Entries listed under a group: those of the group and those cross-listed
 # there through `also_in`.
-group_members <- function(g, reg = dl_registry()) {
+group_members <- function(g, reg = catalog_registry()) {
   names(reg)[vapply(reg, function(e) g %in% entry_groups(e), logical(1))]
 }
 
 # Cards by data type: one section per group, one block per family subgroup,
 # one card per distribution.
 bytype_tag <- function(lang, open_id, groups = .dl_groups, types = .dl_types,
-                       reg = dl_registry()) {
+                       reg = catalog_registry()) {
   cat <- catalog_frame(reg)
   label <- stats::setNames(vapply(reg, function(e) entry_text(e, "names", lang), ""),
                            names(reg))
@@ -613,8 +651,9 @@ bytype_tag <- function(lang, open_id, groups = .dl_groups, types = .dl_types,
   shiny::tags$div(class = "dl-bytype", sections)
 }
 
-# One distribution card: the name opens the Explorer (the whole card is
-# clickable), with support, parameter symbols, badges and relation count.
+# One distribution card: the name opens the Explorer, or the reference card
+# of a multivariate entry (the whole card is clickable), with support,
+# parameter symbols, badges and relation count.
 dist_card <- function(entry, lang, open_id, n_rel, cross = FALSE) {
   name <- entry_text(entry, "names", lang)
   shiny::tags$article(
@@ -622,9 +661,8 @@ dist_card <- function(entry, lang, open_id, n_rel, cross = FALSE) {
                   if (cross) "dl-cross"),
     shiny::tags$h4(class = "dl-dist-card-title",
                    dist_button(entry$id, name, open_id, class = "dl-card-link",
-                               label = tr("related.open", lang, name = name))),
-    shiny::tags$div(class = "dl-dist-card-math",
-                    math_tag(paste("x \\in", support_tex(entry)))),
+                               label = open_label(entry, lang))),
+    shiny::tags$div(class = "dl-dist-card-math", math_tag(support_math(entry))),
     shiny::tags$div(class = "dl-dist-card-params",
                     shiny::tags$span(class = "dl-muted", tr("compendium.parameters", lang)),
                     " ", math_tag(params_tex(entry))),
@@ -639,19 +677,19 @@ dist_card <- function(entry, lang, open_id, n_rel, cross = FALSE) {
   )
 }
 
-# R functions of an entry, as code chips.
+# R functions of an entry, as code chips (a dash when there are none).
 functions_tag <- function(entry) {
+  keys <- intersect(c("d", "p", "q", "r"), names(entry$functions))
+  if (!length(keys)) return(shiny::tags$span(class = "dl-muted", "\u2014"))
   shiny::tags$span(class = "dl-fun-list",
-                   lapply(c("d", "p", "q", "r"), function(k) {
-                     shiny::tags$code(entry$functions[[k]])
-                   }))
+                   lapply(keys, function(k) shiny::tags$code(entry$functions[[k]])))
 }
 
 # Sortable, searchable table of every distribution under the filters.
 # Sorting and the text filter run in the browser (distlab.js); every cell
 # carries a sort key and every row its search text.
 catalog_table <- function(lang, open_id, groups = .dl_groups, types = .dl_types,
-                          reg = dl_registry()) {
+                          reg = catalog_registry()) {
   cat <- catalog_frame(reg)
   cat <- cat[node_active(reg, groups, types)[cat$id], , drop = FALSE]
   if (!nrow(cat)) return(shiny::tags$p(class = "dl-empty", tr("compendium.empty", lang)))
@@ -679,7 +717,7 @@ catalog_table <- function(lang, open_id, groups = .dl_groups, types = .dl_types,
       `data-search` = search,
       shiny::tags$td(`data-sort` = name[k],
                      dist_button(e$id, name[k], open_id, class = "dl-link-btn",
-                                 label = tr("related.open", lang, name = name[k]))),
+                                 label = open_label(e, lang))),
       shiny::tags$td(`data-sort` = grp, grp),
       shiny::tags$td(`data-sort` = fam, fam),
       shiny::tags$td(`data-sort` = typ, typ),
@@ -687,7 +725,7 @@ catalog_table <- function(lang, open_id, groups = .dl_groups, types = .dl_types,
                      math_tag(support_tex(e))),
       shiny::tags$td(class = "dl-cell-math", `data-sort` = cat$n_params[k],
                      math_tag(params_tex(e))),
-      shiny::tags$td(`data-sort` = e$functions$d, functions_tag(e)),
+      shiny::tags$td(`data-sort` = e$functions$d %||% "", functions_tag(e)),
       shiny::tags$td(class = "dl-cell-num", `data-sort` = cat$n_relations[k],
                      cat$n_relations[k])
     )

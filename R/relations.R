@@ -22,8 +22,9 @@ related_edges <- function(id, reg = dl_registry()) {
 }
 
 # Card body listing the edges; each far-end name is a button that opens that
-# distribution through the `input_id` input.
-related_list_tag <- function(id, lang, input_id, reg = dl_registry()) {
+# distribution through the `input_id` input (a multivariate end opens its
+# reference card).
+related_list_tag <- function(id, lang, input_id, reg = catalog_registry()) {
   edges <- related_edges(id, reg)
   if (!length(edges)) {
     return(shiny::tags$p(class = "dl-empty", tr("related.none", lang)))
@@ -32,7 +33,7 @@ related_list_tag <- function(id, lang, input_id, reg = dl_registry()) {
   # The open distribution is plain text; the far end is a button.
   end_tag <- function(i) {
     if (identical(i, id)) return(shiny::tags$span(class = "dl-rel-self", name(i)))
-    dist_button(i, name(i), input_id, label = tr("related.open", lang, name = name(i)),
+    dist_button(i, name(i), input_id, label = open_label(reg[[i]], lang),
                 class = "dl-chip dl-chip-sm")
   }
   items <- lapply(edges, function(ed) {
@@ -55,6 +56,13 @@ related_list_tag <- function(id, lang, input_id, reg = dl_registry()) {
     )
   })
   shiny::tags$ul(class = "dl-rel-list", items)
+}
+
+# Accessible label of a button that opens an entry: the Explorer for a
+# univariate law, the reference card for a multivariate one.
+open_label <- function(entry, lang) {
+  key <- if (is_multivariate(entry)) "card.open_label" else "related.open"
+  tr(key, lang, name = entry_text(entry, "names", lang))
 }
 
 # Button that sends a distribution id to a Shiny input (handled in distlab.js).

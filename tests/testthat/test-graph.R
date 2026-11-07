@@ -1,6 +1,6 @@
 test_that("every node is positioned once, without NA or overlaps", {
   pos <- distlab:::graph_layout()
-  expect_identical(pos$id, dl_ids())
+  expect_identical(pos$id, dl_ids(dimension = c("univariate", "multivariate")))
   expect_false(anyNA(pos))
   d <- as.matrix(stats::dist(pos[, c("x", "y")]))
   diag(d) <- Inf
@@ -36,7 +36,7 @@ test_that("graph edges match the registry, one each, with styles by type", {
 
 test_that("graph nodes carry names, shapes, colors and escaped tooltips", {
   n <- distlab:::graph_nodes("pt-BR")
-  expect_identical(n$id, dl_ids())
+  expect_identical(n$id, dl_ids(dimension = c("univariate", "multivariate")))
   expect_false(anyNA(n))
   expect_match(n$label[n$id == "gamma"], "Gama")
   expect_identical(n$shape[n$id == "poisson"], "box")
