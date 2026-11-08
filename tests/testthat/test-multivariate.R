@@ -82,6 +82,19 @@ test_that("the multivariate validator reports broken entries", {
   check(bad, "support needs a latex string")
   bad <- e; bad$dimension <- "matrix"
   check(bad, "dimension must be")
+  bad <- e; bad$functions_note <- list(`en-US` = "Only English.")
+  check(bad, "functions_note")
+  # Covariance examples must be positive definite, which det > 0 misses.
+  m <- mv_entry("mvnormal")
+  bad <- m
+  bad$parameters[[1]]$example <- c(0, 0, 0)
+  bad$parameters[[2]]$example <- list(c(1, 2, 2), c(2, 1, 2), c(2, 2, 1))
+  expect_gt(det(matrix(c(1, 2, 2, 2, 1, 2, 2, 2, 1), 3)), 0)
+  check(bad, "symmetric positive definite")
+  bad$parameters[[2]]$example <- list(c(1, 0.5), c(0.4, 1))
+  bad$parameters[[1]]$example <- c(0, 0)
+  check(bad, "symmetric positive definite")
+  expect_null(distlab:::mv_illustration_data(bad))
   # The vector macros stay out of univariate entries.
   u <- dl_entry("normal")
   u$latex$pdf <- "f(x) = x^{\\top}"
@@ -284,40 +297,64 @@ test_that("the card renders in both languages", {
   expect_match(en, "stats::dmultinom", fixed = TRUE)
   expect_no_match(as.character(distlab:::mv_card_tag(mv_entry("mvnormal"), "en-US", "o")),
                   "R functions")
+  # Every draw of the bivariate Normal stays inside the window.
+  svg <- as.character(distlab:::mv_figure_tag(mv_entry("mvnormal"), "en-US"))
+  expect_identical(lengths(regmatches(svg, gregexpr('class="dl-mv-point"', svg))), 300L)
+  cat_pt <- as.character(distlab:::mv_card_tag(mv_entry("categorical"), "pt-BR", "o"))
+  expect_match(cat_pt, "dcat() e rcat() trabalham com o índice da categoria", fixed = TRUE)
 })
 
-test_that("the Compendium opens multivariate entries as cards", {
-  sess <- recording_session()
+test_that("the card dialog opens over any page and follows the language", {
   req <- shiny::reactiveVal(NULL)
   lang <- shiny::reactiveVal("en-US")
-  shiny::testServer(distlab:::mod_compendium_server,
-                    args = list(lang = lang, request = req), session = sess, {
-    session$setInputs(open = "dirichlet")
+  shiny::testServer(distlab:::mod_card_server, args = list(lang = lang, request = req), {
+    req(list(card = "dirichlet", n = 1))
+    session$flushReact()
     expect_identical(card()$id, "dirichlet")
-    expect_null(session$returned())
     expect_identical(output$card_title, "Dirichlet")
     expect_match(output$card$html, "\\mathrm{Beta}(\\alpha_i, \\alpha_0 - \\alpha_i)",
                  fixed = TRUE)
+    expect_null(session$returned())
     lang("pt-BR")
     session$flushReact()
     expect_match(output$card$html, "Formulário")
-    # The interactive pages are not offered for a multivariate law.
-    session$setInputs(calc = "dirichlet", compare = "dirichlet", sim = "dirichlet",
-                      sim_edge = "dirichlet__beta__special_case")
-    expect_null(session$returned())
-    session$setInputs(dblclick = "mvnormal")
+    # Unknown or univariate ids do not open a card.
+    req(list(card = "gamma", n = 2))
+    session$flushReact()
+    expect_identical(card()$id, "dirichlet")
+    # Links inside the card open another card or a univariate law.
+    session$setInputs(open = "mvnormal")
     expect_identical(card()$id, "mvnormal")
-    # A univariate link inside the card opens the Explorer.
     session$setInputs(open = "normal")
     expect_identical(session$returned()[c("tab", "id")], list(tab = "explorer", id = "normal"))
     expect_null(card())
-    # Requests from Home or the Explorer.
-    req(list(tab = "compendium", card = "categorical", n = 1))
-    session$flushReact()
-    expect_identical(card()$id, "categorical")
-    req(list(tab = "compendium", card = "gamma", n = 2))
-    session$flushReact()
-    expect_identical(card()$id, "categorical")
+    session$setInputs(open = "<script>")
+    expect_identical(session$returned()$id, "normal")
+  })
+  # The dialog is named by its title.
+  html <- as.character(distlab:::card_modal(shiny::NS("card"), "en-US"))
+  expect_match(html, 'role="dialog"', fixed = TRUE)
+  expect_match(html, 'aria-modal="true"', fixed = TRUE)
+  expect_match(html, 'aria-labelledby="card-card_title"', fixed = TRUE)
+  expect_match(html, 'id="card-card_title"', fixed = TRUE)
+})
+
+test_that("the Compendium asks for cards and keeps tools to univariate laws", {
+  lang <- shiny::reactiveVal("en-US")
+  shiny::testServer(distlab:::mod_compendium_server, args = list(lang = lang), {
+    session$setInputs(open = "dirichlet")
+    expect_identical(session$returned()$card, "dirichlet")
+    expect_null(session$returned()$tab)
+    session$setInputs(dblclick = "mvnormal")
+    expect_identical(session$returned()$card, "mvnormal")
+    n <- session$returned()$n
+    # The interactive pages are not offered for a multivariate law.
+    session$setInputs(calc = "dirichlet", compare = "dirichlet", sim = "dirichlet",
+                      sim_edge = "dirichlet__beta__special_case")
+    expect_identical(session$returned()$n, n)
+    session$setInputs(open = "beta")
+    expect_identical(session$returned()[c("tab", "id")], list(tab = "explorer", id = "beta"))
+    lang("pt-BR")
     session$setInputs(search = "multinomial")
     expect_identical(sel(), list(kind = "node", id = "multinomial"))
     expect_match(output$panel$html, "Abrir a ficha de consulta")
@@ -333,11 +370,11 @@ test_that("the Compendium opens multivariate entries as cards", {
   expect_match(html, "Open the Multinomial reference card", fixed = TRUE)
 })
 
-test_that("Home and the Explorer route multivariate ids to the card", {
+test_that("Home and the Explorer ask for the card without leaving the page", {
   shiny::testServer(distlab:::mod_home_server, args = list(lang = "en-US"), {
     session$setInputs(search = "dirichlet")
-    expect_identical(session$returned()[c("tab", "card")],
-                     list(tab = "compendium", card = "dirichlet"))
+    expect_identical(session$returned()$card, "dirichlet")
+    expect_null(session$returned()$tab)
     expect_identical(output$status, "")
     session$setInputs(pick = "mvnormal")
     expect_identical(session$returned()$card, "mvnormal")
@@ -348,15 +385,28 @@ test_that("Home and the Explorer route multivariate ids to the card", {
   shiny::testServer(distlab:::mod_explore_server, args = list(lang = "en-US"), {
     session$setInputs(dist = "binomial")
     session$setInputs(goto = "multinomial")
-    expect_identical(session$returned$route()[c("tab", "card")],
-                     list(tab = "compendium", card = "multinomial"))
+    expect_identical(session$returned$route()$card, "multinomial")
+    expect_null(session$returned$route()$tab)
     expect_identical(input$dist, "binomial")
   })
   html <- as.character(distlab:::related_list_tag("binomial", "en-US", "x"))
   expect_match(html, "Open the Multinomial reference card", fixed = TRUE)
 })
 
-test_that("the map places the new nodes and curves a second edge between two ends", {
+test_that("the study report lists relations to multivariate laws as text", {
+  rel <- distlab:::report_edges("binomial")
+  expect_true("multinomial__binomial__transformation" %in% rel$id)
+  ctx <- distlab:::report_context("en-US", "binomial")
+  sec <- distlab:::report_relations(ctx, dl_dist("binomial"), list())
+  html <- as.character(sec[[length(sec)]])
+  expect_match(html, "Multinomial")
+  expect_match(html, "described in its reference card", fixed = TRUE)
+  sec <- distlab:::report_story(ctx, dl_dist("binomial"))
+  html <- as.character(sec[[length(sec)]])
+  expect_match(html, "Multinomial")
+})
+
+test_that("the map places the new nodes and curves parallel edges apart", {
   n <- distlab:::graph_nodes("en-US")
   expect_true(all(mv_ids %in% n$id))
   expect_identical(n$shape[n$id == "mvnormal"], "ellipse")
@@ -367,4 +417,20 @@ test_that("the map places the new nodes and curves a second edge between two end
   expect_identical(sum(db$smooth.enabled), 1L)
   expect_identical(db$smooth.type[db$smooth.enabled], "curvedCCW")
   expect_true(all(e$smooth.enabled[e$from == "categorical" & e$to == "multinomial"]))
+  # Three or more parallel edges get distinct curves, also next to a reverse edge.
+  reg <- distlab:::catalog_registry()
+  extra <- reg$dirichlet$relationships[[2]]
+  reg$dirichlet$relationships <- c(reg$dirichlet$relationships,
+                                   list(modifyList(extra, list(type = "limit")),
+                                        modifyList(extra, list(type = "sum"))))
+  reg$beta$relationships <- c(reg$beta$relationships,
+                              list(modifyList(extra, list(to = "dirichlet"))))
+  e <- distlab:::graph_edges("en-US", reg = reg)
+  db <- e[e$from == "dirichlet" & e$to == "beta", ]
+  expect_identical(nrow(db), 4L)
+  curve <- paste(db$smooth.enabled, db$smooth.type, db$smooth.roundness)
+  expect_false(anyDuplicated(curve) > 0)
+  back <- e[e$from == "beta" & e$to == "dirichlet", ]
+  # The reverse edge curves to the counterclockwise side of dirichlet -> beta.
+  expect_false(any(db$smooth.type == "curvedCCW" & db$smooth.roundness == back$smooth.roundness))
 })

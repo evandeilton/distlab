@@ -395,6 +395,44 @@
     }
   }, true);
 
+  // The card dialog opens from the server, so focus goes back by hand: to the
+  // control that opened it, or, when that control is gone or hidden (a link
+  // inside a replaced card, a page left behind), to the heading of the open
+  // page. A card opened from inside another keeps the first trigger.
+  // Shiny removes the dialog in its own jQuery "hidden" handler, before
+  // Bootstrap dispatches the native event, so these listen through jQuery,
+  // whose event path is fixed before any handler runs.
+  var cardTrigger = null;
+  function onModal(name, fn) {
+    if (window.jQuery) {
+      window.jQuery(document).on(name, function (ev) { fn(ev); });
+    } else {
+      document.addEventListener(name, fn);
+    }
+  }
+  onModal("show.bs.modal", function (ev) {
+    if (!ev.target || ev.target.id !== "shiny-modal") return;
+    var a = document.activeElement;
+    if (a && a !== document.body && !(a.closest && a.closest("#shiny-modal"))) cardTrigger = a;
+  });
+  onModal("hidden.bs.modal", function (ev) {
+    if (!ev.target || ev.target.id !== "shiny-modal") return;
+    // A card replaced by another fires this too; the new one keeps focus.
+    if (document.querySelector("#shiny-modal.show")) return;
+    var t = cardTrigger;
+    cardTrigger = null;
+    if (t && t.isConnected && t.offsetParent !== null) {
+      t.focus();
+      return;
+    }
+    var h = document.querySelector(".tab-pane.active .dl-page-title, .tab-pane.active h1, " +
+                                   ".tab-pane.active h2");
+    if (h) {
+      if (!h.hasAttribute("tabindex")) h.setAttribute("tabindex", "-1");
+      h.focus();
+    }
+  });
+
   // Esc closes the open data-type panel and returns focus to its tile.
   document.addEventListener("keydown", function (ev) {
     if (ev.key !== "Escape" || !ev.target.closest) return;

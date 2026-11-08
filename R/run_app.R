@@ -182,7 +182,8 @@ app_server <- function(lang) {
     dark <- shiny::reactive(identical(input$dark_mode, "dark"))
 
     # One navigation request at a time, from any page: list(tab, id, params,
-    # group, edge, preset, sim_tab).
+    # group, edge, preset, sim_tab), or list(card) for a reference card shown
+    # over the open page.
     route <- shiny::reactiveVal(NULL)
     # What the student does, per distribution, for the study report.
     store <- study_store()
@@ -194,11 +195,13 @@ app_server <- function(lang) {
     compare <- mod_compare_server("compare", lang_r, dark = dark, select = route)
     sim <- mod_sim_server("sim", lang_r, dark = dark, select = route, store = store)
     fit <- mod_fit_server("fit", lang_r, dark = dark, select = route, store = store)
+    card <- mod_card_server("card", lang_r, request = route)
     shiny::observeEvent(home(), route(c(home(), from = "home")))
     shiny::observeEvent(compendium(), route(c(compendium(), from = "compendium")))
     shiny::observeEvent(explore$route(), route(c(explore$route(), from = "explorer")))
     shiny::observeEvent(sim$route(), route(c(sim$route(), from = "simulation")))
     shiny::observeEvent(fit$route(), route(c(fit$route(), from = "fit")))
+    shiny::observeEvent(card(), route(c(card(), from = "card")))
 
     # The browser remembers the last distribution the student opened or changed
     # in the Explorer or the Calculator, for the Home resume strip. The values
@@ -255,7 +258,7 @@ app_server <- function(lang) {
     # Compendium, by the Explorer (open the Calculator, Compare or the
     # Simulation) or by the Simulation (open an end of a relation).
     shiny::observeEvent(route(), {
-      bslib::nav_select("nav", route()$tab, session = session)
+      if (is_string(route()$tab)) bslib::nav_select("nav", route()$tab, session = session)
     })
   }
 }

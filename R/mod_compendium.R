@@ -173,11 +173,11 @@ graph_legend <- function(lang, reg = catalog_registry()) {
 }
 
 # `lang` may be fixed or reactive; `dark` a reactive logical; `request` a
-# reactive navigation request from other pages (list(tab, group, card, ...));
-# `card` opens the reference card of a multivariate entry.
+# reactive navigation request from other pages (list(tab, group, ...)).
 # Returns a reactive with the latest navigation request: list(tab, id, n),
 # where tab is "explorer", "calculator", "compare" or "simulation" (with
-# `edge` instead of `id` for a relation).
+# `edge` instead of `id` for a relation), or list(card, n) for the reference
+# card of a multivariate entry.
 mod_compendium_server <- function(id, lang, dark = shiny::reactive(FALSE),
                                   request = shiny::reactive(NULL)) {
   lang_r <- if (shiny::is.reactive(lang)) lang else shiny::reactive(lang)
@@ -270,34 +270,14 @@ mod_compendium_server <- function(id, lang, dark = shiny::reactive(FALSE),
         sel(NULL)
       }
     })
-    # Reference card of a multivariate entry, in a dialog that follows the
-    # language; its links open other cards or univariate laws in the Explorer.
-    # `card` is list(id, n); the counter re-renders a card opened again.
-    card <- shiny::reactiveVal(NULL)
-    card_count <- 0L
-    show_card <- function(did) {
-      card_count <<- card_count + 1L
-      card(list(id = did, n = card_count))
-      shiny::showModal(card_modal(ns, shiny::isolate(lang_r())))
-    }
-    output$card_title <- shiny::renderText({
-      shiny::req(card())
-      entry_text(reg[[card()$id]], "names", lang_r())
-    })
-    output$card <- shiny::renderUI({
-      shiny::req(card())
-      mv_card_tag(reg[[card()$id]], lang_r(), ns("open"))
-    })
-    # Univariate laws open in the Explorer; multivariate ones as their card.
+    # Univariate laws open in the Explorer; multivariate ones as their card,
+    # over this page (list(card = id), handled by mod_card_server()).
     open_node <- function(did) {
       if (!valid_node(did)) return()
       if (is_multivariate(reg[[did]])) {
-        show_card(did)
+        count <<- count + 1L
+        route(list(card = did, n = count))
       } else {
-        if (!is.null(card())) {
-          card(NULL)
-          shiny::removeModal()
-        }
         go("explorer", did)
       }
     }
@@ -342,10 +322,6 @@ mod_compendium_server <- function(id, lang, dark = shiny::reactive(FALSE),
     # with that group only.
     shiny::observeEvent(request(), {
       r <- request()
-      if (identical(r$tab, "compendium") && valid_node(r$card) &&
-          is_multivariate(reg[[r$card]])) {
-        show_card(r$card)
-      }
       if (identical(r$tab, "compendium") && is_string(r$group) && r$group %in% groups_all) {
         shiny::updateCheckboxGroupInput(session, "groups", selected = r$group)
         shiny::updateCheckboxGroupInput(session, "types", selected = .dl_types)

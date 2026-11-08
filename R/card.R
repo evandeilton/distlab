@@ -1,6 +1,6 @@
 # Reference card of a multivariate entry: story, support, parameters, formula
 # sheet, a static illustration at the registry example values and the related
-# distributions. Shown in a dialog of the Compendium.
+# distributions. Shown in a dialog over the open page.
 
 # Formula rows of a card, with their label key and left-hand side (NULL when
 # the registry expression is already a full statement).
@@ -18,14 +18,62 @@
 .dl_mv_draws <- 300L
 
 # Dialog that holds the card; title and body are outputs, so they follow the
-# language while the dialog is open.
+# language while the dialog is open. The title names the dialog.
 card_modal <- function(ns, lang) {
-  shiny::modalDialog(
+  m <- shiny::modalDialog(
     shiny::uiOutput(ns("card")),
     title = shiny::textOutput(ns("card_title"), inline = TRUE),
     footer = shiny::modalButton(i18n_span("card.close", lang)),
     size = "xl", easyClose = TRUE
   )
+  htmltools::tagAppendAttributes(m, role = "dialog", `aria-modal` = "true",
+                                 `aria-labelledby` = ns("card_title"))
+}
+
+# Card dialog of the app. `request` is the navigation request of every page:
+# list(card = id) opens the card of a multivariate entry over the open page,
+# without switching tabs. Links inside the card open other cards, or a
+# univariate law in the Explorer; returns a reactive with that request,
+# list(tab = "explorer", id, n).
+mod_card_server <- function(id, lang, request = shiny::reactive(NULL)) {
+  lang_r <- if (shiny::is.reactive(lang)) lang else shiny::reactive(lang)
+  shiny::moduleServer(id, function(input, output, session) {
+    ns <- session$ns
+    mv_ids <- dl_ids(dimension = "multivariate")
+    # `card` is list(id, n); the counter re-renders a card opened again.
+    card <- shiny::reactiveVal(NULL)
+    route <- shiny::reactiveVal(NULL)
+    count <- 0L
+    show_card <- function(did) {
+      count <<- count + 1L
+      card(list(id = did, n = count))
+      shiny::showModal(card_modal(ns, shiny::isolate(lang_r())))
+    }
+    shiny::observeEvent(request(), {
+      r <- request()
+      if (is_string(r$card) && r$card %in% mv_ids) show_card(r$card)
+    })
+    shiny::observeEvent(input$open, {
+      did <- input$open
+      if (is_string(did) && did %in% mv_ids) {
+        show_card(did)
+      } else if (is_string(did) && did %in% dl_ids()) {
+        card(NULL)
+        shiny::removeModal()
+        count <<- count + 1L
+        route(list(tab = "explorer", id = did, n = count))
+      }
+    })
+    output$card_title <- shiny::renderText({
+      shiny::req(card())
+      entry_text(dl_entry(card()$id, multivariate = TRUE), "names", lang_r())
+    })
+    output$card <- shiny::renderUI({
+      shiny::req(card())
+      mv_card_tag(dl_entry(card()$id, multivariate = TRUE), lang_r(), ns("open"))
+    })
+    route
+  })
 }
 
 # Body of the card. Links to other distributions go to `open_id`.
@@ -85,8 +133,14 @@ mv_facts_tag <- function(entry, lang) {
     shiny::tags$dt(tr("compendium.parameters", lang)),
     shiny::tags$dd(shiny::tags$ul(class = "dl-param-list", pars)),
     if (length(entry$functions)) {
-      shiny::tagList(shiny::tags$dt(tr("card.functions", lang)),
-                     shiny::tags$dd(functions_tag(entry)))
+      shiny::tagList(
+        shiny::tags$dt(tr("card.functions", lang)),
+        shiny::tags$dd(functions_tag(entry),
+                       if (!is.null(entry$functions_note)) {
+                         shiny::tags$span(class = "dl-mv-desc",
+                                          entry_text(entry, "functions_note", lang))
+                       })
+      )
     }
   )
 }
@@ -127,6 +181,11 @@ format_vector <- function(x, lang) {
 # * dirichlet (k = 3): draws on the simplex and the mean;
 # * mvnormal (k = 2): draws and the 50% and 90% probability ellipses.
 mv_illustration_data <- function(entry) {
+  tryCatch(mv_illustration_values(entry), error = function(e) NULL)
+}
+
+# Body of mv_illustration_data(); may fail on unusable example values.
+mv_illustration_values <- function(entry) {
   v <- mv_examples(entry)
   switch(
     entry$id,
@@ -143,7 +202,9 @@ mv_illustration_data <- function(entry) {
     },
     mvnormal = if (length(v$mean) == 2L) {
       mu <- v$mean
-      # Cholesky factor: X = mu + L Z with L L' = Sigma.
+      # Cholesky factor: X = mu + L Z with L L' = Sigma (chol() reads only
+      # the upper triangle, so symmetry is checked first).
+      if (!isSymmetric(v$sigma)) stop("sigma must be symmetric")
       L <- t(chol(v$sigma))
       z <- with_seed(.dl_mv_seed, matrix(stats::rnorm(2L * .dl_mv_draws), nrow = 2L))
       draws <- t(mu + L %*% z)
@@ -269,7 +330,8 @@ svg_simplex <- function(d) {
 # window around the mean that holds both ellipses.
 svg_scatter <- function(d, lang) {
   left <- 44; right <- 304; top <- 12; bottom <- 206
-  half <- ceiling(max(abs(sweep(do.call(rbind, d$ellipses), 2, d$mean))))
+  # The window holds every draw and both ellipses.
+  half <- ceiling(max(abs(sweep(rbind(d$draws, do.call(rbind, d$ellipses)), 2, d$mean))))
   lim1 <- d$mean[1] + c(-half, half)
   lim2 <- d$mean[2] + c(-half, half)
   # Equal scales on both axes keep the ellipses true to shape.
@@ -277,10 +339,8 @@ svg_scatter <- function(d, lang) {
   x0 <- left + (right - left - side) / 2
   sx <- function(v) x0 + (v - lim1[1]) / diff(lim1) * side
   sy <- function(v) bottom - (v - lim2[1]) / diff(lim2) * side
-  keep <- d$draws[, 1] >= lim1[1] & d$draws[, 1] <= lim1[2] &
-    d$draws[, 2] >= lim2[1] & d$draws[, 2] <= lim2[2]
   pts <- paste(sprintf('<circle class="dl-mv-point" cx="%.1f" cy="%.1f" r="2"/>',
-                       sx(d$draws[keep, 1]), sy(d$draws[keep, 2])), collapse = "")
+                       sx(d$draws[, 1]), sy(d$draws[, 2])), collapse = "")
   ell <- paste(vapply(seq_along(d$ellipses), function(i) {
     e <- d$ellipses[[i]]
     svg_path(sx(e[, 1]), sy(e[, 2]), paste0("dl-mv-ellipse dl-mv-ellipse-", i), close = TRUE)

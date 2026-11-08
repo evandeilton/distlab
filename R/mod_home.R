@@ -317,9 +317,9 @@ home_task_route <- function(key, last = NULL) {
 }
 
 # Returns a reactive with the latest navigation request: list(tab, n) plus
-# id/params (Explorer, Calculator), group or card (Compendium), preset
-# (Compare) or edge/sim_tab (Simulation); `n` increases so repeated requests
-# still fire.
+# id/params (Explorer, Calculator), group (Compendium), preset (Compare) or
+# edge/sim_tab (Simulation), or list(card, n) without a tab for the reference
+# card of a multivariate entry; `n` increases so repeated requests still fire.
 # `active` is a reactive that is TRUE while Home is the open page.
 mod_home_server <- function(id, lang, active = shiny::reactive(NULL)) {
   lang_r <- if (shiny::is.reactive(lang)) lang else shiny::reactive(lang)
@@ -334,7 +334,9 @@ mod_home_server <- function(id, lang, active = shiny::reactive(NULL)) {
       if (!length(r$params)) r$params <- NULL
       count <<- count + 1L
       route(c(r, n = count))
-      status(if (is_string(r$id) && r$tab %in% c("explorer", "calculator")) r[c("tab", "id")])
+      status(if (is_string(r$id) && is_string(r$tab) && r$tab %in% c("explorer", "calculator")) {
+        r[c("tab", "id")]
+      })
     }
     last <- shiny::reactive(home_last(input$last))
     # The "opening" message belongs to the last request; clear it on return.
@@ -364,13 +366,13 @@ mod_home_server <- function(id, lang, active = shiny::reactive(NULL)) {
     }, ignoreInit = TRUE)
 
     # A univariate law opens in the Explorer, a multivariate one as its
-    # reference card in the Compendium.
+    # reference card over Home.
     open_entry <- function(did) {
       if (!is_string(did)) return(FALSE)
       if (did %in% dl_ids()) {
         go(list(tab = "explorer", id = did))
       } else if (did %in% dl_ids(dimension = "multivariate")) {
-        go(list(tab = "compendium", card = did))
+        go(list(card = did))
       } else {
         return(FALSE)
       }
