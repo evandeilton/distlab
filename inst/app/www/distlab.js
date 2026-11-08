@@ -425,12 +425,17 @@
       t.focus();
       return;
     }
-    var h = document.querySelector(".tab-pane.active .dl-page-title, .tab-pane.active h1, " +
-                                   ".tab-pane.active h2");
-    if (h) {
-      if (!h.hasAttribute("tabindex")) h.setAttribute("tabindex", "-1");
-      h.focus();
-    }
+    // Wait for a tab switch started by the card to finish, then focus the
+    // open page's main heading.
+    setTimeout(function () {
+      var pane = Array.prototype.find.call(document.querySelectorAll(".tab-pane.active"),
+        function (p) { return !p.parentElement.closest(".tab-pane"); });
+      var h = pane && (pane.querySelector("h1") || pane.querySelector(".dl-page-title, h2"));
+      if (h) {
+        if (!h.hasAttribute("tabindex")) h.setAttribute("tabindex", "-1");
+        h.focus();
+      }
+    }, 150);
   });
 
   // Esc closes the open data-type panel and returns focus to its tile.
