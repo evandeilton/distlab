@@ -81,6 +81,11 @@ validate_mv_entry <- function(entry) {
       }
     }
   }
+  if (!is.null(entry$functions_note) &&
+      (is.null(entry$functions) || !has_langs(entry$functions_note))) {
+    p <- c(p, sprintf("functions_note needs functions and text for %s",
+                      paste(.dl_langs, collapse = " and ")))
+  }
   p <- c(p, validate_mv_latex(entry$latex, macros))
   for (rel in entry$relationships) p <- c(p, validate_relationship(rel))
   p <- c(p, validate_graph(entry$graph))
@@ -99,8 +104,8 @@ has_langs <- function(x) {
 }
 
 # One parameter of a multivariate entry: name, LaTeX symbol (with optional
-# `elements`), bilingual description and a finite example (scalar, vector or matrix) inside the
-# optional elementwise lower bound and integer flag.
+# `elements`), bilingual description and a finite example (scalar, vector or
+# matrix) inside the optional elementwise lower bound and integer flag.
 validate_mv_parameter <- function(par, macros) {
   label <- format(par$name %||% "<unnamed>")
   if (!is_string(par$name) || !is_string(par$latex)) {
@@ -133,6 +138,12 @@ validate_mv_parameter <- function(par, macros) {
   }
   if (isTRUE(par$integer) && any(v != round(v))) {
     p <- c(p, sprintf("example of integer parameter %s must be whole", label))
+  }
+  # Matrix parameters are covariance matrices: symmetric positive definite,
+  # which chol() confirms.
+  if (is.matrix(v) && !(isSymmetric(v) &&
+                        !inherits(tryCatch(chol(v), error = function(e) e), "error"))) {
+    p <- c(p, sprintf("example of %s must be a symmetric positive definite matrix", label))
   }
   p
 }

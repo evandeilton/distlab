@@ -131,10 +131,14 @@ graph_edges <- function(lang, dark = FALSE, groups = .dl_groups, types = .dl_typ
   esc <- htmltools::htmlEscape
   title <- sprintf("<strong>%s \u2192 %s</strong><br>%s<br>%s", esc(name[rel$from]),
                    esc(name[rel$to]), esc(type_label), esc(cond))
-  # Two edges in opposite directions are curved apart, and so is a second
-  # edge between the same two ends; the others are straight.
+  # Two edges in opposite directions are curved apart. Further edges between
+  # the same two ends alternate sides, each one further out; the reverse
+  # edge of a pair already uses the first curve on each side.
   pair <- paste(rel$from, rel$to) %in% paste(rel$to, rel$from) & rel$from != rel$to
-  again <- duplicated(paste(rel$from, rel$to)) & rel$from != rel$to
+  key <- paste(rel$from, rel$to)
+  rank <- stats::ave(seq_along(key), key, FUN = seq_along) - 1L
+  again <- rank > 0L & rel$from != rel$to
+  level <- ifelse(again, ceiling(rank / 2) + pair, 1)
   col <- unname(pal$relation[rel$type])
   data.frame(
     id = edge_ids(rel), from = rel$from, to = rel$to,
@@ -147,7 +151,8 @@ graph_edges <- function(lang, dark = FALSE, groups = .dl_groups, types = .dl_typ
     font.color = ifelse(on, pal$label, alpha_hex(pal$label, 0.30)),
     font.strokeColor = pal$surface,
     smooth.enabled = pair | again,
-    smooth.type = ifelse(again & !pair, "curvedCCW", "curvedCW"), smooth.roundness = 0.32,
+    smooth.type = ifelse(again & rank %% 2L == 1L, "curvedCCW", "curvedCW"),
+    smooth.roundness = 0.32 * level,
     hidden = !rel$type %in% relations,
     dl_type = rel$type, dl_active = unname(on),
     stringsAsFactors = FALSE

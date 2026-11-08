@@ -328,7 +328,7 @@ card.open: Abrir a ficha de consulta
 card.open_label: "Abrir a ficha de consulta de {name}"
 card.no_illustration: Sem ilustração para estes valores.
 card.illus.categorical: "Probabilidade de cada categoria para p = {p}."
-card.illus.multinomial: "Contagem esperada n p_i de cada categoria, com uma barra de um desvio-padrão para cada lado, para n = {n} e p = {p}."
+card.illus.multinomial: "Contagem esperada n·pᵢ de cada categoria, com uma barra de um desvio-padrão para cada lado, para n = {n} e p = {p}."
 card.illus.dirichlet: "{draws} sorteios da Dirichlet(α = {alpha}) no triângulo das proporções, o simplex; o ponto maior é o vetor de médias."
 card.illus.mvnormal: "{draws} sorteios de uma Normal bivariada com vetor de médias μ = {mu}, variâncias {v1} e {v2} e correlação {rho}; as elipses contêm 50% e 90% da probabilidade."
 moments.mean: Média
@@ -790,6 +790,7 @@ report.calc.none: >-
   Nenhum cálculo foi registrado nesta sessão. Probabilidades, quantis e
   intervalos calculados na Calculadora aparecem aqui.
 report.rel.no_demo: Esta relação não tem demonstração neste relatório.
+report.rel.card: "A outra ponta é uma distribuição multivariada, descrita na sua ficha de consulta no Compêndio."
 report.fit.intro: >-
   Ajuste por máxima verossimilhança da {name} e das outras famílias
   candidatas aos dados do laboratório de Ajuste: {n} observações ({kind}).

@@ -328,7 +328,7 @@ card.open: Open the reference card
 card.open_label: "Open the {name} reference card"
 card.no_illustration: No illustration for these values.
 card.illus.categorical: "Probability of each category for p = {p}."
-card.illus.multinomial: "Expected count n p_i of each category, with a bar of one standard deviation on each side, for n = {n} and p = {p}."
+card.illus.multinomial: "Expected count n·pᵢ of each category, with a bar of one standard deviation on each side, for n = {n} and p = {p}."
 card.illus.dirichlet: "{draws} draws of Dirichlet(α = {alpha}) on the triangle of proportions, the simplex; the larger point is the mean vector."
 card.illus.mvnormal: "{draws} draws of a bivariate Normal with mean vector μ = {mu}, variances {v1} and {v2} and correlation {rho}; the ellipses hold 50% and 90% of the probability."
 moments.mean: Mean
@@ -782,6 +782,7 @@ report.calc.none: >-
   No calculations were recorded in this session. Probabilities, quantiles
   and intervals computed in the Calculator appear here.
 report.rel.no_demo: This relationship has no demonstration in this report.
+report.rel.card: "The other end is a multivariate distribution, described in its reference card in the Compendium."
 report.fit.intro: >-
   Maximum likelihood fit of the {name} and the other candidate families to
   the data of the Fit lab: {n} observations ({kind}).

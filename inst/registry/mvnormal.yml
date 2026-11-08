@@ -47,16 +47,16 @@ story:
   en-US: >-
     Several measurements taken on the same unit, such as height and weight,
     often vary together around a center, and each one alone looks Normal. The
-    multivariate Normal describes such a vector with a mean vector mu and a
-    covariance matrix Sigma, which holds the variances and how each pair of
+    multivariate Normal describes such a vector with a mean vector μ and a
+    covariance matrix Σ, which holds the variances and how each pair of
     coordinates moves together. Its density has elliptical contours, every
     coordinate and every linear combination of coordinates is Normal, and
     uncorrelated coordinates are independent.
   pt-BR: >-
     Várias medidas tomadas na mesma unidade, como altura e peso, costumam
     variar juntas em torno de um centro, e cada uma isoladamente parece Normal.
-    A Normal multivariada descreve esse vetor com um vetor de médias mu e uma
-    matriz de covariâncias Sigma, que reúne as variâncias e o quanto cada par
+    A Normal multivariada descreve esse vetor com um vetor de médias μ e uma
+    matriz de covariâncias Σ, que reúne as variâncias e o quanto cada par
     de coordenadas varia em conjunto. Sua densidade tem contornos elípticos,
     toda coordenada e toda combinação linear de coordenadas é Normal, e
     coordenadas não correlacionadas são independentes.
@@ -65,8 +65,8 @@ relationships:
     type: transformation
     label: "aᵀX"
     condition:
-      en-US: "Every linear combination of the coordinates is Normal; with a the i-th unit vector it gives the marginal X_i ~ N(mu_i, Sigma_ii)."
-      pt-BR: "Toda combinação linear das coordenadas é Normal; com a igual ao i-ésimo vetor canônico ela dá a marginal X_i ~ N(mu_i, Sigma_ii)."
+      en-US: "Every linear combination of the coordinates is Normal; with a the i-th unit vector it gives the marginal Xᵢ ~ N(μᵢ, Σᵢᵢ)."
+      pt-BR: "Toda combinação linear das coordenadas é Normal; com a igual ao i-ésimo vetor canônico ela dá a marginal Xᵢ ~ N(μᵢ, Σᵢᵢ)."
     latex: "\\mathbf{a}^{\\top} \\mathbf{X} \\sim N\\left(\\mathbf{a}^{\\top} \\boldsymbol{\\mu}, \\mathbf{a}^{\\top} \\boldsymbol{\\Sigma} \\mathbf{a}\\right)"
 references:
   - "Casella, G. and Berger, R. L. (2002). Statistical Inference, 2nd ed. Duxbury."

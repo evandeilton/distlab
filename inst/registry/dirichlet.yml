@@ -18,8 +18,8 @@ parameters:
     lower_open: true
     example: [2, 3, 4]
     description:
-      en-US: "Concentrations of the k components, each greater than 0; their total is alpha_0."
-      pt-BR: "Concentrações das k componentes, cada uma maior que 0; o total delas é alfa_0."
+      en-US: "Concentrations of the k components, each greater than 0; their total is α₀."
+      pt-BR: "Concentrações das k componentes, cada uma maior que 0; o total delas é α₀."
 constraints:
   - "length(alpha) >= 2"
 functions:
@@ -45,32 +45,32 @@ story:
     A Dirichlet vector is a random set of k proportions that add to 1, such as
     the shares of a budget or the composition of a mixture. It extends the
     Beta distribution from one proportion to several. The concentrations
-    alpha_i act like prior counts for each category: their ratios set the
+    αᵢ act like prior counts for each category: their ratios set the
     average shares, and their total sets how tightly the shares gather around
     that average. It is the usual prior for the probabilities of a Categorical
     or Multinomial model.
   pt-BR: >-
     Um vetor de Dirichlet é um conjunto aleatório de k proporções que somam 1,
     como as fatias de um orçamento ou a composição de uma mistura. Ele estende
-    a distribuição Beta de uma proporção para várias. As concentrações alfa_i
+    a distribuição Beta de uma proporção para várias. As concentrações αᵢ
     funcionam como contagens prévias de cada categoria: suas razões fixam as
     proporções médias, e seu total fixa o quanto as proporções se agrupam em
-    torno dessa média. É a priori usual para as probabilidades de um modelo
+    torno dessa média. É a distribuição a priori usual para as probabilidades de um modelo
     Categórico ou Multinomial.
 relationships:
   - to: beta
     type: special_case
     label: "k=2"
     condition:
-      en-US: "With k = 2 components the vector is fixed by its first coordinate, which is Beta(alpha_1, alpha_2)."
-      pt-BR: "Com k = 2 componentes o vetor fica determinado pela primeira coordenada, que é Beta(alfa_1, alfa_2)."
+      en-US: "With k = 2 components the vector is fixed by its first coordinate, which is Beta(α₁, α₂)."
+      pt-BR: "Com k = 2 componentes o vetor fica determinado pela primeira coordenada, que é Beta(α₁, α₂)."
     latex: "k = 2 \\Rightarrow X_1 \\sim \\mathrm{Beta}(\\alpha_1, \\alpha_2),\\ X_2 = 1 - X_1"
   - to: beta
     type: transformation
     label: "Xᵢ"
     condition:
-      en-US: "Each proportion alone is Beta, with alpha_i against the total of the other concentrations."
-      pt-BR: "Cada proporção isolada é Beta, com alfa_i contra o total das demais concentrações."
+      en-US: "Each proportion alone is Beta, with αᵢ against the total of the other concentrations."
+      pt-BR: "Cada proporção isolada é Beta, com αᵢ contra o total das demais concentrações."
     latex: "\\mathbf{X} \\sim \\mathrm{Dirichlet}(\\boldsymbol{\\alpha}) \\Rightarrow X_i \\sim \\mathrm{Beta}(\\alpha_i, \\alpha_0 - \\alpha_i)"
 references:
   - "Kotz, S., Balakrishnan, N. and Johnson, N. L. (2000). Continuous Multivariate Distributions, Vol. 1: Models and Applications, 2nd ed. Wiley."
