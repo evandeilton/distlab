@@ -6,6 +6,9 @@
 .dl_groups <- c("binary", "counts", "bounded", "positive", "real_line",
                 "directional", "multivariate", "mixed")
 .dl_langs <- c("pt-BR", "en-US")
+# Univariate entries feed the engine and every interactive page; multivariate
+# entries are reference cards (formulas, story, relationships) only.
+.dl_dimensions <- c("univariate", "multivariate")
 
 #' Distribution registry
 #'
@@ -21,8 +24,17 @@
 #' or a `status` (`"infinite"` or `"undefined"`), and an optional math-only
 #' `condition`.
 #'
+#' Multivariate entries (`dimension: multivariate`) are reference cards: a
+#' support and parameters described in LaTeX, with teaching `example` values,
+#' and a `latex` field with the joint mass or density function (`pdf`) and
+#' the specs `mean`, `covariance`, `marginal`, `mgf` and `cf`, written for
+#' the coordinates \eqn{X_i} and \eqn{X_j}. They have no engine functions:
+#' [dl_dist()] and the pages built on it accept univariate ids only.
+#'
 #' @param refresh Logical. If `TRUE`, re-read the YAML files instead of using
 #'   the cached copy.
+#' @param dimension Which entries to return: `"univariate"` (the default, the
+#'   distributions handled by the engine), `"multivariate"`, or both.
 #'
 #' @returns A named list of registry entries, keyed by distribution id.
 #'
@@ -33,7 +45,9 @@
 #' reg <- dl_registry()
 #' names(reg)
 #' reg$gamma$parameters[[1]]$name
-dl_registry <- function(refresh = FALSE) {
+#' names(dl_registry(dimension = "multivariate"))
+dl_registry <- function(refresh = FALSE, dimension = "univariate") {
+  dimension <- check_dimension(dimension)
   if (isTRUE(refresh) || is.null(.dl_env$registry)) {
     dir <- system.file("registry", package = "distlab")
     files <- sort(list.files(dir, pattern = "\\.ya?ml$", full.names = TRUE))
@@ -46,7 +60,27 @@ dl_registry <- function(refresh = FALSE) {
     }
     .dl_env$registry <- entries
   }
-  .dl_env$registry
+  reg <- .dl_env$registry
+  reg[vapply(reg, entry_dimension, "") %in% dimension]
+}
+
+# Every entry, univariate and multivariate: the catalog shown by the
+# Compendium, Home search and the relationship tables.
+catalog_registry <- function() dl_registry(dimension = .dl_dimensions)
+
+# Dimension of an entry; entries without the field are univariate.
+entry_dimension <- function(entry) entry$dimension %||% "univariate"
+
+# TRUE for a multivariate reference card.
+is_multivariate <- function(entry) identical(entry_dimension(entry), "multivariate")
+
+# Check a `dimension` argument: a non-empty subset of .dl_dimensions.
+check_dimension <- function(dimension) {
+  if (!is.character(dimension) || !length(dimension) || anyNA(dimension) ||
+      !all(dimension %in% .dl_dimensions)) {
+    stop("`dimension` must hold \"univariate\" and/or \"multivariate\".", call. = FALSE)
+  }
+  dimension
 }
 
 #' List distribution ids
@@ -55,16 +89,19 @@ dl_registry <- function(refresh = FALSE) {
 #'   `"continuous"`) to keep.
 #' @param group Optional character vector of data-type groups to keep, such
 #'   as `"counts"`, `"positive"` or `"real_line"`.
+#' @inheritParams dl_registry
 #'
-#' @returns A character vector of distribution ids.
+#' @returns A character vector of distribution ids. By default only
+#'   univariate ids, the ones [dl_dist()] accepts.
 #'
 #' @family registry
 #' @export
 #' @examples
 #' dl_ids()
 #' dl_ids(type = "discrete")
-dl_ids <- function(type = NULL, group = NULL) {
-  reg <- dl_registry()
+#' dl_ids(dimension = "multivariate")
+dl_ids <- function(type = NULL, group = NULL, dimension = "univariate") {
+  reg <- dl_registry(dimension = dimension)
   keep <- rep(TRUE, length(reg))
   if (!is.null(type)) {
     keep <- keep & vapply(reg, function(e) e$type %in% type, logical(1))
@@ -75,14 +112,26 @@ dl_ids <- function(type = NULL, group = NULL) {
   names(reg)[keep]
 }
 
-# Look up one entry by id, with a clear error for unknown ids.
-dl_entry <- function(id) {
-  reg <- dl_registry()
+# Look up one entry by id, with a clear error for unknown ids. Multivariate
+# entries are returned only when `multivariate = TRUE` (reference cards); the
+# engine and the interactive pages get a clear refusal instead.
+dl_entry <- function(id, multivariate = FALSE) {
+  reg <- catalog_registry()
   if (!is.character(id) || length(id) != 1L || !id %in% names(reg)) {
     stop("Unknown distribution id: ", paste(format(id), collapse = ", "),
          ". See dl_ids().", call. = FALSE)
   }
+  if (!isTRUE(multivariate) && is_multivariate(reg[[id]])) {
+    stop(multivariate_refusal(id), call. = FALSE)
+  }
   reg[[id]]
+}
+
+# Error text for a multivariate id given to a univariate tool.
+multivariate_refusal <- function(id) {
+  sprintf(paste0("'%s' is a multivariate distribution: it has a reference card in ",
+                 "the Compendium, and the engine handles univariate ids only. ",
+                 "See dl_ids()."), paste(id, collapse = "', '"))
 }
 
 # Parse one YAML file and stop if the entry fails validation.
@@ -101,8 +150,15 @@ read_registry_entry <- function(path) {
   entry
 }
 
-# Check one registry entry; returns a character vector of problems (empty if valid).
+# Check one registry entry; returns a character vector of problems (empty if
+# valid). Multivariate entries follow their own schema (validate_mv_entry()).
 validate_entry <- function(entry) {
+  if (!is.null(entry$dimension)) {
+    if (!is_string(entry$dimension) || !entry$dimension %in% .dl_dimensions) {
+      return("dimension must be univariate or multivariate")
+    }
+    if (is_multivariate(entry)) return(validate_mv_entry(entry))
+  }
   p <- character()
   req <- c("id", "names", "type", "group", "subgroup", "tier", "support",
            "parameters", "functions", "latex", "story", "references")
@@ -263,7 +319,8 @@ validate_relationship <- function(rel) {
 
 # Problems with one LaTeX string: math delimiters, unbalanced braces or
 # \left/\right, macros outside the whitelist and, for conditions, words.
-latex_string_problems <- function(s, label, condition = FALSE) {
+latex_string_problems <- function(s, label, condition = FALSE,
+                                  macros = .dl_latex_macros) {
   p <- character()
   # A line break "\\" is not an escape; drop it before looking at escapes.
   t <- gsub("\\\\\\\\", " ", s)
@@ -279,8 +336,8 @@ latex_string_problems <- function(s, label, condition = FALSE) {
   if (count("\\\\left(?![A-Za-z])") != count("\\\\right(?![A-Za-z])")) {
     p <- c(p, sprintf("%s has unbalanced \\left and \\right", label))
   }
-  macros <- sub("^\\\\", "", regmatches(t, gregexpr("\\\\[A-Za-z]+", t))[[1]])
-  if (length(bad <- setdiff(macros, .dl_latex_macros))) {
+  used <- sub("^\\\\", "", regmatches(t, gregexpr("\\\\[A-Za-z]+", t))[[1]])
+  if (length(bad <- setdiff(used, macros))) {
     p <- c(p, sprintf("%s uses unsupported macro(s): %s", label,
                       paste0("\\", unique(bad), collapse = ", ")))
   }
@@ -324,7 +381,7 @@ validate_latex <- function(latex, type) {
 # piece has either `expr` (a LaTeX string, or null when there is no closed
 # form) or `status` ("infinite" or "undefined"), and an optional math-only
 # `condition` string. Every piece of a list needs its own, distinct condition.
-validate_formula <- function(x, key) {
+validate_formula <- function(x, key, macros = .dl_latex_macros) {
   is_piece <- function(y) is.list(y) && !is.null(names(y))
   pieces <- if (is_piece(x)) list(x) else x
   if (!is.list(pieces) || !length(pieces) ||
@@ -349,7 +406,7 @@ validate_formula <- function(x, key) {
     }
     if (has_expr && !is.null(pc[["expr"]])) {
       if (is_string(pc[["expr"]])) {
-        p <- c(p, latex_string_problems(pc[["expr"]], label))
+        p <- c(p, latex_string_problems(pc[["expr"]], label, macros = macros))
       } else {
         p <- c(p, sprintf("%s expr must be a string or null", label))
       }
@@ -361,7 +418,8 @@ validate_formula <- function(x, key) {
     }
     if ("condition" %in% nm) {
       if (is_string(pc[["condition"]])) {
-        p <- c(p, latex_string_problems(pc[["condition"]], label, condition = TRUE))
+        p <- c(p, latex_string_problems(pc[["condition"]], label, condition = TRUE,
+                                        macros = macros))
         conds <- c(conds, gsub("\\s+", "", pc[["condition"]]))
       } else {
         p <- c(p, sprintf("%s condition must be a string", label))
@@ -398,12 +456,12 @@ validate_relationship_targets <- function(entries) {
 
 # TRUE when `x` is a number or a string holding a simple expression whose
 # symbols are parameter names, numbers or the allowed operators.
-is_bound <- function(x, par_names, logical = FALSE) {
+is_bound <- function(x, par_names, logical = FALSE, extra = character()) {
   if (!logical && is.numeric(x) && length(x) == 1L && !is.na(x)) return(TRUE)
   if (!is_string(x)) return(FALSE)
   expr <- tryCatch(str2lang(x), error = function(e) NULL)
   if (is.null(expr)) return(FALSE)
-  ok <- c(par_names, .dl_bound_ops, if (logical) .dl_logical_ops)
+  ok <- c(par_names, .dl_bound_ops, if (logical) .dl_logical_ops, extra)
   all(all.names(expr) %in% ok)
 }
 

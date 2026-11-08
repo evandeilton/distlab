@@ -5,7 +5,7 @@ vis_messages <- function(session, type) {
 
 test_that("clicking a node or an edge fills the side panel", {
   shiny::testServer(distlab:::mod_compendium_server, args = list(lang = "en-US"), {
-    expect_match(output$panel$html, "21")
+    expect_match(output$panel$html, "25")
     session$setInputs(click = list(kind = "node", id = "gamma"))
     expect_identical(sel(), list(kind = "node", id = "gamma"))
     expect_match(output$panel$html, "Gamma")
@@ -156,7 +156,7 @@ test_that("the catalog table is sortable and searchable", {
   html <- as.character(distlab:::catalog_table("pt-BR", "c-open"))
   expect_match(html, "dl-sortable")
   expect_identical(lengths(regmatches(html, gregexpr("<tr data-search", html))),
-                   length(dl_ids()))
+                   length(dl_ids(dimension = c("univariate", "multivariate"))))
   expect_match(html, 'aria-sort="ascending"', fixed = TRUE)
   expect_match(html, "stats::dgamma", fixed = TRUE)
   expect_match(html, "Família gama")

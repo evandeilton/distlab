@@ -4,11 +4,14 @@
 \alias{dl_registry}
 \title{Distribution registry}
 \usage{
-dl_registry(refresh = FALSE)
+dl_registry(refresh = FALSE, dimension = "univariate")
 }
 \arguments{
 \item{refresh}{Logical. If \code{TRUE}, re-read the YAML files instead of using
 the cached copy.}
+
+\item{dimension}{Which entries to return: \code{"univariate"} (the default, the
+distributions handled by the engine), \code{"multivariate"}, or both.}
 }
 \value{
 A named list of registry entries, keyed by distribution id.
@@ -26,11 +29,19 @@ discrete entries), median, mode and entropy. Each spec is one piece or a
 list of pieces; a piece has an \code{expr} (\code{NULL} when there is no closed form)
 or a \code{status} (\code{"infinite"} or \code{"undefined"}), and an optional math-only
 \code{condition}.
+
+Multivariate entries (\code{dimension: multivariate}) are reference cards: a
+support and parameters described in LaTeX, with teaching \code{example} values,
+and a \code{latex} field with the joint mass or density function (\code{pdf}) and
+the specs \code{mean}, \code{covariance}, \code{marginal}, \code{mgf} and \code{cf}, written for
+the coordinates \eqn{X_i} and \eqn{X_j}. They have no engine functions:
+\code{\link[=dl_dist]{dl_dist()}} and the pages built on it accept univariate ids only.
 }
 \examples{
 reg <- dl_registry()
 names(reg)
 reg$gamma$parameters[[1]]$name
+names(dl_registry(dimension = "multivariate"))
 }
 \seealso{
 \code{\link[=dl_ids]{dl_ids()}}, \code{\link[=dl_dist]{dl_dist()}}

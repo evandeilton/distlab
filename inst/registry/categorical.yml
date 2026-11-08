@@ -1,0 +1,81 @@
+id: categorical
+dimension: multivariate
+names:
+  en-US: Categorical
+  pt-BR: Categórica
+type: discrete
+group: multivariate
+subgroup: binomial_family
+tier: 1
+graph: {xy: [-580, -480]}
+support:
+  latex: "\\mathbf{x} \\in \\{0, 1\\}^{k},\\ \\sum_{i=1}^{k} x_i = 1"
+parameters:
+  - name: prob
+    latex: "\\mathbf{p}"
+    elements: "(p_1, \\ldots, p_k)"
+    lower: 0
+    example: [0.1, 0.4, 0.3, 0.2]
+    description:
+      en-US: "Probabilities of the k categories, each at least 0 and adding to 1."
+      pt-BR: "Probabilidades das k categorias, cada uma maior ou igual a 0 e com soma 1."
+constraints:
+  - "length(prob) >= 2"
+  - "abs(sum(prob) - 1) < 1e-9"
+functions:
+  d: extraDistr::dcat
+  r: extraDistr::rcat
+functions_note:
+  en-US: "dcat() and rcat() work with the category index i = 1, …, k instead of the vector of indicators."
+  pt-BR: "dcat() e rcat() trabalham com o índice da categoria i = 1, …, k em vez do vetor de indicadoras."
+latex:
+  pdf: "P(\\mathbf{X} = \\mathbf{x}) = \\prod_{i=1}^{k} p_i^{x_i}, \\quad \\mathbf{x} \\in \\{\\mathbf{e}_1, \\ldots, \\mathbf{e}_k\\}"
+  mean:
+    expr: "p_i"
+  covariance:
+    - expr: "p_i (1 - p_i)"
+      condition: "i = j"
+    - expr: "-p_i p_j"
+      condition: "i \\ne j"
+  marginal:
+    expr: "X_i \\sim \\mathrm{Bernoulli}(p_i)"
+  mgf:
+    expr: "\\sum_{j=1}^{k} p_j e^{t_j}"
+  cf:
+    expr: "\\sum_{j=1}^{k} p_j e^{i t_j}"
+story:
+  en-US: >-
+    One trial with k possible outcomes, such as rolling a die or recording
+    which of k parties a voter prefers. The Categorical distribution gives the
+    probability pᵢ of each category. Coding the result as a vector of k zeros
+    and ones, with a single 1 in the observed category, makes it a
+    multivariate law: each coordinate is a Bernoulli variable, and the
+    coordinates are negatively correlated because only one of them can be 1.
+  pt-BR: >-
+    Um único ensaio com k resultados possíveis, como lançar um dado ou
+    registrar qual de k partidos um eleitor prefere. A distribuição Categórica
+    dá a probabilidade pᵢ de cada categoria. Ao codificar o resultado como um
+    vetor de k zeros e uns, com um único 1 na categoria observada, ela se torna
+    uma lei multivariada: cada coordenada é uma variável de Bernoulli, e as
+    coordenadas são negativamente correlacionadas, pois só uma delas pode
+    valer 1.
+relationships:
+  - to: multinomial
+    type: sum
+    label: "ΣXᵢ"
+    condition:
+      en-US: "The sum of n independent Categorical(p) vectors counts the results of each category: it is Multinomial(n, p)."
+      pt-BR: "A soma de n vetores Categórica(p) independentes conta os resultados de cada categoria: é Multinomial(n, p)."
+    latex: "\\mathbf{X}_1, \\ldots, \\mathbf{X}_n \\overset{iid}{\\sim} \\mathrm{Categorical}(\\mathbf{p}) \\Rightarrow \\sum_{m=1}^{n} \\mathbf{X}_m \\sim \\mathrm{Multinomial}(n, \\mathbf{p})"
+  - to: bernoulli
+    type: special_case
+    label: "k=2"
+    condition:
+      en-US: "With k = 2 categories the vector is fixed by its first coordinate, which is Bernoulli(p₁)."
+      pt-BR: "Com k = 2 categorias o vetor fica determinado pela primeira coordenada, que é Bernoulli(p₁)."
+    latex: "k = 2 \\Rightarrow X_1 \\sim \\mathrm{Bernoulli}(p_1),\\ X_2 = 1 - X_1"
+references:
+  - "Agresti, A. (2013). Categorical Data Analysis, 3rd ed. Wiley."
+  - "Johnson, N. L., Kotz, S. and Balakrishnan, N. (1997). Discrete Multivariate Distributions. Wiley."
+  - "Magalhães, M. N. (2015). Probabilidade e Variáveis Aleatórias, 3rd ed. Edusp."
+  - "Forbes, C., Evans, M., Hastings, N. and Peacock, B. (2011). Statistical Distributions, 4th ed. Wiley."

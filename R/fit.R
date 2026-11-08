@@ -69,6 +69,8 @@ dl_fit <- function(x, ids = c("normal", "gamma"), fixed = list(),
 fit_models <- function(x, ids = c("normal", "gamma"), fixed = list(),
                        level = 0.95, control = list(), progress = NULL) {
   data <- if (inherits(x, "dl_fit_data")) x else dl_fit_data(x)
+  mv <- if (is.character(ids)) intersect(ids, dl_ids(dimension = "multivariate"))
+  if (length(mv)) stop(multivariate_refusal(mv), call. = FALSE)
   if (!is.character(ids) || !length(ids) || anyNA(ids) ||
       any(!ids %in% dl_ids()) || anyDuplicated(ids)) {
     stop("`ids` must contain distinct registry distribution ids.", call. = FALSE)

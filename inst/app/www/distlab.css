@@ -243,6 +243,7 @@ bslib-input-dark-mode { --text-1: #FFFFFF; --text-2: rgba(255, 255, 255, 0.80); 
 .dl-group-tile.dl-group-bounded, .dl-group-panel.dl-group-bounded { --dl-grp: var(--dl-grp-bounded); }
 .dl-group-tile.dl-group-positive, .dl-group-panel.dl-group-positive { --dl-grp: var(--dl-grp-positive); }
 .dl-group-tile.dl-group-real_line, .dl-group-panel.dl-group-real_line { --dl-grp: var(--dl-grp-real_line); }
+.dl-group-tile.dl-group-multivariate, .dl-group-panel.dl-group-multivariate { --dl-grp: var(--dl-grp-multivariate); }
 
 /* Exam-prep cards with their static mini plots. */
 .dl-exam-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
@@ -255,6 +256,35 @@ bslib-input-dark-mode { --text-1: #FFFFFF; --text-2: rgba(255, 255, 255, 0.80); 
 .dl-mini-b { stroke: var(--dl-accent-text); }
 .dl-mini-c { stroke: var(--dl-icon-amber); }
 .dl-mini-dash { stroke-dasharray: 4 3; }
+
+/* Reference card of a multivariate distribution (Compendium dialog). */
+.dl-mv-card { display: flex; flex-direction: column; gap: 1.1rem; }
+.dl-mv-head { display: flex; flex-direction: column; gap: 0.5rem; }
+.dl-mv-note { margin: 0; color: var(--dl-muted); font-size: 0.9rem; line-height: 1.5; }
+.dl-mv-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.1rem; }
+@media (min-width: 992px) { .dl-mv-grid { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); } }
+.dl-mv-sub { display: flex; align-items: center; gap: 0.5rem; font-size: 1rem; font-weight: 700;
+  margin: 0 0 0.6rem; color: var(--dl-ink); }
+.dl-mv-sub .fa, .dl-mv-sub .fas { color: var(--dl-icon-indigo); }
+.dl-mv-about .dl-story { margin-bottom: 0.9rem; }
+.dl-mv-facts .dl-param-list { flex-direction: column; gap: 0.45rem; }
+.dl-mv-desc { display: block; font-size: 0.86rem; color: var(--dl-muted); margin-top: 0.1rem; }
+.dl-mv-fig { margin: 0; }
+.dl-mv-plot { display: block; width: 100%; max-width: 26rem; height: auto; margin: 0 auto; }
+.dl-mv-caption { font-size: 0.86rem; color: var(--dl-muted); margin-top: 0.4rem; line-height: 1.5; }
+.dl-mv-axis { stroke: var(--dl-muted); stroke-width: 1; fill: none; }
+.dl-mv-frame { stroke: var(--dl-border); }
+.dl-mv-gridline { stroke: var(--dl-border); stroke-width: 1; }
+.dl-mv-bar { fill: var(--dl-grp-multivariate); fill-opacity: 0.55; stroke: var(--dl-grp-multivariate); stroke-width: 1.5; }
+.dl-mv-whisker { stroke: var(--dl-ink); stroke-width: 1.5; }
+.dl-mv-point { fill: var(--dl-grp-multivariate); fill-opacity: 0.45; }
+.dl-mv-mean { fill: var(--dl-amber); stroke: var(--dl-ink); stroke-width: 1.5; }
+.dl-mv-ellipse { fill: none; stroke: var(--dl-accent-text); stroke-width: 2; }
+.dl-mv-ellipse-2 { stroke-dasharray: 6 4; }
+.dl-mv-text { fill: var(--dl-muted); font-size: 11px; font-family: Inter, system-ui, sans-serif; }
+.dl-mv-value { fill: var(--dl-ink); font-weight: 600; }
+.dl-mv-axis-title { font-style: italic; font-size: 12px; }
+.dl-mv-formulas .dl-formula-list { padding: 0; }
 
 .dl-group-head { display: flex; align-items: center; gap: 0.85rem; margin-bottom: 0.6rem; }
 .dl-group-title { font-size: 1.15rem; font-weight: 700; margin: 0; }

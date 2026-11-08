@@ -9,13 +9,14 @@ dl_catalog()
 \value{
 A data frame with the columns \code{id}, \code{name_en}, \code{name_pt},
 \code{group} (data type, such as \code{"counts"}), \code{subgroup} (family), \code{type}
-(\code{"discrete"} or \code{"continuous"}), \code{tier} (1 = core catalog), \code{n_params}
-and \code{n_relations} (edges that start or end at the entry, see
+(\code{"discrete"} or \code{"continuous"}), \code{dimension} (\code{"univariate"} or
+\code{"multivariate"}), \code{tier} (1 = core catalog), \code{n_params} and
+\code{n_relations} (edges that start or end at the entry, see
 \code{\link[=dl_relations]{dl_relations()}}).
 }
 \description{
-One row per registry entry, with its names, classification and counts of
-parameters and relationships.
+One row per registry entry, univariate and multivariate, with its names,
+classification and counts of parameters and relationships.
 }
 \examples{
 cat <- dl_catalog()

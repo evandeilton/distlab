@@ -139,3 +139,15 @@
 * New presentation mode for projectors (navbar button, or "P"; Esc leaves):
   larger type and plot fonts, thicker lines, stronger contrast, closed
   sidebars and no help lines. The browser remembers the choice.
+* Categorical, Multinomial, Dirichlet and Multivariate normal join the
+  catalog as reference cards: story, formula sheet (joint mass or density,
+  mean vector, covariance matrix, marginals, mgf and cf), a static
+  illustration and their relationships to Bernoulli, Binomial, Beta and
+  Normal. They appear on the Compendium map, list, cards and table, in Home
+  search and in a new Multivariate tile, and the card opens over the current
+  page.
+* `dl_catalog()` (with a new `dimension` column) and `dl_relations()` now
+  include the multivariate entries. `dl_registry()` and `dl_ids()` gain a
+  `dimension` argument; by default they return the univariate entries, so
+  `dl_ids()` lists the ids that `dl_dist()` and the other engine functions
+  accept.

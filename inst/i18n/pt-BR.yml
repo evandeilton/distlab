@@ -246,6 +246,7 @@ home.example.counts: "Ex.: nº de clientes por hora"
 home.example.bounded: "Ex.: proporção de acertos numa prova"
 home.example.positive: "Ex.: tempo de espera numa fila"
 home.example.real_line: "Ex.: erro de uma medição"
+home.example.multivariate: "Ex.: votos divididos entre partidos"
 home.start_here: comece por aqui
 home.see_all: "Ver as {n} no Compêndio →"
 home.see_one: "Ver no Compêndio →"
@@ -305,6 +306,9 @@ formula.entropy: Entropia
 formula.if: se
 formula.undefined: não existe
 formula.no_closed_form: sem forma fechada
+formula.mean_vector: Vetor de médias
+formula.covariance: Matriz de covariâncias
+formula.marginal: Distribuições marginais
 related.title: Distribuições relacionadas
 related.none: Não há relações registradas para esta distribuição.
 related.to: leva a
@@ -313,6 +317,20 @@ related.type.special_case: Caso particular
 related.type.transformation: Transformação
 related.type.limit: Limite
 related.type.sum: Soma
+card.badge: "Consulta: fórmulas e propriedades"
+card.note: "As páginas interativas (Explorador, Calculadora, Comparar, Simulação e Ajuste) trabalham com uma variável por vez."
+card.story: História
+card.illustration: Ilustração
+card.formulas: Formulário
+card.functions: Funções do R
+card.close: Fechar
+card.open: Abrir a ficha de consulta
+card.open_label: "Abrir a ficha de consulta de {name}"
+card.no_illustration: Sem ilustração para estes valores.
+card.illus.categorical: "Probabilidade de cada categoria para p = {p}."
+card.illus.multinomial: "Contagem esperada n·pᵢ de cada categoria, com uma barra de um desvio-padrão para cada lado, para n = {n} e p = {p}."
+card.illus.dirichlet: "{draws} sorteios da Dirichlet(α = {alpha}) no triângulo das proporções, o simplex; o ponto maior é o vetor de médias."
+card.illus.mvnormal: "{draws} sorteios de uma Normal bivariada com vetor de médias μ = {mu}, variâncias {v1} e {v2} e correlação {rho}; as elipses contêm 50% e 90% da probabilidade."
 moments.mean: Média
 moments.variance: Variância
 moments.sd: Desvio-padrão
@@ -772,6 +790,7 @@ report.calc.none: >-
   Nenhum cálculo foi registrado nesta sessão. Probabilidades, quantis e
   intervalos calculados na Calculadora aparecem aqui.
 report.rel.no_demo: Esta relação não tem demonstração neste relatório.
+report.rel.card: "A outra ponta é uma distribuição multivariada, descrita na sua ficha de consulta no Compêndio."
 report.fit.intro: >-
   Ajuste por máxima verossimilhança da {name} e das outras famílias
   candidatas aos dados do laboratório de Ajuste: {n} observações ({kind}).

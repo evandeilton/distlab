@@ -1,9 +1,11 @@
 # Simulation demos of the relationship map: one recipe per registry edge.
 
+# Edges between univariate laws; multivariate entries are reference cards.
 all_edges <- function() {
   rel <- dl_relations()
   rel$id <- distlab:::edge_ids(rel)
-  rel
+  uni <- dl_ids()
+  rel[rel$from %in% uni & rel$to %in% uni, , drop = FALSE]
 }
 
 test_that("every relationship edge has exactly one simulation recipe", {

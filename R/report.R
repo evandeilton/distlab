@@ -286,9 +286,10 @@ report_simulations <- function(dist, simulations, seed, relations) {
   recs
 }
 
-# Relationship edges that start or end at `id`, with their edge ids.
+# Relationship edges that start or end at `id`, with their edge ids; edges
+# to multivariate entries are listed too, as in the Explorer.
 report_edges <- function(id) {
-  rel <- relations_frame(dl_registry())
+  rel <- relations_frame(catalog_registry())
   rel$id <- edge_ids(rel)
   rel[rel$from == id | rel$to == id, , drop = FALSE]
 }
@@ -480,7 +481,7 @@ report_cover <- function(ctx, dist, seeds) {
 # Story of the entry and its related distributions with their conditions.
 report_story <- function(ctx, dist) {
   lang <- ctx$lang
-  reg <- dl_registry()
+  reg <- catalog_registry()
   rel <- report_edges(dist$id)
   name <- function(i) entry_text(reg[[i]], "names", lang)
   items <- lapply(seq_len(nrow(rel)), function(i) {
@@ -834,7 +835,7 @@ report_calculations_section <- function(ctx, calcs) {
 # demonstration.
 report_relations <- function(ctx, dist, sims) {
   lang <- ctx$lang
-  reg <- dl_registry()
+  reg <- catalog_registry()
   rel <- report_edges(dist$id)
   demos <- Filter(function(r) r$kind == "relation", sims)
   ids <- vapply(demos, function(r) r$edge %||% r$res$edge$id, "")
@@ -843,8 +844,10 @@ report_relations <- function(ctx, dist, sims) {
     r <- rel[i, ]
     hit <- match(r$id, ids)
     demo <- if (!is.na(hit)) demos[[hit]]$res
+    # A multivariate end is described by its reference card in the app.
+    mv <- is_multivariate(reg[[r$from]]) || is_multivariate(reg[[r$to]])
     body <- if (is.null(demo)) {
-      report_notes(tr("report.rel.no_demo", lang))
+      report_notes(tr(if (mv) "report.rel.card" else "report.rel.no_demo", lang))
     } else if (inherits(demo, "error")) {
       report_notes(tr("report.sim.failed", lang, message = sim_error_text(demo, lang)))
     } else {

@@ -336,6 +336,8 @@ dl_relation_demo <- function(from, to, type = NULL, n = 5000, seed = NULL) {
   if (!is_string(from) || !is_string(to)) {
     stop("`from` and `to` must be distribution ids; see dl_relations().", call. = FALSE)
   }
+  mv <- intersect(c(from, to), dl_ids(dimension = "multivariate"))
+  if (length(mv)) stop(multivariate_refusal(mv), call. = FALSE)
   hit <- rel[rel$from == from & rel$to == to, , drop = FALSE]
   if (!is.null(type)) hit <- hit[hit$type %in% type, , drop = FALSE]
   if (!nrow(hit)) {

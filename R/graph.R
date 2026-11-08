@@ -49,7 +49,7 @@ alpha_hex <- function(col, alpha) {
 # Map positions of every entry. Entries with a `graph` field keep it; the
 # others are placed on rows below the map, in id order, so a new entry is
 # always visible and never covers an existing node.
-graph_layout <- function(reg = dl_registry()) {
+graph_layout <- function(reg = catalog_registry()) {
   ids <- names(reg)
   has <- vapply(reg, function(e) !is.null(e$graph) && !length(validate_graph(e$graph)),
                 logical(1))
@@ -85,7 +85,7 @@ node_active <- function(reg, groups, types) {
 
 # Node table. `groups` and `types` are the active filters.
 graph_nodes <- function(lang, dark = FALSE, groups = .dl_groups, types = .dl_types,
-                        reg = dl_registry()) {
+                        reg = catalog_registry()) {
   pal <- graph_palette(dark)
   cat <- catalog_frame(reg)
   pos <- graph_layout(reg)
@@ -119,7 +119,7 @@ graph_nodes <- function(lang, dark = FALSE, groups = .dl_groups, types = .dl_typ
 # Edge table. `relations` are the visible relation types; edges touching a
 # dimmed node are dimmed too.
 graph_edges <- function(lang, dark = FALSE, groups = .dl_groups, types = .dl_types,
-                        relations = .dl_relation_types, reg = dl_registry()) {
+                        relations = .dl_relation_types, reg = catalog_registry()) {
   pal <- graph_palette(dark)
   rel <- relations_frame(reg)
   if (!nrow(rel)) return(data.frame())
@@ -131,8 +131,14 @@ graph_edges <- function(lang, dark = FALSE, groups = .dl_groups, types = .dl_typ
   esc <- htmltools::htmlEscape
   title <- sprintf("<strong>%s \u2192 %s</strong><br>%s<br>%s", esc(name[rel$from]),
                    esc(name[rel$to]), esc(type_label), esc(cond))
-  # Two edges in opposite directions are curved apart; the others are straight.
+  # Two edges in opposite directions are curved apart. Further edges between
+  # the same two ends alternate sides, each one further out; the reverse
+  # edge of a pair already uses the first curve on each side.
   pair <- paste(rel$from, rel$to) %in% paste(rel$to, rel$from) & rel$from != rel$to
+  key <- paste(rel$from, rel$to)
+  rank <- stats::ave(seq_along(key), key, FUN = seq_along) - 1L
+  again <- rank > 0L & rel$from != rel$to
+  level <- ifelse(again, ceiling(rank / 2) + pair, 1)
   col <- unname(pal$relation[rel$type])
   data.frame(
     id = edge_ids(rel), from = rel$from, to = rel$to,
@@ -144,7 +150,9 @@ graph_edges <- function(lang, dark = FALSE, groups = .dl_groups, types = .dl_typ
     color.highlight = col, color.hover = col,
     font.color = ifelse(on, pal$label, alpha_hex(pal$label, 0.30)),
     font.strokeColor = pal$surface,
-    smooth.enabled = pair, smooth.type = "curvedCW", smooth.roundness = 0.32,
+    smooth.enabled = pair | again,
+    smooth.type = ifelse(again & rank %% 2L == 1L, "curvedCCW", "curvedCW"),
+    smooth.roundness = 0.32 * level,
     hidden = !rel$type %in% relations,
     dl_type = rel$type, dl_active = unname(on),
     stringsAsFactors = FALSE

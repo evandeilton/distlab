@@ -86,7 +86,8 @@ mod_explore_ui <- function(id, lang) {
   )
 }
 
-# Distribution choices grouped by data type, labeled in `lang`.
+# Distribution choices grouped by data type, labeled in `lang`: univariate
+# laws only, the ones every interactive page can handle.
 dist_choices <- function(lang) {
   reg <- dl_registry()
   groups <- intersect(.dl_groups, unique(vapply(reg, `[[`, "", "group")))
@@ -108,7 +109,8 @@ dist_choices <- function(lang) {
 # report.
 # Returns the reactives of the current entry, parameter values and
 # distribution, and `route`, a request to open the Calculator, Compare or the
-# Simulation.
+# Simulation, or list(card = id) for the reference card of a related
+# multivariate law.
 mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
                                select = shiny::reactive(NULL), store = NULL) {
   lang_r <- if (shiny::is.reactive(lang)) lang else shiny::reactive(lang)
@@ -137,12 +139,20 @@ mod_explore_server <- function(id, lang, dark = shiny::reactive(FALSE),
       if (is_string(r$id) && r$id %in% dl_ids() && length(r$params)) sliders$set(r$id, r$params)
       open_dist(r$id)
     })
-    shiny::observeEvent(input$goto, open_dist(input$goto))
-
     # Links to the Calculator, Compare and the Simulation carry the open
     # distribution and its parameter values.
     route <- shiny::reactiveVal(NULL)
     count <- 0L
+    # A related multivariate law opens as its reference card over this page.
+    shiny::observeEvent(input$goto, {
+      did <- input$goto
+      if (is_string(did) && did %in% dl_ids(dimension = "multivariate")) {
+        count <<- count + 1L
+        route(list(card = did, n = count))
+      } else {
+        open_dist(did)
+      }
+    })
     send_to <- function(tab) {
       p <- pars()
       shiny::req(p, identical(p$id, entry()$id))
